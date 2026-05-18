@@ -25,6 +25,15 @@
           }
         }, 
         {
+  "name": "Text to Image",
+  "desc": "Generate gambar dari teks pake AI (gratis, tanpa API key)",
+  "path": "/ai/txt2img?prompt=",
+  "status": "ready",
+  "params": {
+    "prompt": "Deskripsi gambar yang mau dibuat"
+  }
+        },
+        {
           "name": "Deepseek",
           "desc": "Deepseek ai",
           "path": "/ai/deepseek?text=",
