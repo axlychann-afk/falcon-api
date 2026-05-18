@@ -306,15 +306,15 @@
     "url": "(Opsional) URL gambar jika tidak mengirim file"
   }
    },
-        {
+{
   "name": "Upload ke Catbox",
   "desc": "Upload file ke catbox.moe (gratis, max 200MB)",
-  "path": "/tools/upload-catbox?url=",
+  "path": "/tools/upload-catbox-url?url=",
   "status": "ready",
   "params": {
-    "url": "(Opsional) URL file yang mau diupload"
+    "url": "URL file yang mau diupload (atau upload langsung via form)"
   }
-        },
+},
         {
           "name": "Emoji Mix",
           "desc": "Menggabungkan dua emoji menjadi satu emoji baru yang unik dalam bentuk gambar.",
