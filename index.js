@@ -127,7 +127,7 @@ app.use((req, res, next) => {
         if (data && typeof data === 'object') {
             const responseData = {
                 status: data.status,
-                creator: settings.apiSettings.creator || "FlowFalcon",
+                creator: settings.apiSettings.creator || "Axly API",
                 ...data
             };
             return originalJson.call(this, responseData);
