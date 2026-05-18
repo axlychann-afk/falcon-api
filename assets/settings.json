@@ -13,20 +13,29 @@
     ]
   },
   "categories": [
+{
+  "name": "OpenAI",
+  "items": [
     {
-      "name": "OpenAI",
-      "items": [
-        {
-          "name": "OpenAI Llama3",
-          "desc": "Chat dengan model Llama3-8B-8192 Cepat dan cerdas.",
-          "path": "/ai/openai?text=",
-          "status": "ready",
-          "params": {
-            "text": "Teks atau pertanyaan yang ingin diajukan ke AI."
-          }
-        }
-      ]
+      "name": "OpenAI Llama3",
+      "desc": "Chat dengan model Llama3-8B-8192 Cepat dan cerdas.",
+      "path": "/ai/openai?text=",
+      "status": "ready",
+      "params": {
+        "text": "Teks atau pertanyaan yang ingin diajukan ke AI."
+      }
     },
+    {
+      "name": "Overchat",
+      "desc": "Overchat AI (Claude Haiku) - Chat AI gratis tanpa login",
+      "path": "/ai/overchat?text=",
+      "status": "ready",
+      "params": {
+        "text": "Teks atau pertanyaan untuk AI Overchat"
+      }
+    }
+  ]
+},
     {
       "name": "Anime",
       "items": [
@@ -45,15 +54,6 @@
           "path": "/anime/berita",
           "status": "ready"
         },
-        {
-  "name": "Overchat",
-  "desc": "Overchat AI (Claude Haiku) - Chat AI gratis tanpa login",
-  "path": "/ai/overchat?text=",
-  "status": "ready",
-  "params": {
-    "text": "Teks atau pertanyaan untuk AI Overchat"
-  },
-        
         {
           "name": "Jadwal Rilis Anime",
           "desc": "Menampilkan jadwal rilis anime mingguan dari LiveChart.me.",
