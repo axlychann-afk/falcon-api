@@ -99,13 +99,98 @@ module.exports = (app) => {
         }
     });
 
-    // Halaman HTML untuk test di browser
-    app.get('/tools/upload-catbox-test', (req, res) => {
+    // Halaman HTML untuk test di browser (upload file)
+    app.get('/tools/upload-catbox', (req, res) => {
+        if (req.query.url) return;
+        
         res.send(`
             <!DOCTYPE html>
             <html>
-            <head><title>Upload ke Catbox</title></head>
-            <body style="font-family: sans-serif; max-width: 500px; margin: 50px auto;">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>Upload ke Catbox.moe</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; background: #f0f2f5; }
+                    .container { background: white; border-radius: 16px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                    h2 { color: #333; margin-top: 0; }
+                    p { color: #666; margin-bottom: 20px; }
+                    input[type="file"] { padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%; margin-bottom: 20px; background: white; }
+                    button { background: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; }
+                    button:hover { background: #0056b3; }
+                    button:disabled { background: #ccc; cursor: not-allowed; }
+                    .result { margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 8px; word-break: break-all; }
+                    .result a { color: #007bff; text-decoration: none; }
+                    .error { color: red; }
+                    .loading { color: #007bff; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h2>📤 Upload File ke Catbox.moe</h2>
+                    <p>Support: <strong>Gambar, Video, Dokumen, ZIP</strong> (max 200MB)</p>
+                    <form id="uploadForm" enctype="multipart/form-data">
+                        <input type="file" name="file" id="file" required>
+                        <button type="submit" id="submitBtn">Upload</button>
+                    </form>
+                    <div id="result" class="result" style="display:none;"></div>
+                </div>
+                <script>
+                    const form = document.getElementById('uploadForm');
+                    const resultDiv = document.getElementById('result');
+                    const submitBtn = document.getElementById('submitBtn');
+
+                    form.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        
+                        const fileInput = document.getElementById('file');
+                        const file = fileInput.files[0];
+                        if (!file) {
+                            alert('Pilih file dulu!');
+                            return;
+                        }
+
+                        resultDiv.style.display = 'block';
+                        resultDiv.innerHTML = '<span class="loading">⏳ Uploading... Please wait</span>';
+                        resultDiv.classList.remove('error');
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = 'Uploading...';
+
+                        const formData = new FormData();
+                        formData.append('file', file);
+
+                        try {
+                            const response = await fetch('/tools/upload-catbox', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            const json = await response.json();
+                            
+                            if (json.status) {
+                                resultDiv.innerHTML = \`
+                                    ✅ <strong>Upload berhasil!</strong><br>
+                                    📁 <strong>Nama:</strong> \${json.result.originalName}<br>
+                                    📦 <strong>Ukuran:</strong> \${(json.result.size / 1024).toFixed(2)} KB<br>
+                                    🔗 <strong>URL:</strong> <a href="\${json.result.url}" target="_blank">\${json.result.url}</a>
+                                \`;
+                            } else {
+                                resultDiv.innerHTML = \`❌ Gagal: \${json.error}\`;
+                                resultDiv.classList.add('error');
+                            }
+                        } catch (err) {
+                            resultDiv.innerHTML = \`❌ Error: \${err.message}\`;
+                            resultDiv.classList.add('error');
+                        } finally {
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = 'Upload';
+                        }
+                    });
+                </script>
+            </body>
+            </html>
+        `);
+    });
+};            <body style="font-family: sans-serif; max-width: 500px; margin: 50px auto;">
                 <h2>Upload ke Catbox.moe</h2>
                 <form id="form">
                     <input type="file" id="file" name="file" required>
