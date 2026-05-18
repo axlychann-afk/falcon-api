@@ -63,58 +63,7 @@
     {
       "name": "Anime",
       "items": [
-        {
-          "name": "Berita Anime",
-          "desc": "Menarik daftar berita anime terbaru dari MyAnimeList.",
-          "path": "/anime/beritaanime?id=",
-          "params": {
-            "id": "ID berita yang didapat dari endpoint 'Berita Anime'."
-          },
-          "status": "ready"
-        },
-        {
-          "name": "Detail Berita Anime",
-          "desc": "Mengambil konten lengkap dari sebuah berita anime berdasarkan ID-nya.",
-          "path": "/anime/berita",
-          "status": "ready"
-        },
-        {
-          "name": "Jadwal Rilis Anime",
-          "desc": "Menampilkan jadwal rilis anime mingguan dari LiveChart.me.",
-          "path": "/anime/jadwalrilis",
-          "status": "ready"
-        },
-        {
-          "name": "Update Anime Terbaru",
-          "desc": "Menampilkan daftar anime dengan episode yang baru saja di-update di AnimeDao.",
-          "path": "/anime/latest",
-          "status": "ready"
-        },
-        {
-          "name": "Anime Populer",
-          "desc": "Menampilkan daftar anime yang sedang populer (hot) di AnimeDao.",
-          "path": "/anime/hot",
-          "status": "ready"
-        },
-        {
-          "name": "Cari Anime",
-          "desc": "Melakukan pencarian anime berdasarkan judul di database AnimeDao.",
-          "path": "/anime/search?q=",
-          "status": "ready",
-          "params": {
-            "q": "Judul anime yang ingin Anda cari."
-          }
-        },
-        {
-          "name": "Detail Anime",
-          "desc": "Menampilkan informasi mendetail dari sebuah anime berdasarkan URL halamannya di AnimeDao.",
-          "path": "/anime/detail?url=",
-          "status": "ready",
-          "params": {
-            "url": "Contoh: 'https://animedao.lv/anime/some-anime-title/'"
-          }
-        },
-        {
+          {
           "name": "AlqAnime Hangat",
           "desc": "Daftar anime yang sedang hangat di AlqAnime.",
           "path": "/anime/alqanime/hangat",
@@ -264,18 +213,7 @@
           "desc": "Menampilkan gambar acak dari karakter game Blue Archive.",
           "path": "/random/ba",
           "status": "ready"
-        },
-        {
-          "name": "Waifu Image (SFW)",
-          "desc": "Menampilkan gambar waifu acak yang aman (SFW).",
-          "path": "/random/waifu",
-          "status": "ready"
-        },
-        {
-          "name": "NSFW Image",
-          "desc": "Menampilkan gambar anime acak yang tidak aman (NSFW).",
-          "path": "/random/nsfw",
-          "status": "ready"
+      }
         },
         {
           "name": "Pap Ayang",
@@ -297,24 +235,6 @@
             "text": "Teks yang ingin diubah menjadi suara."
           }
         },
-   {
-  "name": "Tourl",
-  "desc": "Upload gambar/video (kirim file multipart atau parameter ?url=)",
-  "path": "/tools/tourl?url=",
-  "status": "ready",
-  "params": {
-    "url": "(Opsional) URL gambar jika tidak mengirim file"
-  }
-   },
-{
-  "name": "Upload ke Catbox",
-  "desc": "Upload file ke catbox.moe (gratis, max 200MB)",
-  "path": "/tools/upload-catbox-url?url=",
-  "status": "ready",
-  "params": {
-    "url": "URL file yang mau diupload (atau upload langsung via form)"
-  }
-},
         {
           "name": "Emoji Mix",
           "desc": "Menggabungkan dua emoji menjadi satu emoji baru yang unik dalam bentuk gambar.",
@@ -344,15 +264,6 @@
           }
         },
         {
-  "name": "Spotify Search",
-  "desc": "Cari lagu di Spotify (via nexray API)",
-  "path": "/search/spotify?q=",
-  "status": "ready",
-  "params": {
-    "q": "Judul lagu atau nama artis"
-  }
-        },
-        {
           "name": "NSFW Content Check",
           "desc": "Mendeteksi apakah sebuah gambar mengandung konten dewasa (NSFW).",
           "path": "/tools/nsfw-check?url=",
@@ -378,28 +289,10 @@
         {
           "name": "Spotify Search",
           "desc": "Melakukan pencarian lagu berdasarkan judul atau artis di Spotify.",
-          "path": "/search/spotify?query=",
+          "path": "/search/spotify?q=",
           "status": "ready",
           "params": {
             "query": "Judul lagu atau nama artis."
-          }
-        },
-        {
-          "name": "Google Image Search",
-          "desc": "Melakukan pencarian gambar di Google Images.",
-          "path": "/search/gimage?q=",
-          "status": "ready",
-          "params": {
-            "q": "Kata kunci untuk pencarian gambar."
-          }
-        },
-        {
-          "name": "Play Store Search",
-          "desc": "Mencari aplikasi di Google Play Store.",
-          "path": "/search/playstore?q=",
-          "status": "ready",
-          "params": {
-            "q": "Nama aplikasi yang ingin dicari."
           }
         },
         {
@@ -421,39 +314,12 @@
           }
         },
         {
-          "name": "Happymod Search",
-          "desc": "Mencari aplikasi atau game modifikasi di Happymod.",
-          "path": "/search/happymod?q=",
-          "status": "ready",
-          "params": {
-            "q": "Nama aplikasi atau game yang ingin dicari."
-          }
-        },
-        {
           "name": "Tiktok Search",
           "desc": "Melakukan pencarian video di TikTok.",
           "path": "/search/tiktok?q=",
           "status": "ready",
           "params": {
             "q": "Kata kunci untuk pencarian video TikTok."
-          }
-        },
-        {
-          "name": "XNXX Search",
-          "desc": "Melakukan pencarian video di XNXX.",
-          "path": "/search/xnxx?q=",
-          "status": "ready",
-          "params": {
-            "q": "Kata kunci untuk pencarian video XNXX."
-          }
-        },
-        {
-          "name": "Sfile Search",
-          "desc": "Mencari file di layanan hosting Sfile.mobi.",
-          "path": "/search/sfile?q=",
-          "status": "ready",
-          "params": {
-            "q": "Kata kunci untuk pencarian file di Sfile."
           }
         }
       ]
