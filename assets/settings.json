@@ -273,16 +273,15 @@
             "text": "Teks yang ingin diubah menjadi suara."
           }
         },
-        {
+   {
   "name": "Tourl",
-  "desc": "Upload file ke litter.lusia.moe (max 10MB, support gambar/video/dll)",
-  "path": "/tools/tourl",
+  "desc": "Upload gambar/video (kirim file multipart atau parameter ?url=)",
+  "path": "/tools/tourl?url=",
   "status": "ready",
-  "method": "POST",
   "params": {
-    "file": "File yang akan diupload (multipart/form-data)"
+    "url": "(Opsional) URL gambar jika tidak mengirim file"
   }
-        },
+   },
         {
           "name": "Emoji Mix",
           "desc": "Menggabungkan dua emoji menjadi satu emoji baru yang unik dalam bentuk gambar.",
