@@ -205,23 +205,23 @@
         }
       ]
     },
+{
+  "name": "Random",
+  "items": [
     {
-      "name": "Random",
-      "items": [
-        {
-          "name": "Blue Archive Image",
-          "desc": "Menampilkan gambar acak dari karakter game Blue Archive.",
-          "path": "/random/ba",
-          "status": "ready"
-      }
-        {
-          "name": "Pap Ayang",
-          "desc": "Menampilkan gambar 'PAP Ayang' secara acak.",
-          "path": "/random/papayang",
-          "status": "ready"
-        }
-      ]
+      "name": "Blue Archive Image",
+      "desc": "Menampilkan gambar acak dari karakter game Blue Archive.",
+      "path": "/random/ba",
+      "status": "ready"
     },
+    {
+      "name": "Pap Ayang",
+      "desc": "Menampilkan gambar 'PAP Ayang' secara acak.",
+      "path": "/random/papayang",
+      "status": "ready"
+    }
+  ]
+},
     {
       "name": "Tools",
       "items": [
