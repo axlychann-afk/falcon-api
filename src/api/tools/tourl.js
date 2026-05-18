@@ -2,18 +2,15 @@ const multer = require('multer');
 const axios = require('axios');
 const FormData = require('form-data');
 
-// Setup multer dengan memory storage (file disimpan di RAM)
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Fungsi upload ke litter.lusia.moe dari buffer
-async function uploadToLitter(fileBuffer, originalname) {
+async function uploadToLitter(fileBuffer, filename) {
     const form = new FormData();
-    form.append('file', fileBuffer, { filename: originalname });
+    form.append('file', fileBuffer, { filename });
     form.append('expireAfter', '99999999999999');
     form.append('burn', 'false');
 
-    // Generate UUID v4 sederhana
     const token = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
         const r = (Math.random() * 16) | 0;
         return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
@@ -23,10 +20,7 @@ async function uploadToLitter(fileBuffer, originalname) {
         params: { token },
         headers: {
             ...form.getHeaders(),
-            'authority': 'litter.lusia.moe',
-            'accept': 'application/json, text/plain, */*',
             'origin': 'https://litter.lusia.moe',
-            'referer': 'https://litter.lusia.moe/',
             'user-agent': 'Mozilla/5.0 (Linux; Android 10) Chrome/132.0.0.0'
         }
     });
@@ -35,136 +29,88 @@ async function uploadToLitter(fileBuffer, originalname) {
 }
 
 module.exports = (app) => {
-    // ========== ENDPOINT GET: TAMPILKAN FORM UPLOAD (untuk test di browser) ==========
-    app.get('/tools/upload', (req, res) => {
-        res.send(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1">
-                <title>Upload File ke litter.lusia.moe</title>
-                <style>
-                    body {
-                        font-family: Arial, sans-serif;
-                        max-width: 600px;
-                        margin: 50px auto;
-                        padding: 20px;
-                        background: #f5f5f5;
-                    }
-                    .container {
-                        background: white;
-                        border-radius: 12px;
-                        padding: 30px;
-                        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                    }
-                    h2 { color: #333; margin-top: 0; }
-                    input[type="file"] {
-                        padding: 10px;
-                        border: 1px solid #ccc;
-                        border-radius: 8px;
-                        width: 100%;
-                        margin-bottom: 20px;
-                    }
-                    button {
-                        background: #007bff;
-                        color: white;
-                        border: none;
-                        padding: 12px 24px;
-                        border-radius: 8px;
-                        cursor: pointer;
-                        font-size: 16px;
-                    }
-                    button:hover { background: #0056b3; }
-                    .result {
-                        margin-top: 20px;
-                        padding: 15px;
-                        background: #e9ecef;
-                        border-radius: 8px;
-                        word-break: break-all;
-                    }
-                    .result a { color: #007bff; text-decoration: none; }
-                    .result a:hover { text-decoration: underline; }
-                    .error { color: red; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <h2>📤 Upload Gambar / Video ke Litter</h2>
-                    <form id="uploadForm" enctype="multipart/form-data">
-                        <input type="file" name="file" accept="image/*,video/*" required>
-                        <button type="submit">Upload</button>
-                    </form>
-                    <div id="result" class="result" style="display:none;"></div>
-                </div>
-                <script>
-                    const form = document.getElementById('uploadForm');
-                    const resultDiv = document.getElementById('result');
-
-                    form.addEventListener('submit', async (e) => {
-                        e.preventDefault();
-                        resultDiv.style.display = 'block';
-                        resultDiv.innerHTML = '⏳ Uploading...';
-                        resultDiv.classList.remove('error');
-
-                        const formData = new FormData(form);
-                        try {
-                            const response = await fetch('/tools/upload', {
-                                method: 'POST',
-                                body: formData
-                            });
-                            const json = await response.json();
-                            if (json.status) {
-                                resultDiv.innerHTML = \`✅ Upload berhasil!<br>
-                                <strong>URL:</strong> <a href="\${json.result.url}" target="_blank">\${json.result.url}</a><br>
-                                <strong>Nama asli:</strong> \${json.result.originalName}<br>
-                                <strong>Ukuran:</strong> \${json.result.size} bytes\`;
-                            } else {
-                                resultDiv.innerHTML = \`❌ Gagal: \${json.error}\`;
-                                resultDiv.classList.add('error');
-                            }
-                        } catch (err) {
-                            resultDiv.innerHTML = \`❌ Error: \${err.message}\`;
-                            resultDiv.classList.add('error');
-                        }
-                    });
-                </script>
-            </body>
-            </html>
-        `);
-    });
-
-    // ========== ENDPOINT POST: TERIMA FILE & UPLOAD KE LITTER ==========
+    // Endpoint yang bisa menerima file (WA) atau parameter url (web)
     app.post('/tools/upload', upload.single('file'), async (req, res) => {
         try {
-            if (!req.file) {
-                return res.status(400).json({
-                    status: false,
-                    error: 'Tidak ada file yang diupload. Kirim file dengan key "file".'
-                });
+            let fileBuffer, originalName;
+
+            if (req.file) {
+                // Case 1: upload file langsung (bot WA)
+                fileBuffer = req.file.buffer;
+                originalName = req.file.originalname;
+            } 
+            else if (req.query.url || req.body.url) {
+                // Case 2: upload dari URL (testing di web)
+                const imageUrl = req.query.url || req.body.url;
+                const imageRes = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+                fileBuffer = Buffer.from(imageRes.data);
+                const contentType = imageRes.headers['content-type'];
+                let ext = 'jpg';
+                if (contentType.includes('png')) ext = 'png';
+                else if (contentType.includes('gif')) ext = 'gif';
+                else if (contentType.includes('webp')) ext = 'webp';
+                else if (contentType.includes('video')) ext = 'mp4';
+                originalName = `from_url_${Date.now()}.${ext}`;
+            } 
+            else {
+                return res.status(400).json({ status: false, error: 'Kirim file (multipart) atau parameter "url"' });
             }
 
-            const fileBuffer = req.file.buffer;
-            const originalName = req.file.originalname;
-            const fileSize = req.file.size;
-
             const uploadedUrl = await uploadToLitter(fileBuffer, originalName);
-
             res.json({
                 status: true,
                 creator: 'FlowFalcon',
                 result: {
                     url: uploadedUrl,
                     originalName: originalName,
-                    size: fileSize
+                    size: fileBuffer.length
                 }
             });
         } catch (error) {
             console.error(error);
-            res.status(500).json({
-                status: false,
-                error: error.message || 'Gagal mengupload file.'
-            });
+            res.status(500).json({ status: false, error: error.message });
         }
+    });
+
+    // Halaman HTML untuk test di browser (optional)
+    app.get('/tools/tourl', (req, res) => {
+        res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head><title>Upload ke Litter</title></head>
+            <body style="font-family:sans-serif;max-width:600px;margin:50px auto">
+                <h2>Upload File atau URL</h2>
+                <form id="fileForm" enctype="multipart/form-data">
+                    <input type="file" name="file" accept="image/*,video/*" required>
+                    <button type="submit">Upload File</button>
+                </form>
+                <hr>
+                <form id="urlForm">
+                    <input type="text" name="url" placeholder="https://example.com/gambar.jpg" style="width:100%" required>
+                    <button type="submit">Upload dari URL</button>
+                </form>
+                <div id="result" style="margin-top:20px;background:#eee;padding:10px"></div>
+                <script>
+                    const fileForm = document.getElementById('fileForm');
+                    const urlForm = document.getElementById('urlForm');
+                    const resultDiv = document.getElementById('result');
+                    fileForm.onsubmit = async (e) => {
+                        e.preventDefault();
+                        const formData = new FormData(fileForm);
+                        const res = await fetch('/tools/upload', { method:'POST', body:formData });
+                        const json = await res.json();
+                        resultDiv.innerHTML = json.status ? '<a href="'+json.result.url+'" target="_blank">'+json.result.url+'</a>' : 'Error: '+json.error;
+                    };
+                    urlForm.onsubmit = async (e) => {
+                        e.preventDefault();
+                        const url = new URLSearchParams(new FormData(urlForm)).get('url');
+                        const res = await fetch('/tools/upload?url='+encodeURIComponent(url), { method:'POST' });
+                        const json = await res.json();
+                        resultDiv.innerHTML = json.status ? '<a href="'+json.result.url+'" target="_blank">'+json.result.url+'</a>' : 'Error: '+json.error;
+                    };
+                </script>
+            </body>
+            </html>
+        `);
     });
 };
