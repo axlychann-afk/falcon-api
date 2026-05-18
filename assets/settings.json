@@ -46,6 +46,15 @@
           "status": "ready"
         },
         {
+  "name": "Overchat",
+  "desc": "Overchat AI (Claude Haiku) - Chat AI gratis tanpa login",
+  "path": "/ai/overchat?text=",
+  "status": "ready",
+  "params": {
+    "text": "Teks atau pertanyaan untuk AI Overchat"
+  },
+        
+        {
           "name": "Jadwal Rilis Anime",
           "desc": "Menampilkan jadwal rilis anime mingguan dari LiveChart.me.",
           "path": "/anime/jadwalrilis",
