@@ -37,6 +37,21 @@
   ]
 },
     {
+  "name": "Stalker",
+  "image": "/api/placeholder/800/200",
+  "items": [
+    {
+      "name": "Free Fire Stalk",
+      "desc": "Cek profil player Free Fire (region otomatis dari UID)",
+      "path": "/stalk/ff?uid=",
+      "status": "ready",
+      "params": {
+        "uid": "UID Free Fire player"
+      }
+    }
+  ]
+    },
+    {
       "name": "Anime",
       "items": [
         {
