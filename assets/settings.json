@@ -274,9 +274,9 @@
           }
         },
         {
-  "name": "Upload File",
+  "name": "Tourl",
   "desc": "Upload file ke litter.lusia.moe (max 10MB, support gambar/video/dll)",
-  "path": "/tools/upload",
+  "path": "/tools/tourl",
   "status": "ready",
   "method": "POST",
   "params": {
