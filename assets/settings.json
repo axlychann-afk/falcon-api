@@ -291,7 +291,7 @@
           "path": "/search/spotify?q=",
           "status": "ready",
           "params": {
-            "query": "Judul lagu atau nama artis."
+            "q": "Judul lagu atau nama artis."
           }
         },
         {
