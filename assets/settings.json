@@ -293,6 +293,15 @@
           }
         },
         {
+  "name": "Remove Background",
+  "desc": "Hapus background gambar secara otomatis (support URL atau upload file)",
+  "path": "/tools/removebg?url=",
+  "status": "ready",
+  "params": {
+    "url": "URL gambar yang mau dihapus backgroundnya"
+  }
+        },
+        {
           "name": "Host Info",
           "desc": "Mendapatkan informasi detail mengenai sebuah host (IP atau domain).",
           "path": "/tools/hostinfo?host=",
