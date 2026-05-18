@@ -311,6 +311,15 @@
           }
         },
         {
+  "name": "Spotify Search",
+  "desc": "Cari lagu di Spotify (via nexray API)",
+  "path": "/search/spotify?q=",
+  "status": "ready",
+  "params": {
+    "q": "Judul lagu atau nama artis"
+  }
+        },
+        {
           "name": "NSFW Content Check",
           "desc": "Mendeteksi apakah sebuah gambar mengandung konten dewasa (NSFW).",
           "path": "/tools/nsfw-check?url=",
