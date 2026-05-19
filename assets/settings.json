@@ -168,6 +168,15 @@
           }
         },
         {
+  "name": "Facebook Video Downloader",
+  "desc": "Download video dari Facebook (berbagai kualitas + audio)",
+  "path": "/download/facebook?url=",
+  "status": "ready",
+  "params": {
+    "url": "URL video Facebook"
+  }
+        },
+        {
   "name": "YouTube Video (ytmp4)",
   "desc": "Download video YouTube berbagai kualitas (FHD, HD, SD)",
   "path": "/download/ytmp4?url=",
