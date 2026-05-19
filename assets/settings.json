@@ -58,6 +58,24 @@
         "text": "Teks yang mau dijadikan gambar"
       }
     },
+        {
+      "name": "To Figure AI",
+      "desc": "Ubah gambar jadi style figure/illustrasi",
+      "path": "/maker/tofigura?url=",
+      "status": "ready",
+      "params": {
+        "url": "URL gambar yang mau diubah"
+      }
+    },
+    {
+      "name": "To Anime AI",
+      "desc": "Ubah gambar jadi style anime",
+      "path": "/maker/toanime?url=",
+      "status": "ready",
+      "params": {
+        "url": "URL gambar yang mau diubah"
+      }
+    },
     {
   "name": "QC Image Generator",
   "desc": "Buat gambar QC dengan teks, nama, avatar, dan warna",
