@@ -3,29 +3,18 @@ const axios = require('axios');
 module.exports = (app) => {
     app.get('/random/loli', async (req, res) => {
         try {
-            // Pake Waifu.pics API (punya tag loli)
-            const response = await axios.get('https://api.waifu.pics/sfw/loli', {
+            const response = await axios.get('https://api.zenzxz.my.id/image/loli', {
+                responseType: 'arraybuffer',
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                 },
-                timeout: 10000
+                timeout: 15000
             });
 
-            const data = response.data;
-
-            if (!data || !data.url) {
-                throw new Error('Gagal mengambil gambar loli');
-            }
-
-            res.json({
-                status: true,
-                creator: 'AxlyChann',
-                result: {
-                    url: data.url,
-                    category: 'loli',
-                    source: 'waifu.pics'
-                }
-            });
+            const contentType = response.headers['content-type'] || 'image/jpeg';
+            
+            res.setHeader('Content-Type', contentType);
+            res.send(response.data);
 
         } catch (error) {
             console.error(error);
