@@ -392,6 +392,15 @@
           }
         },
         {
+  "name": "Bilibili Search",
+  "desc": "Mencari anime/video di Bilibili.tv (Official & User Content)",
+  "path": "/search/bilibili?q=",
+  "status": "ready",
+  "params": {
+    "q": "Kata kunci pencarian (judul anime, video, dll)"
+  }
+        },
+        {
           "name": "Spotify Search",
           "desc": "Melakukan pencarian lagu berdasarkan judul atau artis di Spotify.",
           "path": "/search/spotify?q=",
