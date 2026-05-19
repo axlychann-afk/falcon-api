@@ -1,50 +1,81 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Browse through our collection of code snippets, scripts, and tools. Find what you need or discover something new.">
-    <meta name="theme-color" content="#0f172a">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <meta name="description"
+          content="Browse through our collection of code snippets, scripts, and tools.">
+
+    <meta name="theme-color"
+          content="#020617">
 
     <title>Axly-API.</title>
 
-    <link rel="icon" href="/assets/icon.png" type="image/jpeg">
+    <link rel="icon"
+          href="/assets/icon.png"
+          type="image/jpeg">
 
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect"
+          href="https://fonts.googleapis.com">
 
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossorigin>
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/icon?family=Material+Icons">
 
-    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet">
 
     <script>
+
         tailwind.config = {
+
             darkMode: 'class',
+
             theme: {
+
                 extend: {
+
                     fontFamily: {
+
                         'mono': ['Ubuntu Mono', 'monospace'],
                         'sans': ['Inter', 'system-ui', 'sans-serif']
+
                     }
+
                 }
+
             }
+
         }
+
     </script>
 
     <style>
+
         * {
             scroll-behavior: smooth;
         }
 
         body {
+
             background:
                 radial-gradient(circle at top left, rgba(99,102,241,0.12), transparent 30%),
                 radial-gradient(circle at bottom right, rgba(168,85,247,0.12), transparent 30%),
                 #020617;
+
         }
 
         ::-webkit-scrollbar {
@@ -53,28 +84,18 @@
         }
 
         .glass {
+
             backdrop-filter: blur(20px) saturate(180%);
             background: rgba(15, 23, 42, 0.75);
+
             border: 1px solid rgba(255,255,255,0.06);
+
             box-shadow: 0 10px 35px rgba(0,0,0,0.35);
-        }
 
-        .loader {
-            width: 28px;
-            height: 28px;
-            border: 3px solid rgba(255,255,255,0.15);
-            border-top: 3px solid #818cf8;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
         }
 
         .gradient-text {
+
             background: linear-gradient(
                 135deg,
                 #818cf8 0%,
@@ -84,10 +105,36 @@
 
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+
             background-clip: text;
+
+        }
+
+        .loader {
+
+            width: 28px;
+            height: 28px;
+
+            border: 3px solid rgba(255,255,255,0.15);
+
+            border-top: 3px solid #818cf8;
+
+            border-radius: 50%;
+
+            animation: spin 1s linear infinite;
+
+        }
+
+        @keyframes spin {
+
+            to {
+                transform: rotate(360deg);
+            }
+
         }
 
         .btn-gradient {
+
             background: linear-gradient(
                 135deg,
                 #6366f1 0%,
@@ -95,102 +142,233 @@
             );
 
             transition: .25s ease;
+
             box-shadow: 0 10px 25px rgba(99,102,241,0.25);
+
         }
 
         .btn-gradient:hover {
+
             transform: translateY(-2px);
+
             box-shadow: 0 14px 35px rgba(99,102,241,0.45);
+
         }
 
         .card-ui {
+
             background: rgba(17, 24, 39, 0.75);
+
             border: 1px solid rgba(255,255,255,0.06);
+
             backdrop-filter: blur(16px);
+
             border-radius: 20px;
+
             overflow: hidden;
+
             transition: .25s ease;
+
         }
 
         .card-ui:hover {
+
             border-color: rgba(129,140,248,.35);
+
             transform: translateY(-2px);
+
             box-shadow: 0 14px 40px rgba(0,0,0,.35);
+
         }
 
         .input-ui {
+
             background: rgba(15, 23, 42, 0.85);
+
             border: 1px solid rgba(255,255,255,0.08);
+
             border-radius: 16px;
+
             transition: .25s ease;
+
         }
 
         .input-ui:focus {
+
             border-color: #818cf8;
+
             box-shadow: 0 0 0 4px rgba(99,102,241,.15);
+
         }
 
         .endpoint-box {
+
             background: rgba(2, 6, 23, 0.45);
+
             border-top: 1px solid rgba(255,255,255,0.05);
+
         }
 
         .response-box {
+
             background: #020617;
+
             border: 1px solid rgba(255,255,255,0.06);
+
             border-radius: 16px;
+
         }
 
         .badge-ready {
+
             background: rgba(34,197,94,.15);
+
             color: #4ade80;
+
             border: 1px solid rgba(34,197,94,.25);
+
         }
 
         .badge-update {
+
             background: rgba(234,179,8,.15);
+
             color: #facc15;
+
             border: 1px solid rgba(234,179,8,.25);
+
         }
 
         .badge-error {
+
             background: rgba(239,68,68,.15);
+
             color: #f87171;
+
             border: 1px solid rgba(239,68,68,.25);
+
         }
 
         .method-get {
-            background: linear-gradient(135deg,#10b981,#059669);
+
+            background: linear-gradient(
+                135deg,
+                #10b981,
+                #059669
+            );
+
         }
 
         .method-post {
-            background: linear-gradient(135deg,#3b82f6,#2563eb);
+
+            background: linear-gradient(
+                135deg,
+                #3b82f6,
+                #2563eb
+            );
+
         }
 
         .fade-in {
+
             animation: fade .35s ease;
+
         }
 
         @keyframes fade {
+
             from {
+
                 opacity: 0;
+
                 transform: translateY(8px);
+
             }
 
             to {
+
                 opacity: 1;
+
                 transform: translateY(0);
+
             }
+
         }
 
         pre {
+
             white-space: pre-wrap;
+
             word-wrap: break-word;
+
         }
+
+        @keyframes fadeOut {
+
+            to {
+
+                opacity: 0;
+
+                visibility: hidden;
+
+            }
+
+        }
+
+        .preloader-hide {
+
+            animation: fadeOut .5s ease forwards;
+
+        }
+
     </style>
+
 </head>
 
 <body class="text-slate-200 antialiased font-mono min-h-screen">
+
+<!-- PRELOADER -->
+
+<div id="preloader"
+     class="fixed inset-0 z-[99999] flex items-center justify-center bg-[#020617] overflow-hidden">
+
+    <!-- Glow -->
+
+    <div class="absolute w-[350px] h-[350px] bg-indigo-600/20 blur-3xl rounded-full animate-pulse"></div>
+
+    <div class="absolute w-[250px] h-[250px] bg-purple-600/20 blur-3xl rounded-full animate-pulse"></div>
+
+    <!-- Content -->
+
+    <div class="relative z-10 flex flex-col items-center">
+
+        <!-- Logo -->
+
+        <div class="relative mb-5">
+
+            <div class="absolute inset-0 bg-indigo-500 blur-2xl opacity-40 rounded-full"></div>
+
+            <img src="/assets/icon.png"
+                 class="w-24 h-24 rounded-3xl relative z-10 animate-spin"
+                 style="animation-duration: 3s;">
+
+        </div>
+
+        <!-- Title -->
+
+        <h1 class="text-4xl font-bold gradient-text mb-2">
+            Axly-API
+        </h1>
+
+        <!-- Loading Text -->
+
+        <p class="text-slate-500 text-xs tracking-[5px]">
+            LOADING...
+        </p>
+
+    </div>
+
+</div>
 
 <main class="max-w-3xl mx-auto px-5 md:px-8 py-10">
 
@@ -199,30 +377,39 @@
     <div class="flex items-center gap-4 mb-5">
 
         <div class="relative">
+
             <div class="absolute inset-0 bg-indigo-500 blur-2xl opacity-30"></div>
 
             <img src="/assets/icon.png"
                  class="w-14 relative z-10 rounded-2xl">
+
         </div>
 
         <div>
+
             <h1 class="text-4xl md:text-5xl font-bold gradient-text">
+
                 Axly-API
+
             </h1>
 
             <p class="text-slate-500 text-sm mt-1">
+
                 Fast • Modern • Interactive API Docs
+
             </p>
+
         </div>
 
     </div>
-
     <div class="glass rounded-2xl p-5">
 
         <p class="text-slate-300 text-sm leading-relaxed">
+
             Selamat datang di dokumentasi Axly-API.
             Jelajahi endpoint API secara interaktif dengan tampilan modern,
             cepat, dan nyaman digunakan.
+
         </p>
 
         <div class="mt-4 flex items-center gap-3">
@@ -232,6 +419,7 @@
                class="btn-gradient px-5 py-2 rounded-xl text-sm font-semibold text-white inline-flex items-center gap-2">
 
                 <i class="fab fa-telegram"></i>
+
                 Contact AxlyChann
 
             </a>
@@ -242,7 +430,7 @@
 
 </div>
 
-<!-- Notifications -->
+<!-- NOTIFICATIONS -->
 
 <div class="mb-8 fade-in">
 
@@ -251,7 +439,9 @@
         <h2 class="text-lg font-semibold flex items-center text-white">
 
             <span class="material-icons text-indigo-400 mr-2">
+
                 notifications
+
             </span>
 
             Informasi
@@ -264,17 +454,20 @@
 
     </div>
 
-    <div id="notifications-list" class="space-y-3">
+    <div id="notifications-list"
+         class="space-y-3">
 
         <div class="glass rounded-2xl p-5 flex justify-center">
+
             <div class="loader"></div>
+
         </div>
 
     </div>
 
 </div>
 
-<!-- Search -->
+<!-- SEARCH -->
 
 <div class="flex items-center justify-between mb-6 fade-in">
 
@@ -283,7 +476,9 @@
         <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
 
             <span class="material-icons text-slate-500 text-lg">
+
                 search
+
             </span>
 
         </div>
@@ -292,14 +487,16 @@
             type="text"
             id="searchInput"
             placeholder="Search API endpoints..."
-            class="input-ui w-full pl-12 pr-5 py-4 text-sm text-slate-200 placeholder-slate-500 focus:outline-none"
-        >
+            class="input-ui w-full pl-12 pr-5 py-4 text-sm text-slate-200 placeholder-slate-500 focus:outline-none">
 
     </div>
 
 </div>
 
-<div id="content" class="space-y-4">
+<!-- CONTENT -->
+
+<div id="content"
+     class="space-y-4">
 
     <div id="noResults"
          class="text-center py-16"
@@ -308,27 +505,36 @@
         <div class="max-w-md mx-auto">
 
             <h3 class="text-sm text-slate-400 mb-2">
+
                 No result found.
+
             </h3>
 
         </div>
 
     </div>
 
-    <div id="apiList" class="space-y-3"></div>
+    <div id="apiList"
+         class="space-y-3"></div>
 
 </div>
+
+<!-- FOOTER -->
 
 <footer class="mt-12 text-center">
 
     <div class="glass rounded-2xl p-5">
 
         <p class="text-slate-400 text-sm">
+
             © 2025 AxlyChann
+
         </p>
 
         <p class="text-slate-500 text-xs mt-2">
+
             inspirasi design dari:
+
             <a href="https://api.nekolabs.my.id/"
                target="_blank"
                class="text-indigo-400 hover:text-indigo-300">
@@ -336,6 +542,7 @@
                api.nekolabs.my.id
 
             </a>
+
         </p>
 
     </div>
@@ -348,39 +555,50 @@
 
 function toggleCategory(index) {
 
-    const category = document.getElementById(`category-${index}`);
-    const icon = document.getElementById(`category-icon-${index}`);
+    const category =
+        document.getElementById(`category-${index}`);
+
+    const icon =
+        document.getElementById(`category-icon-${index}`);
 
     if (category.classList.contains('hidden')) {
 
         category.classList.remove('hidden');
+
         icon.textContent = 'expand_less';
 
     } else {
 
         category.classList.add('hidden');
+
         icon.textContent = 'expand_more';
 
     }
+
 }
 
 function toggleEndpoint(catIndex, endpointIndex) {
 
-    const endpoint = document.getElementById(`endpoint-${catIndex}-${endpointIndex}`);
+    const endpoint =
+        document.getElementById(`endpoint-${catIndex}-${endpointIndex}`);
 
-    const icon = document.getElementById(`endpoint-icon-${catIndex}-${endpointIndex}`);
+    const icon =
+        document.getElementById(`endpoint-icon-${catIndex}-${endpointIndex}`);
 
     if (endpoint.classList.contains('hidden')) {
 
         endpoint.classList.remove('hidden');
+
         icon.textContent = 'expand_less';
 
     } else {
 
         endpoint.classList.add('hidden');
+
         icon.textContent = 'expand_more';
 
     }
+
 }
 
 function generateCurlCommand(method, fullPath, formData) {
@@ -400,27 +618,36 @@ function generateCurlCommand(method, fullPath, formData) {
                 curl += ` \\\n  -F "${key}=${value}"`;
 
             }
+
         }
+
     }
 
     return curl;
+
 }
 
 async function executeRequest(event, catIndex, endpointIndex, method, basePath) {
 
     event.preventDefault();
 
-    const form = document.getElementById(`form-${catIndex}-${endpointIndex}`);
+    const form =
+        document.getElementById(`form-${catIndex}-${endpointIndex}`);
 
-    const responseDiv = document.getElementById(`response-${catIndex}-${endpointIndex}`);
+    const responseDiv =
+        document.getElementById(`response-${catIndex}-${endpointIndex}`);
 
-    const responseContent = document.getElementById(`response-content-${catIndex}-${endpointIndex}`);
+    const responseContent =
+        document.getElementById(`response-content-${catIndex}-${endpointIndex}`);
 
-    const clearButton = document.getElementById(`clear-${catIndex}-${endpointIndex}`);
+    const clearButton =
+        document.getElementById(`clear-${catIndex}-${endpointIndex}`);
 
-    const infoDiv = document.getElementById(`info-${catIndex}-${endpointIndex}`);
+    const infoDiv =
+        document.getElementById(`info-${catIndex}-${endpointIndex}`);
 
-    const infoContent = document.getElementById(`info-content-${catIndex}-${endpointIndex}`);
+    const infoContent =
+        document.getElementById(`info-content-${catIndex}-${endpointIndex}`);
 
     const formData = new FormData(form);
 
@@ -455,23 +682,33 @@ async function executeRequest(event, catIndex, endpointIndex, method, basePath) 
     responseDiv.classList.remove('hidden');
 
     responseContent.innerHTML = `
-        <div class="flex justify-center py-6">
-            <div class="loader"></div>
-        </div>
-    `;
 
-    const curlCommand = generateCurlCommand(method, fullPath, formData);
+        <div class="flex justify-center py-6">
+
+            <div class="loader"></div>
+
+        </div>
+
+    `;
+    const curlCommand =
+        generateCurlCommand(method, fullPath, formData);
 
     if (infoDiv && infoContent) {
 
         infoContent.innerHTML = `
+
             <span class="text-slate-400">
+
                 🔧 cURL:
+
             </span>
 
             <span class="text-green-400">
+
                 ${curlCommand}
+
             </span>
+
         `;
 
         infoDiv.classList.remove('hidden');
@@ -482,9 +719,13 @@ async function executeRequest(event, catIndex, endpointIndex, method, basePath) 
 
         const response = await fetch(fullPath, options);
 
-        const contentType = response.headers.get("content-type");
+        const contentType =
+            response.headers.get("content-type");
 
-        if (contentType && contentType.includes("application/json")) {
+        if (
+            contentType &&
+            contentType.includes("application/json")
+        ) {
 
             const data = await response.json();
 
@@ -492,15 +733,20 @@ async function executeRequest(event, catIndex, endpointIndex, method, basePath) 
                 <pre>${JSON.stringify(data, null, 2)}</pre>
             `;
 
-        } else if (contentType && contentType.startsWith("image/")) {
+        } else if (
+            contentType &&
+            contentType.startsWith("image/")
+        ) {
 
             const blob = await response.blob();
 
             const imageUrl = URL.createObjectURL(blob);
 
             responseContent.innerHTML = `
+
                 <img src="${imageUrl}"
                      class="max-w-full h-auto rounded-xl">
+
             `;
 
         } else {
@@ -510,7 +756,8 @@ async function executeRequest(event, catIndex, endpointIndex, method, basePath) 
             responseContent.innerHTML = `
                 <pre>${text}</pre>
             `;
-            }
+
+        }
 
     } catch (error) {
 
@@ -521,17 +768,22 @@ async function executeRequest(event, catIndex, endpointIndex, method, basePath) 
     }
 
     clearButton.classList.remove('hidden');
+
 }
 
 function clearResponse(catIndex, endpointIndex) {
 
-    const responseDiv = document.getElementById(`response-${catIndex}-${endpointIndex}`);
+    const responseDiv =
+        document.getElementById(`response-${catIndex}-${endpointIndex}`);
 
-    const responseContent = document.getElementById(`response-content-${catIndex}-${endpointIndex}`);
+    const responseContent =
+        document.getElementById(`response-content-${catIndex}-${endpointIndex}`);
 
-    const clearButton = document.getElementById(`clear-${catIndex}-${endpointIndex}`);
+    const clearButton =
+        document.getElementById(`clear-${catIndex}-${endpointIndex}`);
 
-    const infoDiv = document.getElementById(`info-${catIndex}-${endpointIndex}`);
+    const infoDiv =
+        document.getElementById(`info-${catIndex}-${endpointIndex}`);
 
     responseContent.innerHTML = '';
 
@@ -540,19 +792,25 @@ function clearResponse(catIndex, endpointIndex) {
     clearButton.classList.add('hidden');
 
     if (infoDiv) {
+
         infoDiv.classList.add('hidden');
+
     }
+
 }
 
 async function loadApis() {
 
-    const apiList = document.getElementById('apiList');
+    const apiList =
+        document.getElementById('apiList');
 
     try {
 
-        const response = await fetch('/assets/settings.json');
+        const response =
+            await fetch('/assets/settings.json');
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
         let html = '';
 
@@ -572,36 +830,48 @@ async function loadApis() {
                         <h2 class="font-bold flex items-center">
 
                             <span class="material-icons text-lg mr-3 text-indigo-400">
+
                                 folder
+
                             </span>
 
                             <span class="truncate max-w-xs text-sm text-white">
+
                                 ${category.name}
+
                             </span>
 
                             <span class="ml-2 text-xs text-slate-500">
+
                                 (${category.items.length})
+
                             </span>
 
                         </h2>
 
                         <span class="material-icons transition-transform duration-150"
                               id="category-icon-${catIndex}">
+
                               expand_more
+
                         </span>
 
                     </button>
 
-                    <div id="category-${catIndex}" class="hidden">
+                    <div id="category-${catIndex}"
+                         class="hidden">
+
             `;
 
             category.items.forEach((item, endpointIndex) => {
 
                 const method = item.method || 'GET';
 
-                const pathParts = item.path.split('?');
+                const pathParts =
+                    item.path.split('?');
 
-                const basePath = pathParts[0];
+                const basePath =
+                    pathParts[0];
 
                 const hasFileParam =
                     item.params &&
@@ -610,9 +880,13 @@ async function loadApis() {
                     );
 
                 const statusClasses = {
+
                     'ready': 'badge-ready',
+
                     'update': 'badge-update',
+
                     'error': 'badge-error'
+
                 };
 
                 const statusClass =
@@ -621,10 +895,15 @@ async function loadApis() {
                 html += `
 
                 <div class="border-t border-white/5 api-item"
+
                      data-method="${method}"
+
                      data-path="${basePath}"
+
                      data-alias="${item.name}"
+
                      data-description="${item.desc}"
+
                      data-category="${category.name}">
 
                     <button
@@ -677,17 +956,19 @@ async function loadApis() {
                         </span>
 
                     </button>
-
                     <div id="endpoint-${catIndex}-${endpointIndex}"
                          class="hidden endpoint-box p-5">
 
                         <div class="mb-4">
 
                             <div class="text-slate-400 text-xs leading-relaxed">
+
                                 ${item.desc}
+
                             </div>
 
                         </div>
+
                 `;
 
                 if (item.status === 'ready') {
@@ -699,7 +980,9 @@ async function loadApis() {
                         <div class="text-slate-300 font-bold text-xs mb-3 flex items-center">
 
                             <span class="material-icons text-sm mr-1">
+
                                 play_arrow
+
                             </span>
 
                             TRY IT OUT
@@ -724,17 +1007,20 @@ async function loadApis() {
                                 )">
 
                                 <div class="mb-4 space-y-3">
+
                     `;
 
                     if (item.params) {
 
                         Object.keys(item.params).forEach(paramName => {
 
-                            const param = item.params[paramName];
+                            const param =
+                                item.params[paramName];
 
                             const isRequired = true;
 
-                            const isFile = param?.type === 'file';
+                            const isFile =
+                                param?.type === 'file';
 
                             const placeholder =
                                 typeof param === 'string'
@@ -762,10 +1048,13 @@ async function loadApis() {
                                         ${isRequired ? 'required' : ''}>
 
                                     <p class="text-xs text-slate-500 mt-1">
+
                                         ${placeholder}
+
                                     </p>
 
                                 </div>
+
                                 `;
 
                             } else {
@@ -792,7 +1081,9 @@ async function loadApis() {
                                         ${isRequired ? 'required' : ''}>
 
                                 </div>
+
                                 `;
+
                             }
 
                         });
@@ -832,8 +1123,10 @@ async function loadApis() {
                         </div>
 
                     </div>
+
                     `;
-                    } else {
+
+                } else {
 
                     html += `
 
@@ -844,6 +1137,7 @@ async function loadApis() {
                     </div>
 
                     `;
+
                 }
 
                 html += `
@@ -863,7 +1157,9 @@ async function loadApis() {
                         <div class="text-slate-300 font-bold text-xs mb-3 flex items-center">
 
                             <span class="material-icons text-sm mr-1">
+
                                 code
+
                             </span>
 
                             RESPONSE
@@ -883,13 +1179,18 @@ async function loadApis() {
                 </div>
 
             </div>
+
             `;
             });
 
             html += `
+
                     </div>
+
                 </div>
+
             </div>
+
             `;
         });
 
@@ -898,15 +1199,23 @@ async function loadApis() {
     } catch (error) {
 
         apiList.innerHTML = `
+
             <div class="glass rounded-2xl p-5 text-center text-red-400 text-sm">
+
                 Failed to load API data.
+
             </div>
+
         `;
 
-        console.error('Error loading API data:', error);
-    }
-}
+        console.error(
+            'Error loading API data:',
+            error
+        );
 
+    }
+
+}
 async function loadNotifications() {
 
     const notificationsList =
@@ -917,9 +1226,11 @@ async function loadNotifications() {
 
     try {
 
-        const response = await fetch('/notifications.json');
+        const response =
+            await fetch('/notifications.json');
 
-        const notifications = await response.json();
+        const notifications =
+            await response.json();
 
         notificationsList.innerHTML = '';
 
@@ -934,7 +1245,8 @@ async function loadNotifications() {
 
             if (!notif.read) unreadCount++;
 
-            const notifElement = document.createElement('div');
+            const notifElement =
+                document.createElement('div');
 
             notifElement.className = `
                 glass rounded-2xl p-4 text-xs
@@ -991,6 +1303,7 @@ async function loadNotifications() {
                     </div>
 
                 </div>
+
             `;
 
             notificationsList.appendChild(notifElement);
@@ -1015,8 +1328,11 @@ async function loadNotifications() {
                 Gagal memuat notifikasi.
 
             </div>
+
         `;
+
     }
+
 }
 
 document.getElementById('searchInput')
@@ -1048,9 +1364,13 @@ document.getElementById('searchInput')
             item.dataset.description.toLowerCase();
 
         if (
+
             path.includes(searchTerm) ||
+
             alias.includes(searchTerm) ||
+
             description.includes(searchTerm)
+
         ) {
 
             item.style.display = '';
@@ -1091,7 +1411,10 @@ document.getElementById('searchInput')
         noResults.style.display = 'none';
 
     }
+
 });
+
+/* LOAD PAGE */
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -1101,7 +1424,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
+/* PRELOADER */
+
+window.addEventListener('load', () => {
+
+    const preloader =
+        document.getElementById('preloader');
+
+    setTimeout(() => {
+
+        preloader.classList.add('preloader-hide');
+
+        setTimeout(() => {
+
+            preloader.remove();
+
+        }, 500);
+
+    }, 3000);
+
+});
+
 </script>
 
 </body>
+
 </html>
