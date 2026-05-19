@@ -30,7 +30,7 @@ module.exports = function (app) {
 
       res.json({
         status: true,
-        creator: "FlowFalcon",
+        creator: "AxlyChann",
         result: lastUpdateAnime
       });
     } catch (err) {
