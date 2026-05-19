@@ -167,15 +167,15 @@
             "url": "URL video TikTok."
           }
         },
-        {
-  "name": "Spotify Download",
-  "desc": "Download lagu dari URL Spotify (via spotmate.online)",
-  "path": "/download/spotifydl?url=",
+{
+  "name": "Instagram Downloader",
+  "desc": "Download video/gambar dari Instagram (Reels, Post, Carousel)",
+  "path": "/download/igdl?url=",
   "status": "ready",
   "params": {
-    "url": "URL lagu Spotify"
+    "url": "URL Instagram (reels, post, atau carousel)"
   }
-        },
+},
         {
           "name": "Douyin Downloader",
           "desc": "Mengunduh video dari Douyin (versi China dari TikTok).",
