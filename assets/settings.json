@@ -315,6 +315,12 @@
   }
     },
     {
+  "name": "Random Loli",
+  "desc": "Dapatkan gambar loli random (waifu.pics)",
+  "path": "/random/loli",
+  "status": "ready"
+    },
+    {
       "name": "Pap Ayang",
       "desc": "Menampilkan gambar 'PAP Ayang' secara acak.",
       "path": "/random/papayang",
