@@ -374,16 +374,6 @@
   }
 },
         {
-  "name": "Brat Text Generator",
-  "desc": "Generate teks gaya BRAT (hitam putih, bold, output WebP)",
-  "path": "/tools/brat?text=",
-  "status": "ready",
-  "params": {
-    "text": "Teks yang mau digenerate",
-    "size": "(Opsional) Ukuran gambar, default 1000"
-  }
-        },
-        {
           "name": "Emoji Mix",
           "desc": "Menggabungkan dua emoji menjadi satu emoji baru yang unik dalam bentuk gambar.",
           "path": "/tools/emojimix?emoji1=&emoji2=",
