@@ -3,57 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Axly-API Documentation">
-    <meta name="theme-color" content="#1a202c">
     <title>Axly-API</title>
-    <link rel="icon" href="/assets/icon.png" type="image/jpeg">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: { extend: { fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] } } }
-        }
-    </script>
     <style>
-        ::-webkit-scrollbar { display: none; }
-        .glass { backdrop-filter: blur(16px); background: rgba(23,25,35,0.85); border: 1px solid rgba(255,255,255,0.125); }
         .loader { width: 28px; height: 28px; border: 2px solid #4a5568; border-top: 2px solid #e2e8f0; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .gradient-text { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     </style>
 </head>
-<body class="bg-gray-900 text-slate-300 antialiased font-sans min-h-screen">
+<body class="bg-gray-900 text-slate-300 font-sans min-h-screen">
     <main class="max-w-4xl mx-auto px-8 py-16">
-        <div class="text-left mb-8">
-            <div class="flex items-center gap-4 mb-4">
-                <img src="/assets/icon.png" class="w-12 md:w-9">
-                <h1 class="text-3xl md:text-4xl font-bold gradient-text">Axly-API</h1>
-            </div>
-            <p class="text-slate-400 text-sm mx-auto mb-4">Dokumentasi API Axly-API. Klik endpoint untuk mencoba.</p>
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold gradient-text">Axly-API</h1>
+            <p class="text-slate-400 text-sm mt-2">Dokumentasi API Axly-API</p>
         </div>
 
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex-1 relative">
-                <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                    <span class="material-icons text-gray-500 text-lg">search</span>
-                </div>
-                <input type="text" id="searchInput" placeholder="Cari endpoint..." class="w-full pl-12 pr-5 py-4 text-sm border border-gray-700 bg-gray-800 text-slate-300 focus:outline-none focus:border-indigo-500 rounded-lg">
-            </div>
+        <div class="mb-4">
+            <input type="text" id="searchInput" placeholder="Cari endpoint..." class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-indigo-500">
         </div>
 
-        <div id="content" class="space-y-4">
-            <div id="noResults" class="text-center py-16 hidden">
-                <p class="text-slate-400">Tidak ada endpoint ditemukan.</p>
-            </div>
-            <div id="apiList" class="space-y-3"></div>
-        </div>
+        <div id="apiList" class="space-y-3"></div>
+        <div id="noResults" class="text-center py-16 hidden">Tidak ada endpoint ditemukan.</div>
 
-        <footer class="mt-12 text-center text-slate-500 text-xs">
-            <p>© 2025 AxlyDev | Axly-API</p>
-        </footer>
+        <footer class="mt-12 text-center text-slate-500 text-xs">© 2025 AxlyDev</footer>
     </main>
 
     <script>
@@ -61,67 +35,60 @@
 
         async function loadApis() {
             try {
-                const response = await fetch('/assets/settings.json');
-                const data = await response.json();
+                const res = await fetch('/assets/settings.json');
+                const data = await res.json();
                 categoriesData = data.categories;
-                renderCategories(categoriesData);
-            } catch (error) {
-                document.getElementById('apiList').innerHTML = '<p class="text-red-500">Gagal load API data.</p>';
-            }
+                renderCategories();
+            } catch(e) { document.getElementById('apiList').innerHTML = '<p class="text-red-500">Gagal load API</p>'; }
         }
 
-        function renderCategories(categories) {
+        function renderCategories() {
             const container = document.getElementById('apiList');
             container.innerHTML = '';
-            
-            categories.forEach((category, catIndex) => {
-                const categoryDiv = document.createElement('div');
-                categoryDiv.className = 'category-group border border-gray-700 rounded-lg overflow-hidden mb-4';
-                categoryDiv.dataset.category = category.name;
-                
-                categoryDiv.innerHTML = `
-                    <div class="bg-gray-800 px-4 py-3 cursor-pointer flex justify-between items-center" onclick="toggleCategory(${catIndex})">
-                        <h2 class="font-bold flex items-center gap-2">
-                            <span class="material-icons text-gray-400">folder</span>
-                            <span>${category.name}</span>
-                            <span class="text-xs text-gray-500">(${category.items.length})</span>
-                        </h2>
-                        <span class="material-icons" id="category-icon-${catIndex}">expand_more</span>
+            categoriesData.forEach((cat, ci) => {
+                const div = document.createElement('div');
+                div.className = 'border border-gray-700 rounded-lg overflow-hidden mb-4';
+                div.innerHTML = `
+                    <div class="bg-gray-800 px-4 py-3 cursor-pointer flex justify-between" onclick="toggleCategory(${ci})">
+                        <span class="font-bold">${cat.name} (${cat.items.length})</span>
+                        <span class="material-icons" id="cat-icon-${ci}">expand_more</span>
                     </div>
-                    <div id="category-${catIndex}" class="hidden bg-gray-900">
-                        ${category.items.map((item, idx) => renderEndpointItem(catIndex, idx, item, category.name)).join('')}
+                    <div id="cat-${ci}" class="hidden bg-gray-900">
+                        ${cat.items.map((item, ii) => renderItem(ci, ii, item)).join('')}
                     </div>
                 `;
-                container.appendChild(categoryDiv);
+                container.appendChild(div);
             });
         }
 
-        function renderEndpointItem(catIndex, idx, item, categoryName) {
+        function renderItem(ci, ii, item) {
             const method = item.method || 'GET';
-            const isPost = method.toUpperCase() === 'POST';
-            const hasFileParam = item.params && Object.keys(item.params).some(k => item.params[k]?.type === 'file');
-            
+            const isPost = method === 'POST';
+            const hasFile = item.params && Object.values(item.params).some(v => v?.type === 'file');
             return `
-                <div class="border-t border-gray-700 api-item" data-method="${method}" data-path="${item.path}" data-name="${item.name}" data-category="${categoryName}">
-                    <div class="px-4 py-3 cursor-pointer hover:bg-gray-800 flex justify-between items-center" onclick="toggleEndpoint(${catIndex}, ${idx})">
-                        <div class="flex items-center gap-3 flex-1">
-                            <span class="px-2 py-1 text-xs font-bold rounded ${method === 'GET' ? 'bg-green-600' : 'bg-blue-600'} text-white">${method}</span>
-                            <span class="font-mono text-sm truncate">${item.path.split('?')[0]}</span>
+                <div class="border-t border-gray-700 api-item" data-name="${item.name}" data-path="${item.path}">
+                    <div class="px-4 py-3 cursor-pointer hover:bg-gray-800 flex justify-between" onclick="toggleEndpoint(${ci}, ${ii})">
+                        <div class="flex gap-3">
+                            <span class="px-2 py-0.5 text-xs font-bold rounded ${method === 'GET' ? 'bg-green-600' : 'bg-blue-600'}">${method}</span>
+                            <span class="font-mono text-sm">${item.path.split('?')[0]}</span>
                             <span class="text-xs text-gray-400">${item.name}</span>
-                            <span class="px-2 py-0.5 text-xs rounded-full ${item.status === 'ready' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}">${item.status || 'ready'}</span>
                         </div>
-                        <span class="material-icons" id="endpoint-icon-${catIndex}-${idx}">expand_more</span>
+                        <span class="material-icons" id="ep-icon-${ci}-${ii}">expand_more</span>
                     </div>
-                    <div id="endpoint-${catIndex}-${idx}" class="hidden px-4 pb-4">
+                    <div id="ep-${ci}-${ii}" class="hidden px-4 pb-4">
                         <p class="text-sm text-gray-400 mb-3">${item.desc}</p>
-                        ${item.status === 'ready' ? renderForm(catIndex, idx, item, method, hasFileParam) : '<p class="text-yellow-400 text-sm">Endpoint sedang dalam perbaikan.</p>'}
-                        <div id="response-${catIndex}-${idx}" class="hidden mt-4">
-                            <div class="text-gray-300 font-bold text-sm mb-2">📤 RESPONSE</div>
+                        ${item.status === 'ready' ? renderForm(ci, ii, item, method, hasFile) : '<p class="text-yellow-400">Endpoint sedang error</p>'}
+                        <div id="curl-${ci}-${ii}" class="mt-3 text-xs bg-gray-800 p-3 rounded-lg hidden">
+                            <div class="text-gray-400 mb-1">cURL Command:</div>
+                            <pre id="curl-text-${ci}-${ii}" class="text-green-400 font-mono whitespace-pre-wrap"></pre>
+                        </div>
+                        <div id="resp-${ci}-${ii}" class="hidden mt-4">
+                            <div class="font-bold text-sm mb-2">📤 RESPONSE</div>
                             <div class="bg-gray-800 rounded-lg p-4 overflow-auto max-h-96">
-                                <pre id="response-content-${catIndex}-${idx}" class="text-xs text-green-400 font-mono whitespace-pre-wrap"></pre>
+                                <pre id="resp-text-${ci}-${ii}" class="text-xs text-green-400 font-mono"></pre>
                             </div>
                             <div class="mt-2 flex justify-end">
-                                <button onclick="copyResponse(${catIndex}, ${idx})" class="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded">📋 Copy</button>
+                                <button onclick="copyResponse(${ci}, ${ii})" class="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded">📋 Copy</button>
                             </div>
                         </div>
                     </div>
@@ -129,152 +96,121 @@
             `;
         }
 
-        function renderForm(catIndex, idx, item, method, hasFileParam) {
+        function renderForm(ci, ii, item, method, hasFile) {
             const params = item.params || {};
-            const paramKeys = Object.keys(params);
-            
-            if (hasFileParam) {
+            if (hasFile) {
                 return `
-                    <form id="form-${catIndex}-${idx}" onsubmit="executeRequest(event, ${catIndex}, ${idx}, '${method}', '${item.path}', false)" enctype="multipart/form-data">
-                        ${paramKeys.map(key => `
+                    <form id="form-${ci}-${ii}" enctype="multipart/form-data" onsubmit="execute(event, ${ci}, ${ii}, '${method}', '${item.path}')">
+                        ${Object.keys(params).map(k => `
                             <div class="mb-3">
-                                <label class="block text-sm font-medium text-slate-300 mb-1">${key} ${params[key]?.required !== false ? '<span class="text-red-400">*</span>' : ''}</label>
-                                <input type="file" name="${key}" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm focus:border-indigo-500" ${params[key]?.required !== false ? 'required' : ''}>
-                                <p class="text-xs text-gray-500 mt-1">${params[key] || ''}</p>
+                                <label class="block text-sm mb-1">${k} <span class="text-red-400">*</span></label>
+                                <input type="file" name="${k}" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg">
                             </div>
                         `).join('')}
-                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition">Execute</button>
-                        <button type="button" onclick="clearResponse(${catIndex}, ${idx})" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm ml-2 transition">Clear</button>
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg text-sm">Execute</button>
+                        <button type="button" onclick="clearResponse(${ci}, ${ii})" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm ml-2">Clear</button>
                     </form>
                 `;
             }
-            
             return `
-                <form id="form-${catIndex}-${idx}" onsubmit="executeRequest(event, ${catIndex}, ${idx}, '${method}', '${item.path}', true)">
-                    ${paramKeys.map(key => `
+                <form id="form-${ci}-${ii}" onsubmit="execute(event, ${ci}, ${ii}, '${method}', '${item.path}')">
+                    ${Object.keys(params).map(k => `
                         <div class="mb-3">
-                            <label class="block text-sm font-medium text-slate-300 mb-1">${key} ${params[key]?.required !== false ? '<span class="text-red-400">*</span>' : ''}</label>
-                            <input type="text" name="${key}" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm focus:border-indigo-500" placeholder="${params[key] || ''}" ${params[key]?.required !== false ? 'required' : ''}>
-                            <p class="text-xs text-gray-500 mt-1">${params[key] || ''}</p>
+                            <label class="block text-sm mb-1">${k}</label>
+                            <input type="text" name="${k}" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg" placeholder="${params[k]}">
                         </div>
                     `).join('')}
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition">Execute</button>
-                    <button type="button" onclick="clearResponse(${catIndex}, ${idx})" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm ml-2 transition">Clear</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg text-sm">Execute</button>
+                    <button type="button" onclick="clearResponse(${ci}, ${ii})" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm ml-2">Clear</button>
                 </form>
             `;
         }
 
-        async function executeRequest(event, catIndex, idx, method, basePath, isJson) {
+        async function execute(event, ci, ii, method, basePath) {
             event.preventDefault();
-            const form = document.getElementById(`form-${catIndex}-${idx}`);
+            const form = document.getElementById(`form-${ci}-${ii}`);
             const formData = new FormData(form);
-            const responseDiv = document.getElementById(`response-${catIndex}-${idx}`);
-            const responseContent = document.getElementById(`response-content-${catIndex}-${idx}`);
+            const respDiv = document.getElementById(`resp-${ci}-${ii}`);
+            const respText = document.getElementById(`resp-text-${ci}-${ii}`);
+            const curlDiv = document.getElementById(`curl-${ci}-${ii}`);
+            const curlText = document.getElementById(`curl-text-${ci}-${ii}`);
             
-            responseDiv.classList.remove('hidden');
-            responseContent.innerHTML = '<div class="loader mx-auto"></div>';
+            respDiv.classList.remove('hidden');
+            respText.innerHTML = '<div class="loader mx-auto"></div>';
             
             let url = basePath;
-            let options = { method: method };
+            let options = { method };
             
-            if (method.toUpperCase() === 'GET') {
+            if (method === 'GET') {
                 const params = new URLSearchParams();
-                for (let [key, value] of formData.entries()) {
-                    if (value) params.append(key, value);
-                }
+                for (let [k, v] of formData.entries()) if (v) params.append(k, v);
                 url = basePath.split('?')[0] + '?' + params.toString();
+                options = { method: 'GET' };
             } else {
                 options.body = formData;
             }
             
+            // Generate cURL
+            let curlCmd = `curl -X ${method} "${url}"`;
+            if (method === 'POST') {
+                for (let [k, v] of formData.entries()) {
+                    if (v instanceof File) curlCmd += ` \\\n  -F "${k}=@${v.name}"`;
+                    else if (v) curlCmd += ` \\\n  -F "${k}=${v}"`;
+                }
+            }
+            curlText.innerText = curlCmd;
+            curlDiv.classList.remove('hidden');
+            
             try {
-                const response = await fetch(url, options);
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('application/json')) {
-                    const json = await response.json();
-                    responseContent.innerHTML = JSON.stringify(json, null, 2);
-                } else if (contentType && contentType.startsWith('image/')) {
-                    const blob = await response.blob();
+                const res = await fetch(url, options);
+                const contentType = res.headers.get('content-type');
+                if (contentType?.includes('application/json')) {
+                    const json = await res.json();
+                    respText.innerText = JSON.stringify(json, null, 2);
+                } else if (contentType?.startsWith('image/')) {
+                    const blob = await res.blob();
                     const imgUrl = URL.createObjectURL(blob);
-                    responseContent.innerHTML = `<img src="${imgUrl}" class="max-w-full h-auto rounded-lg">`;
+                    respText.innerHTML = `<img src="${imgUrl}" class="max-w-full rounded-lg">`;
                 } else {
-                    const text = await response.text();
-                    responseContent.innerHTML = text;
+                    respText.innerText = await res.text();
                 }
-            } catch (error) {
-                responseContent.innerHTML = `Error: ${error.message}`;
+            } catch (err) {
+                respText.innerText = `Error: ${err.message}`;
             }
         }
         
-        function clearResponse(catIndex, idx) {
-            const responseDiv = document.getElementById(`response-${catIndex}-${idx}`);
-            const responseContent = document.getElementById(`response-content-${catIndex}-${idx}`);
-            if (responseDiv) responseDiv.classList.add('hidden');
-            if (responseContent) responseContent.innerHTML = '';
+        function clearResponse(ci, ii) {
+            document.getElementById(`resp-${ci}-${ii}`)?.classList.add('hidden');
+            document.getElementById(`curl-${ci}-${ii}`)?.classList.add('hidden');
         }
         
-        function copyResponse(catIndex, idx) {
-            const content = document.getElementById(`response-content-${catIndex}-${idx}`);
-            if (!content || !content.innerText) {
-                alert('Tidak ada response');
-                return;
-            }
-            navigator.clipboard.writeText(content.innerText).then(() => {
-                alert('✅ Response disalin!');
-            }).catch(() => alert('Gagal menyalin'));
+        function copyResponse(ci, ii) {
+            const text = document.getElementById(`resp-text-${ci}-${ii}`)?.innerText;
+            if (text) navigator.clipboard.writeText(text).then(() => alert('✅ Disalin!'));
+            else alert('Tidak ada response');
         }
         
-        function toggleCategory(index) {
-            const cat = document.getElementById(`category-${index}`);
-            const icon = document.getElementById(`category-icon-${index}`);
-            if (cat.classList.contains('hidden')) {
-                cat.classList.remove('hidden');
-                icon.textContent = 'expand_less';
-            } else {
-                cat.classList.add('hidden');
-                icon.textContent = 'expand_more';
-            }
+        function toggleCategory(ci) {
+            const el = document.getElementById(`cat-${ci}`);
+            const icon = document.getElementById(`cat-icon-${ci}`);
+            el.classList.toggle('hidden');
+            icon.innerText = el.classList.contains('hidden') ? 'expand_more' : 'expand_less';
         }
         
-        function toggleEndpoint(catIndex, idx) {
-            const ep = document.getElementById(`endpoint-${catIndex}-${idx}`);
-            const icon = document.getElementById(`endpoint-icon-${catIndex}-${idx}`);
-            if (ep.classList.contains('hidden')) {
-                ep.classList.remove('hidden');
-                icon.textContent = 'expand_less';
-            } else {
-                ep.classList.add('hidden');
-                icon.textContent = 'expand_more';
-            }
+        function toggleEndpoint(ci, ii) {
+            const el = document.getElementById(`ep-${ci}-${ii}`);
+            const icon = document.getElementById(`ep-icon-${ci}-${ii}`);
+            el.classList.toggle('hidden');
+            icon.innerText = el.classList.contains('hidden') ? 'expand_more' : 'expand_less';
         }
         
-        // Search
-        document.getElementById('searchInput').addEventListener('input', function(e) {
+        document.getElementById('searchInput').addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
-            const items = document.querySelectorAll('.api-item');
-            const groups = document.querySelectorAll('.category-group');
-            let visibleCount = 0;
-            
-            items.forEach(item => {
-                const text = (item.dataset.name + ' ' + item.dataset.path + ' ' + item.dataset.category).toLowerCase();
-                if (text.includes(term)) {
-                    item.style.display = '';
-                    visibleCount++;
-                } else {
-                    item.style.display = 'none';
-                }
+            document.querySelectorAll('.api-item').forEach(el => {
+                const name = el.dataset.name?.toLowerCase() || '';
+                const path = el.dataset.path?.toLowerCase() || '';
+                el.style.display = (name.includes(term) || path.includes(term)) ? '' : 'none';
             });
-            
-            groups.forEach(group => {
-                const visibleItems = group.querySelectorAll('.api-item[style=""]');
-                if (visibleItems.length === 0 && term !== '') {
-                    group.style.display = 'none';
-                } else {
-                    group.style.display = '';
-                }
-            });
-            
-            document.getElementById('noResults').classList.toggle('hidden', visibleCount > 0);
         });
         
         loadApis();
