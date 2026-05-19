@@ -60,10 +60,15 @@
     },
 {
   "name": "To Figure AI",
+  "desc": "Ubah gambar jadi style figure/illustrasi (upload file)",
   "path": "/maker/tofigure",
   "method": "POST",
+  "status": "ready",
   "params": {
-    "file": { "type": "file", "description": "File gambar" }
+    "file": {
+      "description": "File gambar yang mau diubah",
+      "type": "file"
+    }
   }
 },
     {
