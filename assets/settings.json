@@ -45,10 +45,19 @@
     }
   ]
 },
-    {
+{
   "name": "Maker",
   "image": "/api/placeholder/800/200",
   "items": [
+    {
+      "name": "Brat Image Generator",
+      "desc": "Buat gambar teks gaya BRAT",
+      "path": "/maker/brat?text=",
+      "status": "ready",
+      "params": {
+        "text": "Teks yang mau dijadikan gambar"
+      }
+    },
     {
       "name": "Brat Video Generator",
       "desc": "Buat video teks gaya BRAT",
@@ -59,7 +68,7 @@
       }
     }
   ]
-    },
+},
     {
   "name": "Stalker",
   "image": "/api/placeholder/800/200",
