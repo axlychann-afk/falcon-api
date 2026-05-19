@@ -21,9 +21,9 @@
     "express": "^4.19.2",
     "node-fetch": "^2.6.1",
     "nodemon": "^3.1.9",
-    "yt-search": "^2.12.1",   
+    "yt-search": "^2.12.1",
     "@vreden/youtube_scraper": "^1.2.5",
-    "@fongsidev/scraper": "^1.0.2-4.2", 
+    "@fongsidev/scraper": "^1.0.2-4.2",
     "async-g-i-s": "^1.5.5",
     "form-data": "^4.0.1",
     "file-type": "^16.5.3",
@@ -32,7 +32,7 @@
     "jimp": "^0.16.1",
     "moment-timezone": "^0.5.34",
     "node-upload-images": "^1.0.1",
-    "qrcode": "^1.5.4", 
+    "qrcode": "^1.5.4",
     "qs": "^6.14.0",
     "multer": "latest",
     "image-size": "latest",
@@ -40,6 +40,9 @@
     "pdfkit": "0.17.1",
     "@rynn-k/proxy-agent": "latest",
     "https-proxy-agent": "latest",
-    "@vercel/analytics": "latest"
+    "@vercel/analytics": "latest",
+    "sharp": "^0.33.5",
+    "tough-cookie": "^4.1.4",
+    "axios-cookiejar-support": "^5.0.2"
   }
 }
