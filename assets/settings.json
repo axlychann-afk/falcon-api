@@ -340,13 +340,15 @@
             "text": "Teks yang ingin diubah menjadi suara."
           }
         },
-        {
+{
   "name": "Image Enhancer HD",
-  "desc": "Tingkatkan kualitas gambar ke HD (upload file via POST)",
-  "path": "/tools/enhance",
+  "desc": "Tingkatkan kualitas gambar ke HD (masukkan URL gambar)",
+  "path": "/tools/enhance?url=",
   "status": "ready",
-  "method": "POST"
-        },
+  "params": {
+    "url": "URL gambar yang mau ditingkatkan kualitasnya"
+  }
+},
         {
           "name": "Emoji Mix",
           "desc": "Menggabungkan dua emoji menjadi satu emoji baru yang unik dalam bentuk gambar.",
