@@ -168,14 +168,23 @@
           }
         },
         {
-  "name": "YouTube MP3/Video",
-  "desc": "Download audio MP3 atau video dari YouTube (pilih kualitas)",
+  "name": "YouTube Video (ytmp4)",
+  "desc": "Download video YouTube berbagai kualitas (FHD, HD, SD)",
+  "path": "/download/ytmp4?url=",
+  "status": "ready",
+  "params": {
+    "url": "URL YouTube"
+  }
+},
+{
+  "name": "YouTube Audio (ytmp3)",
+  "desc": "Download audio MP3/M4A dari YouTube",
   "path": "/download/ytmp3?url=",
   "status": "ready",
   "params": {
-    "url": "URL YouTube (contoh: https://youtube.com/watch?v=xxx)"
+    "url": "URL YouTube"
   }
-        },
+},
 {
   "name": "Instagram Downloader",
   "desc": "Download video/gambar dari Instagram (Reels, Post, Carousel)",
