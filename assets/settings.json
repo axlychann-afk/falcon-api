@@ -395,6 +395,15 @@
             "text": "Teks yang ingin diubah menjadi suara."
           }
         },
+        {
+      "name": "Screenshot Web",
+      "desc": "Ambil screenshot dari URL website",
+      "path": "/tools/ssweb?url=",
+      "status": "ready",
+      "params": {
+        "url": "URL website yang mau di-screenshot"
+      }
+        },
 {
   "name": "Image Enhancer HD",
   "desc": "Tingkatkan kualitas gambar ke HD (masukkan URL gambar)",
