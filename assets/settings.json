@@ -167,6 +167,15 @@
             "url": "URL video TikTok."
           }
         },
+        {
+  "name": "YouTube MP3/Video",
+  "desc": "Download audio MP3 atau video dari YouTube (pilih kualitas)",
+  "path": "/download/ytmp3?url=",
+  "status": "ready",
+  "params": {
+    "url": "URL YouTube (contoh: https://youtube.com/watch?v=xxx)"
+  }
+        },
 {
   "name": "Instagram Downloader",
   "desc": "Download video/gambar dari Instagram (Reels, Post, Carousel)",
