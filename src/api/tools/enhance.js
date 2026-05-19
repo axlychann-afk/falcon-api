@@ -26,7 +26,39 @@ async function enhanceImage(imageBuffer) {
 }
 
 module.exports = (app) => {
-    // Endpoint POST upload file langsung
+    // GET endpoint untuk test di web (pake URL)
+    app.get('/tools/enhance', async (req, res) => {
+        const { url } = req.query;
+
+        if (!url) {
+            return res.status(400).json({
+                status: false,
+                error: 'Parameter "url" diperlukan (URL gambar)'
+            });
+        }
+
+        try {
+            const imageRes = await axios.get(url, {
+                responseType: 'arraybuffer',
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+            });
+
+            const enhancedBuffer = await enhanceImage(Buffer.from(imageRes.data));
+            
+            res.setHeader('Content-Type', 'image/jpeg');
+            res.send(enhancedBuffer);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({
+                status: false,
+                error: error.message || 'Gagal enhance gambar'
+            });
+        }
+    });
+
+    // POST endpoint untuk bot WA (upload file)
     app.post('/tools/enhance', upload.single('file'), async (req, res) => {
         try {
             if (!req.file) {
@@ -39,9 +71,7 @@ module.exports = (app) => {
             const enhancedBuffer = await enhanceImage(req.file.buffer);
             
             res.setHeader('Content-Type', 'image/jpeg');
-            res.setHeader('Content-Disposition', 'attachment; filename="enhanced.jpg"');
             res.send(enhancedBuffer);
-
         } catch (error) {
             console.error(error);
             res.status(500).json({
