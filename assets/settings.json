@@ -304,8 +304,7 @@
       "desc": "Menampilkan gambar acak dari karakter game Blue Archive.",
       "path": "/random/ba",
       "status": "ready"
-    }
-     },
+    },
     {
   "name": "Random Waifu",
   "desc": "Dapatkan gambar waifu random (bisa filter tag: waifu, neko, maid, dll)",
