@@ -198,7 +198,7 @@ inspirasi design dari: <a href="https://api.nekolabs.my.id/" target="_blank">api
         responseDiv.classList.remove('hidden');
         responseContent.innerHTML = '<div class="loader"></div>';
         
-        // Tampilkan cURL command
+        // Tampilkan cURL command saja
         const curlCommand = generateCurlCommand(method, fullPath, formData);
         if (infoDiv && infoContent) {
             infoContent.innerHTML = `<span class="text-gray-400">🔧 cURL:</span> <span class="text-green-400">${curlCommand}</span>`;
@@ -263,7 +263,6 @@ inspirasi design dari: <a href="https://api.nekolabs.my.id/" target="_blank">api
                     const method = item.method || 'GET';
                     const pathParts = item.path.split('?');
                     const basePath = pathParts[0];
-                    const queryParams = new URLSearchParams(pathParts[1] || '');
                     const hasFileParam = item.params && Object.values(item.params).some(p => p?.type === 'file');
 
                     const statusClasses = {
