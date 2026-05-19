@@ -176,6 +176,15 @@
     "url": "URL YouTube"
   }
 },
+        {
+  "name": "Twitter/X Downloader",
+  "desc": "Download video dari Twitter/X (berbagai resolusi + audio)",
+  "path": "/download/twitter?url=",
+  "status": "ready",
+  "params": {
+    "url": "URL tweet Twitter/X (contoh: https://x.com/user/status/123456789)"
+  }
+        },
 {
   "name": "YouTube Audio (ytmp3)",
   "desc": "Download audio MP3/M4A dari YouTube",
