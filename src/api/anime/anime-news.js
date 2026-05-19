@@ -29,7 +29,7 @@ module.exports = function (app) {
 
       res.json({
         status: true,
-        creator: "FlowFalcon",
+        creator: "AxlyChann",
         result: newsData
       });
     } catch (err) {
