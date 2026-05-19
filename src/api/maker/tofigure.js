@@ -6,7 +6,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 module.exports = (app) => {
     // GET endpoint (pake URL)
-    app.get('/maker/tofigura', async (req, res) => {
+    app.get('/maker/tofigure', async (req, res) => {
         const { url } = req.query;
         if (!url) return res.status(400).json({ status: false, error: 'Parameter "url" diperlukan' });
         
@@ -22,7 +22,7 @@ module.exports = (app) => {
     });
 
     // POST endpoint (upload file)
-    app.post('/maker/tofigura', upload.single('file'), async (req, res) => {
+    app.post('/maker/tofigure', upload.single('file'), async (req, res) => {
         if (!req.file) return res.status(400).json({ status: false, error: 'Tidak ada file' });
         
         try {
