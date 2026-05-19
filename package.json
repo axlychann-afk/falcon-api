@@ -14,6 +14,7 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^1.6.8",
+    "axios-cookiejar-support": "^5.0.2",
     "body-parser": "^1.20.3",
     "chalk": "^4.1.2",
     "cheerio": "^1.0.0",
@@ -41,6 +42,7 @@
     "@rynn-k/proxy-agent": "latest",
     "https-proxy-agent": "latest",
     "@vercel/analytics": "latest",
-    "sharp": "^0.33.5"
+    "sharp": "^0.33.5",
+    "tough-cookie": "^4.1.4"
   }
 }
