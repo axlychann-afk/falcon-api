@@ -341,6 +341,13 @@
           }
         },
         {
+  "name": "Image Enhancer HD",
+  "desc": "Tingkatkan kualitas gambar ke HD (upload file via POST)",
+  "path": "/tools/enhance",
+  "status": "ready",
+  "method": "POST"
+        },
+        {
           "name": "Emoji Mix",
           "desc": "Menggabungkan dua emoji menjadi satu emoji baru yang unik dalam bentuk gambar.",
           "path": "/tools/emojimix?emoji1=&emoji2=",
