@@ -230,7 +230,7 @@ module.exports = function (app) {
         downloadLinks.push({ episode, resolutions });
       });
 
-      res.json({ status: true, creator: "FlowFalcon", result: downloadLinks });
+      res.json({ status: true, creator: "AxlyChann", result: downloadLinks });
     } catch (err) {
       res.status(500).json({ status: false, message: err.message });
     }
