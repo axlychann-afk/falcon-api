@@ -50,6 +50,15 @@
   "image": "/api/placeholder/800/200",
   "items": [
     {
+  "name": "Genshin Impact Stalker",
+  "desc": "Cek profil player Genshin Impact (UID)",
+  "path": "/stalker/genshin?id=",
+  "status": "ready",
+  "params": {
+    "id": "UID Genshin Impact (contoh: 856012067)"
+  }
+    },
+    {
       "name": "Free Fire Stalk",
       "desc": "Cek profil player Free Fire (region otomatis dari UID)",
       "path": "/stalk/ff?uid=",
