@@ -39,7 +39,7 @@ module.exports = function(app) {
 
       res.json({
         status: true,
-        creator: 'FlowFalcon',
+        creator: 'AxlyChann',
         page: parseInt(page),
         result: mangaList
       });
