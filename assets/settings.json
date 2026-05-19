@@ -71,6 +71,16 @@
   }
     },
     {
+  "name": "Fake Lobby ML Generator",
+  "desc": "Buat gambar fake lobby Mobile Legends",
+  "path": "/maker/fakelobyml?avatar=&nickname=",
+  "status": "ready",
+  "params": {
+    "avatar": "URL avatar (wajib)",
+    "nickname": "Nickname pemain (wajib)"
+  }
+    },
+    {
   "name": "IQC Image Generator",
   "desc": "Buat gambar teks gaya IQC",
   "path": "/maker/iqc?text=",
