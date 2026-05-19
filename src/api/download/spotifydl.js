@@ -1,101 +1,136 @@
 const axios = require('axios');
+const { CookieJar } = require('tough-cookie');
+const { wrapper } = require('axios-cookiejar-support');
+
+const BASE = "https://spotmate.online";
+const UA = "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/137 Mobile Safari/537.36";
+
+// Setup cookie jar
+const jar = new CookieJar();
+const client = wrapper(
+    axios.create({
+        jar,
+        withCredentials: true,
+        timeout: 30000,
+        headers: {
+            "User-Agent": UA,
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive"
+        }
+    })
+);
+
+async function getXsrf() {
+    try {
+        // Hit halaman utama dulu
+        const response = await client.get(`${BASE}/en1`, {
+            headers: {
+                'User-Agent': UA,
+                'Referer': 'https://www.google.com/'
+            }
+        });
+        
+        // Ambil cookie XSRF-TOKEN
+        const cookies = await jar.getCookies(BASE);
+        const xsrfCookie = cookies.find(c => c.key === "XSRF-TOKEN");
+        
+        if (!xsrfCookie) {
+            // Coba dari response headers
+            const setCookie = response.headers['set-cookie'];
+            if (setCookie) {
+                const xsrfMatch = setCookie.join('').match(/XSRF-TOKEN=([^;]+)/);
+                if (xsrfMatch) {
+                    return decodeURIComponent(xsrfMatch[1]);
+                }
+            }
+            throw new Error("XSRF-TOKEN tidak ditemukan");
+        }
+        
+        return decodeURIComponent(xsrfCookie.value);
+    } catch (error) {
+        throw new Error(`Gagal mengambil XSRF token: ${error.message}`);
+    }
+}
+
+async function convertSpotify(url) {
+    const xsrf = await getXsrf();
+    
+    // Request pertama: getTrackData
+    await client.post(
+        `${BASE}/getTrackData`,
+        { spotify_url: url },
+        {
+            headers: {
+                "Content-Type": "application/json",
+                "X-XSRF-TOKEN": xsrf,
+                "Origin": BASE,
+                "Referer": `${BASE}/en1`
+            }
+        }
+    );
+    
+    // Request kedua: convert
+    const convertRes = await client.post(
+        `${BASE}/convert`,
+        { urls: url },
+        {
+            headers: {
+                "Content-Type": "application/json",
+                "X-XSRF-TOKEN": xsrf,
+                "Origin": BASE,
+                "Referer": `${BASE}/en1`
+            }
+        }
+    );
+    
+    const data = convertRes.data;
+    
+    if (!data || !data.url) {
+        throw new Error('Gagal mendapatkan download URL');
+    }
+    
+    return {
+        title: data.title || 'Unknown',
+        artist: data.artist || 'Unknown',
+        download_url: data.url,
+        thumbnail: data.thumbnail || null
+    };
+}
 
 module.exports = (app) => {
     app.get('/download/spotify', async (req, res) => {
         const { url } = req.query;
-
+        
         if (!url) {
             return res.status(400).json({
                 status: false,
                 error: 'Parameter "url" diperlukan (URL Spotify)'
             });
         }
-
-        // Extract track ID dari URL Spotify
-        const trackId = url.match(/track\/([a-zA-Z0-9]+)/)?.[1];
-        if (!trackId) {
+        
+        // Validasi URL
+        if (!url.includes('spotify.com/track/')) {
             return res.status(400).json({
                 status: false,
-                error: 'URL Spotify tidak valid'
+                error: 'URL harus berupa link track Spotify'
             });
         }
-
+        
         try {
-            // API 1: spotifydown.com
-            const response = await axios.get(`https://api.spotifydown.com/download/${trackId}`, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                    'Origin': 'https://spotifydown.com',
-                    'Referer': 'https://spotifydown.com/'
-                },
-                timeout: 30000
+            const result = await convertSpotify(url);
+            res.json({
+                status: true,
+                creator: 'FlowFalcon',
+                result: result
             });
-            
-            if (response.data && response.data.success) {
-                return res.json({
-                    status: true,
-                    creator: 'FlowFalcon',
-                    result: {
-                        title: response.data.metadata?.title || 'Unknown',
-                        artist: response.data.metadata?.artist || 'Unknown',
-                        download_url: response.data.link,
-                        thumbnail: response.data.metadata?.cover || null,
-                        duration: response.data.metadata?.duration || null
-                    }
-                });
-            }
-            throw new Error('Gagal dari spotifydown');
-            
         } catch (error) {
-            // Fallback API 2: spotify-downloader-api.vercel.app
-            try {
-                const fallbackRes = await axios.get(`https://spotify-downloader-api.vercel.app/api/download?trackId=${trackId}`, {
-                    timeout: 30000
-                });
-                
-                if (fallbackRes.data && fallbackRes.data.downloadUrl) {
-                    return res.json({
-                        status: true,
-                        creator: 'FlowFalcon',
-                        result: {
-                            title: fallbackRes.data.title || 'Unknown',
-                            artist: fallbackRes.data.artist || 'Unknown',
-                            download_url: fallbackRes.data.downloadUrl,
-                            thumbnail: fallbackRes.data.thumbnail || null,
-                            duration: fallbackRes.data.duration || null
-                        }
-                    });
-                }
-                throw new Error('Gagal dari fallback API');
-                
-            } catch (fallbackError) {
-                // Fallback API 3: api.vihangay.xyz
-                try {
-                    const vihangayRes = await axios.get(`https://api.vihangay.xyz/tools/spotifydl?url=${encodeURIComponent(url)}`, {
-                        timeout: 30000
-                    });
-                    
-                    if (vihangayRes.data && vihangayRes.data.download_url) {
-                        return res.json({
-                            status: true,
-                            creator: 'FlowFalcon',
-                            result: {
-                                title: vihangayRes.data.title || 'Unknown',
-                                artist: vihangayRes.data.artist || 'Unknown',
-                                download_url: vihangayRes.data.download_url,
-                                thumbnail: vihangayRes.data.thumbnail || null
-                            }
-                        });
-                    }
-                    throw new Error('Gagal dari vihangay API');
-                    
-                } catch (finalError) {
-                    res.status(500).json({
-                        status: false,
-                        error: 'Gagal download lagu. Coba lagi nanti.'
-                    });
-                }
-            }
+            console.error('Error:', error.message);
+            res.status(500).json({
+                status: false,
+                error: error.message || 'Gagal download lagu'
+            });
         }
     });
 };
