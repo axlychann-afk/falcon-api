@@ -14,9 +14,9 @@ module.exports = (app) => {
         try {
             const response = await axios.get(`https://api.nexray.eu.cc/search/spotify?q=${encodeURIComponent(q)}`);
             
+            // Kirim ulang tanpa field author dari API asli
             res.json({
                 status: response.data.status,
-                author: "AxlyChann",
                 result: response.data.result,
                 timestamp: new Date().toISOString()
             });
