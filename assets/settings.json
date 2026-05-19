@@ -59,6 +59,18 @@
       }
     },
     {
+  "name": "QC Image Generator",
+  "desc": "Buat gambar QC dengan teks, nama, avatar, dan warna",
+  "path": "/maker/qc?text=&name=&avatar=&color=",
+  "status": "ready",
+  "params": {
+    "text": "Teks utama (wajib)",
+    "name": "Nama pengguna (opsional, default: AxlyDev)",
+    "avatar": "URL avatar (opsional)",
+    "color": "Warna latar: putih, hitam (opsional, default: putih)"
+  }
+    },
+    {
   "name": "IQC Image Generator",
   "desc": "Buat gambar teks gaya IQC",
   "path": "/maker/iqc?text=",
