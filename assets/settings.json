@@ -401,6 +401,16 @@
           }
         },
         {
+  "name": "Pinterest Search",
+  "desc": "Mencari gambar di Pinterest (tanpa API key)",
+  "path": "/search/pinterest?q=",
+  "status": "ready",
+  "params": {
+    "q": "Kata kunci pencarian",
+    "limit": "(Opsional) Jumlah hasil, maks 50, default 20"
+  }
+        },
+        {
           "name": "NPM Package Search",
           "desc": "Mencari package di Node Package Manager (NPM).",
           "path": "/search/npm?q=",
