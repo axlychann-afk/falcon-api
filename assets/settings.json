@@ -66,8 +66,8 @@
   "params": {
     "id": "ID player Mobile Legends",
     "zone": "Zone ID player (contoh: 11449)"
-  },
-    }
+  }
+    },
     {
       "name": "Free Fire Stalk",
       "desc": "Cek profil player Free Fire (region otomatis dari UID)",
