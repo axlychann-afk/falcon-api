@@ -59,6 +59,15 @@
   }
     },
     {
+  "name": "Roblox Stalker",
+  "desc": "Cek profil player Roblox (username)",
+  "path": "/stalk/roblox?username=",
+  "status": "ready",
+  "params": {
+    "username": "Username Roblox (contoh: bulderman)"
+  }
+    },
+    {
   "name": "Mobile Legends Stalker",
   "desc": "Cek profil player Mobile Legends (ID & Zone)",
   "path": "/stalker/mlbb?id=&zone=",
