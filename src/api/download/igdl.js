@@ -40,7 +40,7 @@ async function igDownload(url) {
 }
 
 module.exports = (app) => {
-    app.get('/download/instagram', async (req, res) => {
+    app.get('/download/igdl', async (req, res) => {
         const { url } = req.query;
 
         if (!url) {
