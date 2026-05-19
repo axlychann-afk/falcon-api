@@ -50,7 +50,7 @@ module.exports = function (app) {
     if (result?.error) {
       return res.status(500).json({
         status: false,
-        creator: 'FlowFalcon',
+        creator: 'AxlyChann',
         message: 'Gagal mengambil jadwal rilis anime',
         error: result.message
       });
