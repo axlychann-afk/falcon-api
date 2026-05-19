@@ -1,71 +1,4 @@
-const axios = require("axios");
-const { CookieJar } = require("tough-cookie");
-const { wrapper } = require("axios-cookiejar-support");
-
-const BASE = "https://spotmate.online";
-const UA = "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/137 Mobile Safari/537.36";
-
-const jar = new CookieJar();
-const client = wrapper(
-    axios.create({
-        jar,
-        withCredentials: true,
-        headers: {
-            "user-agent": UA,
-            accept: "*/*"
-        }
-    })
-);
-
-async function getXsrf() {
-    await client.get(`${BASE}/en1`);
-    const cookies = await jar.getCookies(BASE);
-    const xsrf = cookies.find(c => c.key === "XSRF-TOKEN");
-    if (!xsrf) throw new Error("XSRF-TOKEN not found");
-    return decodeURIComponent(xsrf.value);
-}
-
-async function convertSpotify(url) {
-    const xsrf = await getXsrf();
-
-    await client.post(
-        `${BASE}/getTrackData`,
-        { spotify_url: url },
-        {
-            headers: {
-                "content-type": "application/json",
-                "x-xsrf-token": xsrf,
-                origin: BASE,
-                referer: `${BASE}/en1`
-            }
-        }
-    );
-
-    const convertRes = await client.post(
-        `${BASE}/convert`,
-        { urls: url },
-        {
-            headers: {
-                "content-type": "application/json",
-                "x-xsrf-token": xsrf,
-                origin: BASE,
-                referer: `${BASE}/en1`
-            }
-        }
-    );
-
-    // Ambil data dari response convert
-    const d = convertRes.data;
-    
-    // Ambil metadata dari response pertama (trackRes) sebenernya gak kepake, 
-    // tapi kita pake data dari convertRes aja udah cukup
-    return {
-        title: d.title || "Unknown",
-        artist: d.artist || "Unknown",
-        download_url: d.url,
-        thumbnail: d.thumbnail || null
-    };
-}
+const axios = require('axios');
 
 module.exports = (app) => {
     app.get('/download/spotify', async (req, res) => {
@@ -78,19 +11,91 @@ module.exports = (app) => {
             });
         }
 
-        try {
-            const result = await convertSpotify(url);
-            res.json({
-                status: true,
-                creator: 'FlowFalcon',
-                result: result
-            });
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({
+        // Extract track ID dari URL Spotify
+        const trackId = url.match(/track\/([a-zA-Z0-9]+)/)?.[1];
+        if (!trackId) {
+            return res.status(400).json({
                 status: false,
-                error: error.response?.data || error.message || 'Gagal download lagu'
+                error: 'URL Spotify tidak valid'
             });
+        }
+
+        try {
+            // API 1: spotifydown.com
+            const response = await axios.get(`https://api.spotifydown.com/download/${trackId}`, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Origin': 'https://spotifydown.com',
+                    'Referer': 'https://spotifydown.com/'
+                },
+                timeout: 30000
+            });
+            
+            if (response.data && response.data.success) {
+                return res.json({
+                    status: true,
+                    creator: 'FlowFalcon',
+                    result: {
+                        title: response.data.metadata?.title || 'Unknown',
+                        artist: response.data.metadata?.artist || 'Unknown',
+                        download_url: response.data.link,
+                        thumbnail: response.data.metadata?.cover || null,
+                        duration: response.data.metadata?.duration || null
+                    }
+                });
+            }
+            throw new Error('Gagal dari spotifydown');
+            
+        } catch (error) {
+            // Fallback API 2: spotify-downloader-api.vercel.app
+            try {
+                const fallbackRes = await axios.get(`https://spotify-downloader-api.vercel.app/api/download?trackId=${trackId}`, {
+                    timeout: 30000
+                });
+                
+                if (fallbackRes.data && fallbackRes.data.downloadUrl) {
+                    return res.json({
+                        status: true,
+                        creator: 'FlowFalcon',
+                        result: {
+                            title: fallbackRes.data.title || 'Unknown',
+                            artist: fallbackRes.data.artist || 'Unknown',
+                            download_url: fallbackRes.data.downloadUrl,
+                            thumbnail: fallbackRes.data.thumbnail || null,
+                            duration: fallbackRes.data.duration || null
+                        }
+                    });
+                }
+                throw new Error('Gagal dari fallback API');
+                
+            } catch (fallbackError) {
+                // Fallback API 3: api.vihangay.xyz
+                try {
+                    const vihangayRes = await axios.get(`https://api.vihangay.xyz/tools/spotifydl?url=${encodeURIComponent(url)}`, {
+                        timeout: 30000
+                    });
+                    
+                    if (vihangayRes.data && vihangayRes.data.download_url) {
+                        return res.json({
+                            status: true,
+                            creator: 'FlowFalcon',
+                            result: {
+                                title: vihangayRes.data.title || 'Unknown',
+                                artist: vihangayRes.data.artist || 'Unknown',
+                                download_url: vihangayRes.data.download_url,
+                                thumbnail: vihangayRes.data.thumbnail || null
+                            }
+                        });
+                    }
+                    throw new Error('Gagal dari vihangay API');
+                    
+                } catch (finalError) {
+                    res.status(500).json({
+                        status: false,
+                        error: 'Gagal download lagu. Coba lagi nanti.'
+                    });
+                }
+            }
         }
     });
 };
