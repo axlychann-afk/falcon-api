@@ -59,6 +59,16 @@
   }
     },
     {
+  "name": "Mobile Legends Stalker",
+  "desc": "Cek profil player Mobile Legends (ID & Zone)",
+  "path": "/stalker/mlbb?id=&zone=",
+  "status": "ready",
+  "params": {
+    "id": "ID player Mobile Legends",
+    "zone": "Zone ID player (contoh: 11449)"
+  },
+    }
+    {
       "name": "Free Fire Stalk",
       "desc": "Cek profil player Free Fire (region otomatis dari UID)",
       "path": "/stalk/ff?uid=",
