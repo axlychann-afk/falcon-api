@@ -177,6 +177,15 @@
   }
 },
         {
+  "name": "Pinterest Downloader",
+  "desc": "Download gambar/video dari Pinterest",
+  "path": "/download/pinterest?url=",
+  "status": "ready",
+  "params": {
+    "url": "URL Pinterest (contoh: https://pin.it/xxx atau https://pinterest.com/pin/xxx)"
+  }
+        },
+        {
   "name": "Twitter/X Downloader",
   "desc": "Download video dari Twitter/X (berbagai resolusi + audio)",
   "path": "/download/twitter?url=",
