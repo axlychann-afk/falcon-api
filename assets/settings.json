@@ -61,7 +61,7 @@
     {
   "name": "Roblox Stalker",
   "desc": "Cek profil player Roblox (username)",
-  "path": "/stalk/roblox?username=",
+  "path": "/stalker/roblox?username=",
   "status": "ready",
   "params": {
     "username": "Username Roblox (contoh: bulderman)"
