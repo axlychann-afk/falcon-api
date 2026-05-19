@@ -168,6 +168,15 @@
           }
         },
         {
+  "name": "Spotify Download",
+  "desc": "Download lagu dari URL Spotify (via spotmate.online)",
+  "path": "/download/spotifydl?url=",
+  "status": "ready",
+  "params": {
+    "url": "URL lagu Spotify"
+  }
+        }
+        {
           "name": "Douyin Downloader",
           "desc": "Mengunduh video dari Douyin (versi China dari TikTok).",
           "path": "/download/douyin?url=",
