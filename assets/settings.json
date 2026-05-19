@@ -306,6 +306,15 @@
       "status": "ready"
     },
     {
+  "name": "Random Waifu",
+  "desc": "Dapatkan gambar waifu random (bisa filter tag: waifu, neko, maid, dll)",
+  "path": "/random/waifu?q=",
+  "status": "ready",
+  "params": {
+    "q": "Tag pencarian (opsional, default: waifu)"
+  }
+    },
+    {
       "name": "Pap Ayang",
       "desc": "Menampilkan gambar 'PAP Ayang' secara acak.",
       "path": "/random/papayang",
