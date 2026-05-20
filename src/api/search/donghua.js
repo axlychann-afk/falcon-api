@@ -11,18 +11,19 @@ async function searchSeries(keyword) {
     const results = [];
     const seen = new Set();
 
-    $('.post-item, .bs-item, article').each((i, el) => {
+    $('.post-item, .bs-item, article, .item').each((i, el) => {
         const linkEl = $(el).find('a').first();
         const href = linkEl.attr('href');
-        let title = linkEl.text().trim() || $(el).find('h3, .title').text().trim();
+        let title = linkEl.text().trim() || $(el).find('h3, .title, .entry-title').text().trim();
         const imgEl = $(el).find('img').first();
         let thumbnail = imgEl.attr('src') || imgEl.attr('data-src') || null;
 
         if (!href || !title) return;
         if (href.includes('/bookmark/') || href.includes('/schedule/') || href === '/') return;
+        if (href.includes('/privacy-policy/')) return;
 
         title = title.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-        if (title.length < 3 || title === 'Beranda' || title === 'Bookmark') return;
+        if (title.length < 3) return;
         if (seen.has(href)) return;
         seen.add(href);
 
@@ -41,46 +42,71 @@ async function searchSeries(keyword) {
 }
 
 async function searchEpisode(keyword) {
-    // Cari series dulu
-    const seriesName = keyword.replace(/episode\s*\d+/i, '').trim();
-    const series = await searchSeries(seriesName);
+    // Extract nomor episode
+    const episodeMatch = keyword.match(/episode\s*(\d+)/i);
+    const targetEp = episodeMatch ? episodeMatch[1] : null;
+    
+    // Cari series name (hapus kata "episode xx")
+    let seriesName = keyword.replace(/episode\s*\d+/i, '').trim();
+    
+    // Coba cari series
+    let series = await searchSeries(seriesName);
+    
+    // Kalau gak ketemu, coba cari tanpa kata terakhir
+    if (series.length === 0 && seriesName.includes(' ')) {
+        const words = seriesName.split(' ');
+        words.pop();
+        seriesName = words.join(' ');
+        series = await searchSeries(seriesName);
+    }
     
     if (series.length === 0) return [];
 
-    // Ambil episode dari series pertama
     const seriesUrl = series[0].link;
-    const response = await axios.get(seriesUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
-    });
-
-    const $ = cheerio.load(response.data);
-    const episodes = [];
-
-    $('a[href*="/episode/"]').each((i, el) => {
-        const href = $(el).attr('href');
-        let title = $(el).text().trim();
-        if (!href) return;
-        
-        title = title.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-        
-        // Filter sesuai nomor episode jika ada
-        const episodeMatch = keyword.match(/episode\s*(\d+)/i);
-        if (episodeMatch) {
-            const targetEp = episodeMatch[1];
-            if (!href.includes(`episode-${targetEp}`) && !title.includes(`Episode ${targetEp}`)) {
-                return;
-            }
-        }
-        
-        episodes.push({
-            title: title || `Episode ${href.match(/episode-(\d+)/i)?.[1] || '?'}`,
-            link: href,
-            type: 'Episode',
-            thumbnail: series[0].thumbnail
+    
+    try {
+        const response = await axios.get(seriesUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
         });
-    });
 
-    return episodes.slice(0, 10);
+        const $ = cheerio.load(response.data);
+        const episodes = [];
+
+        // Cari semua link episode
+        $('a[href*="/episode/"]').each((i, el) => {
+            const href = $(el).attr('href');
+            let title = $(el).text().trim();
+            if (!href) return;
+            
+            title = title.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+            
+            // Ekstrak nomor episode dari URL atau title
+            let episodeNum = null;
+            const urlMatch = href.match(/episode-(\d+)/i);
+            const titleMatch = title.match(/Episode\s*(\d+)/i);
+            if (urlMatch) episodeNum = urlMatch[1];
+            if (titleMatch) episodeNum = titleMatch[1];
+            
+            // Filter berdasarkan nomor episode jika ada
+            if (targetEp && episodeNum !== targetEp) return;
+            
+            episodes.push({
+                title: title || `Episode ${episodeNum || '?'}`,
+                link: href,
+                type: 'Episode',
+                episode: episodeNum,
+                thumbnail: series[0].thumbnail
+            });
+        });
+
+        // Urutkan berdasarkan nomor episode
+        episodes.sort((a, b) => (parseInt(b.episode) || 0) - (parseInt(a.episode) || 0));
+        
+        return episodes;
+
+    } catch (error) {
+        return [];
+    }
 }
 
 module.exports = (app) => {
@@ -99,6 +125,25 @@ module.exports = (app) => {
                 results = await searchEpisode(q);
             } else {
                 results = await searchSeries(q);
+            }
+
+            // Fallback: kalau search episode gak ketemu, coba search series
+            if (isEpisodeSearch && results.length === 0) {
+                const seriesName = q.replace(/episode\s*\d+/i, '').trim();
+                results = await searchSeries(seriesName);
+                if (results.length > 0) {
+                    return res.json({
+                        status: true,
+                        creator: 'AxlyChann',
+                        result: {
+                            query: q,
+                            type: 'series_suggestion',
+                            message: `Episode ${q.match(/episode\s*(\d+)/i)?.[1]} tidak ditemukan. Berikut series yang cocok:`,
+                            total: results.length,
+                            data: results
+                        }
+                    });
+                }
             }
 
             res.json({
