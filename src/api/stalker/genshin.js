@@ -7,7 +7,15 @@ module.exports = (app) => {
         if (!id) {
             return res.status(400).json({
                 status: false,
-                error: 'Parameter "id" diperlukan'
+                error: 'Parameter "id" diperlukan (UID Genshin Impact)'
+            });
+        }
+
+        // Validasi UID (harus angka 9 digit)
+        if (!/^\d{9}$/.test(id)) {
+            return res.status(400).json({
+                status: false,
+                error: 'UID harus 9 digit angka'
             });
         }
 
@@ -19,28 +27,40 @@ module.exports = (app) => {
                 timeout: 15000
             });
 
-            // Ambil JSON dari HTML
+            // Ambil JSON dari <script id="__NEXT_DATA__">
             const match = response.data.match(/<script id="__NEXT_DATA__" type="application\/json">([^<]+)<\/script>/);
-            if (!match) {
-                return res.json({
-                    status: false,
-                    error: 'Tidak nemu __NEXT_DATA__',
-                    html_preview: response.data.slice(0, 500)
-                });
-            }
+            if (!match) throw new Error('Tidak dapat menemukan data profile');
 
             const json = JSON.parse(match[1]);
+            const player = json.props?.pageProps?.account?.player;
             
-            // Return full JSON buat debugging
-            return res.json({
-                status: 'debug',
-                full_json: json
+            if (!player) throw new Error('Data user tidak ditemukan');
+
+            // Format response
+            const result = {
+                uid: player.uid,
+                nickname: player.nickname,
+                level: player.level,
+                world_level: player.worldLevel,
+                achievements: player.detail?.achievements || 0,
+                active_days: player.detail?.activeDays || 0,
+                characters: player.detail?.characters || 0,
+                spiral_abyss: player.detail?.spiralAbyss?.maxFloor || '-',
+                avatar: player.iconUrl || null,
+                server: player.server || '-'
+            };
+
+            res.json({
+                status: true,
+                creator: 'AxlyChann',
+                result: result
             });
 
         } catch (error) {
+            console.error(error);
             res.status(500).json({
                 status: false,
-                error: error.message
+                error: error.message || 'Gagal mengambil data Genshin Impact'
             });
         }
     });
