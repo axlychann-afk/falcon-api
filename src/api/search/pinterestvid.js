@@ -10,14 +10,13 @@ function request(url, headers = {}) {
             hostname: u.hostname,
             path: u.pathname + u.search,
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Android 15; Mobile; rv:150.0) Gecko/150.0 Firefox/150.0',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Accept': 'application/json, text/javascript, */*; q=0.01',
                 'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8',
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-Pinterest-AppState': 'active',
                 ...headers
             },
-            timeout: 10000
+            timeout: 15000
         };
 
         const req = https.get(options, (res) => {
@@ -33,17 +32,14 @@ function request(url, headers = {}) {
 async function getCookie() {
     if (cachedCookie && Date.now() < cookieExpiry) return cachedCookie;
 
-    const { headers } = await request('https://www.pinterest.com/', {
-        'Accept': 'text/html'
-    });
-
+    const { headers } = await request('https://www.pinterest.com/', { 'Accept': 'text/html' });
     const cookies = headers['set-cookie'] || [];
     const csrf = cookies.find(c => c.startsWith('csrftoken='));
     const sess = cookies.find(c => c.startsWith('_pinterest_sess='));
 
     if (csrf && sess) {
         cachedCookie = `${csrf.split(';')[0]}; ${sess.split(';')[0]}; _auth=1`;
-        cookieExpiry = Date.now() + 5 * 60 * 1000;
+        cookieExpiry = Date.now() + 10 * 60 * 1000;
         return cachedCookie;
     }
     return null;
@@ -53,9 +49,9 @@ async function searchVideo(keyword, limit = 10) {
     const cookie = await getCookie();
     if (!cookie) return [];
 
-    const sourceUrl = `/search/pins/?q=${encodeURIComponent(keyword)}&rs=typed&scope=videos`;
+    const sourceUrl = `/search/pins/?q=${encodeURIComponent(keyword)}`;
     const data = encodeURIComponent(JSON.stringify({
-        options: { query: keyword, scope: 'videos', page_size: limit, rs: 'typed', redux_normalize_feed: true },
+        options: { query: keyword, page_size: Math.min(limit * 2, 50), rs: 'typed', redux_normalize_feed: true },
         context: {}
     }));
 
@@ -63,27 +59,29 @@ async function searchVideo(keyword, limit = 10) {
 
     const { status, body } = await request(url, {
         'Cookie': cookie,
-        'Referer': `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(keyword)}&scope=videos`,
-        'X-Pinterest-Source-Url': sourceUrl
+        'Referer': `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(keyword)}`,
+        'X-Pinterest-PWS-Handler': 'www/search/[scope].js'
     });
 
     if (status !== 200) return [];
 
     const json = JSON.parse(body);
-    const pins = json?.resource_response?.data?.results || [];
+    const results = json?.resource_response?.data?.results || [];
+    
+    // Filter manual: cuma ambil yang punya video
+    const videos = results.filter(p => p.videos?.video_list && Object.keys(p.videos.video_list).length > 0);
 
-    return pins.slice(0, limit).map(p => {
-        const videos = p.videos?.video_list || {};
-        const vkey = Object.keys(videos).find(k => k.includes('V_720') || k.includes('V_480')) || Object.keys(videos)[0];
-        const vid = videos[vkey] || {};
+    return videos.slice(0, limit).map(p => {
+        const vlist = p.videos?.video_list || {};
+        const quality = Object.keys(vlist).find(k => k.includes('720') || k.includes('480')) || Object.keys(vlist)[0];
+        const video = vlist[quality] || {};
 
         return {
             id: p.id,
             title: p.title || p.grid_title || '(no title)',
-            video_url: vid.url || null,
-            duration: vid.duration ? `${(vid.duration / 1000).toFixed(1)}s` : null,
-            thumbnail: p.images?.['474x']?.url || p.images?.orig?.url || null,
-            saves: p.save_count || 0,
+            video_url: video.url || null,
+            duration: video.duration ? `${(video.duration / 1000).toFixed(1)}s` : null,
+            thumbnail: p.images?.['736x']?.url || p.images?.orig?.url || null,
             link: `https://www.pinterest.com/pin/${p.id}/`
         };
     });
@@ -92,25 +90,13 @@ async function searchVideo(keyword, limit = 10) {
 module.exports = (app) => {
     app.get('/search/pinterest/video', async (req, res) => {
         const { q, limit = 10 } = req.query;
-
-        if (!q) {
-            return res.status(400).json({ status: false, error: 'Parameter "q" diperlukan' });
-        }
+        if (!q) return res.status(400).json({ status: false, error: 'Parameter "q" diperlukan' });
 
         try {
             const results = await searchVideo(q, Math.min(parseInt(limit) || 10, 30));
-            res.json({
-                status: true,
-                creator: 'AxlyChann',
-                result: {
-                    query: q,
-                    total: results.length,
-                    videos: results
-                }
-            });
+            res.json({ status: true, creator: 'AxlyChann', result: { query: q, total: results.length, videos: results } });
         } catch (error) {
-            console.error(error);
-            res.status(500).json({ status: false, error: error.message || 'Gagal mencari video' });
+            res.status(500).json({ status: false, error: error.message });
         }
     });
 };
