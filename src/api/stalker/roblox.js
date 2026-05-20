@@ -1,125 +1,75 @@
 const axios = require('axios');
 
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
+const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'application/json'
+};
 
 async function getUserId(username) {
-    const response = await axios.get(`https://users.roblox.com/v1/users/search?keyword=${encodeURIComponent(username)}&limit=10`);
+    const response = await axios.get(`https://users.roblox.com/v1/users/search?keyword=${encodeURIComponent(username)}&limit=10`, { headers });
     const user = response.data.data?.find(u => u.name.toLowerCase() === username.toLowerCase());
     return user?.id || null;
 }
 
 async function getUserInfo(userId) {
-    await delay(100);
-    const response = await axios.get(`https://users.roblox.com/v1/users/${userId}`);
+    const response = await axios.get(`https://users.roblox.com/v1/users/${userId}`, { headers });
     return response.data;
 }
 
-async function getAvatar(userId) {
-    await delay(100);
-    const response = await axios.get(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png`);
-    return response.data.data?.[0]?.imageUrl || null;
-}
-
-async function getFullBody(userId) {
-    await delay(100);
-    const response = await axios.get(`https://thumbnails.roblox.com/v1/users/avatar?userIds=${userId}&size=720x720&format=Png`);
-    return response.data.data?.[0]?.imageUrl || null;
+async function getAvatarAndBody(userId) {
+    const response = await axios.get(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png`, { headers });
+    const bodyResponse = await axios.get(`https://thumbnails.roblox.com/v1/users/avatar?userIds=${userId}&size=720x720&format=Png`, { headers });
+    return {
+        avatar: response.data.data?.[0]?.imageUrl || null,
+        full_body: bodyResponse.data.data?.[0]?.imageUrl || null
+    };
 }
 
 async function getGroups(userId) {
-    await delay(100);
-    const response = await axios.get(`https://groups.roblox.com/v1/users/${userId}/groups/roles`);
+    const response = await axios.get(`https://groups.roblox.com/v1/users/${userId}/groups/roles`, { headers });
     return response.data.data || [];
 }
 
-async function getBadges(userId, limit = 50) {
-    await delay(100);
-    const response = await axios.get(`https://badges.roblox.com/v1/users/${userId}/badges?limit=${limit}&sortOrder=Desc`);
-    return response.data.data || [];
-}
-
-async function getFriendsCount(userId) {
-    await delay(100);
-    const response = await axios.get(`https://friends.roblox.com/v1/users/${userId}/friends/count`);
-    return response.data.count || 0;
-}
-
-async function getFollowersCount(userId) {
-    await delay(100);
-    const response = await axios.get(`https://friends.roblox.com/v1/users/${userId}/followers/count`);
-    return response.data.count || 0;
-}
-
-async function getFollowingsCount(userId) {
-    await delay(100);
-    const response = await axios.get(`https://friends.roblox.com/v1/users/${userId}/followings/count`);
-    return response.data.count || 0;
-}
-
-async function getPresence(userId) {
-    await delay(100);
-    try {
-        const response = await axios.post('https://presence.roblox.com/v1/presence/users', {
-            userIds: [userId]
-        }, {
-            headers: { 'Content-Type': 'application/json' }
-        });
-        return response.data.userPresences?.[0] || null;
-    } catch {
-        return null;
-    }
+async function getSocialCounts(userId) {
+    const [friends, followers, followings] = await Promise.all([
+        axios.get(`https://friends.roblox.com/v1/users/${userId}/friends/count`, { headers }).catch(() => ({ data: { count: 0 } })),
+        axios.get(`https://friends.roblox.com/v1/users/${userId}/followers/count`, { headers }).catch(() => ({ data: { count: 0 } })),
+        axios.get(`https://friends.roblox.com/v1/users/${userId}/followings/count`, { headers }).catch(() => ({ data: { count: 0 } }))
+    ]);
+    return {
+        friends: friends.data.count || 0,
+        followers: followers.data.count || 0,
+        followings: followings.data.count || 0
+    };
 }
 
 function formatDate(dateString) {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
 }
-
-const presenceMap = {
-    0: 'Offline',
-    1: 'Online',
-    2: 'In Game',
-    3: 'In Studio',
-    4: 'Invisible'
-};
 
 module.exports = (app) => {
     app.get('/stalker/roblox', async (req, res) => {
         const { username } = req.query;
 
         if (!username) {
-            return res.status(400).json({
-                status: false,
-                error: 'Parameter "username" diperlukan'
-            });
+            return res.status(400).json({ status: false, error: 'Parameter "username" diperlukan' });
         }
 
         try {
-            // Cari user ID dulu
             const userId = await getUserId(username);
             if (!userId) {
-                return res.status(404).json({
-                    status: false,
-                    error: 'Username Roblox tidak ditemukan'
-                });
+                return res.status(404).json({ status: false, error: 'Username tidak ditemukan' });
             }
 
-            // Ambil data satu per satu dengan delay
-            const info = await getUserInfo(userId);
-            const avatar = await getAvatar(userId);
-            const fullBody = await getFullBody(userId);
-            const groups = await getGroups(userId);
-            const badges = await getBadges(userId, 50);
-            const friends = await getFriendsCount(userId);
-            const followers = await getFollowersCount(userId);
-            const followings = await getFollowingsCount(userId);
-            const presence = await getPresence(userId);
-
-            const presenceType = presence?.userPresenceType || 0;
-            const lastOnline = presence?.lastOnline ? formatDate(presence.lastOnline) : '-';
+            // Ambil data paralel (tapi dikit)
+            const [info, avatarBody, groups, social] = await Promise.all([
+                getUserInfo(userId),
+                getAvatarAndBody(userId),
+                getGroups(userId),
+                getSocialCounts(userId)
+            ]);
 
             const result = {
                 username: info.name,
@@ -128,19 +78,12 @@ module.exports = (app) => {
                 created: formatDate(info.created),
                 banned: info.isBanned || false,
                 has_verified_badge: info.hasVerifiedBadge || false,
-                description: info.description || '-',
-                status: presenceMap[presenceType] || 'Offline',
-                last_online: lastOnline,
-                avatar: avatar,
-                full_body: fullBody,
-                friends: friends,
-                followers: followers,
-                followings: followings,
-                badges_count: badges.length,
-                badges: badges.slice(0, 10).map(b => ({
-                    name: b.name,
-                    created: formatDate(b.created)
-                })),
+                description: info.description?.slice(0, 200) || '-',
+                avatar: avatarBody.avatar,
+                full_body: avatarBody.full_body,
+                friends: social.friends,
+                followers: social.followers,
+                followings: social.followings,
                 groups_count: groups.length,
                 groups: groups.slice(0, 10).map(g => ({
                     name: g.group?.name,
@@ -149,18 +92,11 @@ module.exports = (app) => {
                 }))
             };
 
-            res.json({
-                status: true,
-                creator: 'AxlyChann',
-                result: result
-            });
+            res.json({ status: true, creator: 'AxlyChann', result });
 
         } catch (error) {
             console.error(error);
-            res.status(500).json({
-                status: false,
-                error: error.message || 'Gagal mengambil data Roblox'
-            });
+            res.status(500).json({ status: false, error: error.message || 'Gagal mengambil data Roblox' });
         }
     });
 };
