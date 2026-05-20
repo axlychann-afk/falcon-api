@@ -493,6 +493,16 @@
   }
         },
         {
+  "name": "Pinterest Video",
+  "desc": "Mencari video di Pinterest",
+  "path": "/search/pinterest/video?q=",
+  "status": "ready",
+  "params": {
+    "q": "Kata kunci pencarian",
+    "limit": "(Opsional) Jumlah hasil, maks 30, default 10"
+  }
+        },
+        {
   "name": "Bilibili Search",
   "desc": "Mencari anime/video di Bilibili.tv (Official & User Content)",
   "path": "/search/bilibili?q=",
