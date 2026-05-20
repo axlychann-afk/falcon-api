@@ -484,6 +484,15 @@
           }
         },
         {
+  "name": "Donghua Search",
+  "desc": "Mencari donghua di donghub.vip",
+  "path": "/search/donghua?q=",
+  "status": "ready",
+  "params": {
+    "q": "Judul donghua yang ingin dicari"
+  }
+        },
+        {
   "name": "Bilibili Search",
   "desc": "Mencari anime/video di Bilibili.tv (Official & User Content)",
   "path": "/search/bilibili?q=",
