@@ -15,31 +15,31 @@ async function scrapeDonghua(keyword) {
         const results = [];
         const seen = new Set();
 
-        // Filter: cuma ambil link yang mengandung pola donghua
+        // Ambil semua link yang mengandung /donghua/ atau /movie/ atau /episode/
         $('a').each((i, el) => {
             let href = $(el).attr('href');
             let text = $(el).text().trim();
 
-            // Skip link navigasi, bookmark, schedule, privacy, genre, dll
+            // Skip link kosong atau navigasi
             if (!href || !text) return;
             if (href === '/' || href.includes('/bookmark/') || href.includes('/schedule/') || 
                 href.includes('/privacy-policy/') || href.includes('/genres/') || href === '#') return;
             
-            // Skip link yang bukan donghua (cek apakah href mengandung pattern donghua)
-            if (!href.includes('/donghua/') && !href.includes('/episode/') && !href.includes('/movie/') && 
-                !href.match(/\/([a-z0-9-]+)\/$/)) return;
+            // Hanya ambil link yang mengandung pola donghua (bukan beranda/nav)
+            const isValidLink = href.includes('/donghua/') || href.includes('/episode/') || 
+                                href.includes('/movie/') || href.match(/\/[a-z0-9-]+\/$/);
+            if (!isValidLink) return;
             
-            // Bersihkan judul dari newline dan spasi berlebih
+            // Skip judul navigasi
+            if (text === 'Beranda' || text === 'Bookmark' || text === 'Schedule' || 
+                text === 'Privacy Policy' || text.length < 5) return;
+            
+            // Bersihkan judul (hilangkan newline, spasi ganda)
             let judul = text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
             
-            // Skip judul pendek atau navigasi
-            if (judul.length < 3) return;
-            if (judul === 'Beranda' || judul === 'Bookmark' || judul === 'Schedule' || judul === 'Privacy Policy') return;
-            
-            // Hapus duplikat
-            const key = href.split('/')[2] || href;
-            if (seen.has(key)) return;
-            seen.add(key);
+            // Hapus duplikat berdasarkan href
+            if (seen.has(href)) return;
+            seen.add(href);
 
             // Tentukan tipe
             let tipe = 'Series';
@@ -53,23 +53,7 @@ async function scrapeDonghua(keyword) {
             });
         });
 
-        // Filter juga yang judulnya nyambung (ambil dari section result)
-        // Alternatif: ambil dari selector `.result-item` atau `.bs-item` kalau ada
-        
-        // Hapus duplikat judul (ambil yang pertama muncul)
-        const uniqueResults = [];
-        const seenTitles = new Set();
-        for (const item of results) {
-            const titleKey = item.title.split(' ')[0].toLowerCase();
-            if (!seenTitles.has(titleKey) && !item.title.includes('Episode')) {
-                seenTitles.add(titleKey);
-                uniqueResults.push(item);
-            } else if (item.type === 'Episode') {
-                uniqueResults.push(item);
-            }
-        }
-
-        return uniqueResults.slice(0, 30);
+        return results;
 
     } catch (error) {
         throw new Error(error.message);
