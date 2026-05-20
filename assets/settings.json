@@ -123,15 +123,15 @@
   "name": "Stalker",
   "image": "/api/placeholder/800/200",
   "items": [
-    {
+{
   "name": "Genshin Impact Stalker",
   "desc": "Cek profil player Genshin Impact (UID)",
   "path": "/stalker/genshin?id=",
   "status": "ready",
   "params": {
-    "id": "UID Genshin Impact (contoh: 856012067)"
+    "id": "UID Genshin Impact (9 digit)"
   }
-    },
+},
     {
   "name": "Roblox Stalker",
   "desc": "Cek profil player Roblox (username)",
