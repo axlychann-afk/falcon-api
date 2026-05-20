@@ -1,5 +1,9 @@
 const axios = require('axios');
 
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function getUserId(username) {
     const response = await axios.get(`https://users.roblox.com/v1/users/search?keyword=${encodeURIComponent(username)}&limit=10`);
     const user = response.data.data?.find(u => u.name.toLowerCase() === username.toLowerCase());
@@ -7,46 +11,55 @@ async function getUserId(username) {
 }
 
 async function getUserInfo(userId) {
+    await delay(100);
     const response = await axios.get(`https://users.roblox.com/v1/users/${userId}`);
     return response.data;
 }
 
 async function getAvatar(userId) {
+    await delay(100);
     const response = await axios.get(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png`);
     return response.data.data?.[0]?.imageUrl || null;
 }
 
 async function getFullBody(userId) {
+    await delay(100);
     const response = await axios.get(`https://thumbnails.roblox.com/v1/users/avatar?userIds=${userId}&size=720x720&format=Png`);
     return response.data.data?.[0]?.imageUrl || null;
 }
 
 async function getGroups(userId) {
+    await delay(100);
     const response = await axios.get(`https://groups.roblox.com/v1/users/${userId}/groups/roles`);
     return response.data.data || [];
 }
 
 async function getBadges(userId, limit = 50) {
+    await delay(100);
     const response = await axios.get(`https://badges.roblox.com/v1/users/${userId}/badges?limit=${limit}&sortOrder=Desc`);
     return response.data.data || [];
 }
 
 async function getFriendsCount(userId) {
+    await delay(100);
     const response = await axios.get(`https://friends.roblox.com/v1/users/${userId}/friends/count`);
     return response.data.count || 0;
 }
 
 async function getFollowersCount(userId) {
+    await delay(100);
     const response = await axios.get(`https://friends.roblox.com/v1/users/${userId}/followers/count`);
     return response.data.count || 0;
 }
 
 async function getFollowingsCount(userId) {
+    await delay(100);
     const response = await axios.get(`https://friends.roblox.com/v1/users/${userId}/followings/count`);
     return response.data.count || 0;
 }
 
 async function getPresence(userId) {
+    await delay(100);
     try {
         const response = await axios.post('https://presence.roblox.com/v1/presence/users', {
             userIds: [userId]
@@ -85,7 +98,7 @@ module.exports = (app) => {
         }
 
         try {
-            // Cari user ID
+            // Cari user ID dulu
             const userId = await getUserId(username);
             if (!userId) {
                 return res.status(404).json({
@@ -94,18 +107,16 @@ module.exports = (app) => {
                 });
             }
 
-            // Ambil semua data paralel
-            const [info, avatar, fullBody, groups, badges, friends, followers, followings, presence] = await Promise.all([
-                getUserInfo(userId),
-                getAvatar(userId),
-                getFullBody(userId),
-                getGroups(userId),
-                getBadges(userId, 50),
-                getFriendsCount(userId),
-                getFollowersCount(userId),
-                getFollowingsCount(userId),
-                getPresence(userId)
-            ]);
+            // Ambil data satu per satu dengan delay
+            const info = await getUserInfo(userId);
+            const avatar = await getAvatar(userId);
+            const fullBody = await getFullBody(userId);
+            const groups = await getGroups(userId);
+            const badges = await getBadges(userId, 50);
+            const friends = await getFriendsCount(userId);
+            const followers = await getFollowersCount(userId);
+            const followings = await getFollowingsCount(userId);
+            const presence = await getPresence(userId);
 
             const presenceType = presence?.userPresenceType || 0;
             const lastOnline = presence?.lastOnline ? formatDate(presence.lastOnline) : '-';
