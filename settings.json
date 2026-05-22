@@ -45,6 +45,76 @@
       ]
     },
     {
+  "name": "Game",
+  "image": "/api/placeholder/800/200",
+  "items": [
+    {
+      "name": "Tebak Kalimat",
+      "desc": "Mulai game tebak kalimat",
+      "path": "/game/tebakkalimat/start",
+      "status": "ready"
+    },
+    {
+      "name": "Tebak Kata",
+      "desc": "Mulai game tebak kata",
+      "path": "/game/tebakkata/start",
+      "status": "ready"
+    },
+    {
+      "name": "Tebak Gambar",
+      "desc": "Mulai game tebak gambar",
+      "path": "/game/tebakgambar/start",
+      "status": "ready"
+    },
+    {
+      "name": "Tebak Anime",
+      "desc": "Mulai game tebak anime",
+      "path": "/game/tebakanime/start",
+      "status": "ready"
+    },
+    {
+      "name": "Tebak Lagu",
+      "desc": "Mulai game tebak lagu",
+      "path": "/game/tebaklagu/start",
+      "status": "ready"
+    },
+    {
+      "name": "Tebak Lirik",
+      "desc": "Mulai game tebak lirik",
+      "path": "/game/tebaklirik/start",
+      "status": "ready"
+    },
+    {
+      "name": "Asah Otak",
+      "desc": "Mulai game asah otak",
+      "path": "/game/asahotak/start",
+      "status": "ready"
+    },
+    {
+      "name": "Family 100",
+      "desc": "Mulai game Family 100",
+      "path": "/game/family100/start",
+      "status": "ready"
+    },
+    {
+      "name": "Siapakah Aku",
+      "desc": "Mulai game tebak tokoh",
+      "path": "/game/siapakahaku/start",
+      "status": "ready"
+    },
+    {
+      "name": "Jawab Game",
+      "desc": "Jawab pertanyaan game",
+      "path": "/game/answer?answer=",
+      "status": "ready",
+      "params": {
+        "answer": "Jawaban tebakan",
+        "user_id": "ID user (opsional)"
+      }
+    }
+  ]
+    },
+    {
       "name": "Downloader",
       "image": "/api/placeholder/800/200",
       "items": [
