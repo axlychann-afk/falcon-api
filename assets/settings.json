@@ -647,12 +647,6 @@
       "status": "ready"
     },
     {
-      "name": "Tebak Kabupaten",
-      "desc": "Tebak kabupaten/kota",
-      "path": "/game/tebakkabupaten/start",
-      "status": "ready"
-    },
-    {
       "name": "Siapakah Aku",
       "desc": "Tebak tokoh terkenal",
       "path": "/game/siapakahaku/start",
