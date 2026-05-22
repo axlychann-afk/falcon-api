@@ -58,6 +58,15 @@
         "text": "Teks yang mau dijadikan gambar"
       }
     },
+    {
+  "name": "WebP to Video(tovid)",
+  "desc": "Konversi file WebP animasi ke MP4 (upload file atau URL)",
+  "path": "/maker/tovid?url=",
+  "status": "ready",
+  "params": {
+    "url": "URL file WebP (opsional, bisa juga upload file via POST)"
+  }
+    },
 {
   "name": "To Figure AI",
   "desc": "Ubah gambar jadi style figure/illustrasi (masukkan URL gambar)",
