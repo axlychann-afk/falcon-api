@@ -26,6 +26,19 @@
       }
     },
     {
+  "name": "AI Music (suno)",
+  "desc": "Buat musik dari teks deskripsi",
+  "path": "/ai/music?prompt=",
+  "status": "ready",
+  "params": {
+    "prompt": "Deskripsi musik yang diinginkan",
+    "title": "Judul lagu (opsional)",
+    "modelId": "Model ID (6=v5.0, 5=v4.5-plus, 4=v4.5, 3=v4.0, 1=v3.5)",
+    "instrumental": "true/false (default false)",
+    "style": "Genre/style musik (opsional)"
+  }
+    },
+    {
   "name": "Nano Banana AI",
   "desc": "Edit gambar dengan prompt (ubah gaya, warna, latar, dll) via Live3D",
   "path": "/ai/nanobanana?url=",
