@@ -403,15 +403,6 @@
   ]
 },
     {
-  "name": "What Anime",
-  "desc": "Cari judul anime dari screenshot (upload file atau URL)",
-  "path": "/tools/whatanime?url=",
-  "status": "ready",
-  "params": {
-    "url": "URL gambar screenshot (opsional, bisa juga upload file via POST)"
-  }
-    },
-    {
       "name": "Tools",
       "items": [
         {
@@ -431,6 +422,15 @@
       "params": {
         "url": "URL website yang mau di-screenshot"
       }
+        },
+        {
+  "name": "What Anime",
+  "desc": "Cari judul anime dari screenshot (upload file atau URL)",
+  "path": "/tools/whatanime?url=",
+  "status": "ready",
+  "params": {
+    "url": "URL gambar screenshot (opsional, bisa juga upload file via POST)"
+  }
         },
 {
   "name": "Image Enhancer HD",
