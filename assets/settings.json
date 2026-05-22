@@ -26,6 +26,16 @@
       }
     },
     {
+  "name": "Nano Banana AI",
+  "desc": "Edit gambar dengan prompt (ubah gaya, warna, latar, dll) via Live3D",
+  "path": "/ai/nanobanana?url=",
+  "status": "ready",
+  "params": {
+    "url": "URL gambar yang mau diedit (opsional, bisa juga upload file via POST)",
+    "prompt": "Deskripsi perubahan yang diinginkan"
+  }
+    },
+    {
   "name": "Text to Image",
   "desc": "Generate gambar dari teks pake AI (gratis, tanpa API key)",
   "path": "/ai/text2image?prompt=",
