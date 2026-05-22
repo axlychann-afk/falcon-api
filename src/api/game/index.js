@@ -11,18 +11,45 @@ const TIMEOUT = 120000;
 const POIN = 500;
 
 function generateHint(jawaban) {
+    if (!jawaban) return '???';
     const panjang = jawaban.length;
     const revealCount = Math.min(3, Math.floor(panjang / 3));
     return jawaban.slice(0, revealCount) + '×'.repeat(panjang - revealCount);
 }
 
-async function startGame(gameType, userId) {
+async function getGameData(gameType) {
     const gameFunc = scraperGames[gameType];
-    if (!gameFunc) throw new Error(`Game ${gameType} tidak tersedia`);
-    
     const result = await gameFunc();
-    const soal = result.soal;
-    const jawaban = result.jawaban;
+    
+    let soal, jawaban;
+    
+    switch(gameType) {
+        case 'tebakbendera':
+            soal = result.img || result.flag || 'Bendera negara apa?';
+            jawaban = result.name || result.jawaban;
+            break;
+        case 'tebakkimia':
+            soal = result.unsur || result.soal || 'Unsur kimia?';
+            jawaban = result.lambang || result.jawaban;
+            break;
+        case 'tebakkabupaten':
+            soal = `Kabupaten/kota: ${result.title || ''}`;
+            jawaban = result.title || result.jawaban;
+            break;
+        default:
+            soal = result.soal;
+            jawaban = result.jawaban;
+    }
+    
+    if (!soal || !jawaban) {
+        throw new Error(`Response game ${gameType} tidak valid`);
+    }
+    
+    return { soal, jawaban };
+}
+
+async function startGame(gameType, userId) {
+    const { soal, jawaban } = await getGameData(gameType);
     const hint = generateHint(jawaban);
     
     activeGames.set(userId, {
