@@ -2,12 +2,12 @@ const scraperGames = require('@bochilteam/scraper-games');
 
 const gamesList = [
     'tebakgambar', 'caklontong', 'family100', 'asahotak',
-    'tebakkata', 'tekateki', 'tebakkimia', 'tebakkabupaten',
+    'tebakkata', 'tekateki', 'tebakkimia',
     'siapakahaku', 'susunkata', 'tebakbendera', 'tebaklirik', 'tebaktebakan'
 ];
 
 const activeGames = new Map();
-const TIMEOUT = 120000;
+const TIMEOUT = 120000; // 2 menit
 const POIN = 500;
 
 function generateHint(jawaban) {
@@ -21,20 +21,32 @@ async function getGameData(gameType) {
     const gameFunc = scraperGames[gameType];
     const result = await gameFunc();
     
-    let soal, jawaban;
+    let soal, jawaban, gambar = null, deskripsi = null;
     
     switch(gameType) {
+        case 'tebakgambar':
+            if (!result.jawaban || !result.img) {
+                throw new Error('Data tebakgambar tidak lengkap');
+            }
+            soal = 'Tebak gambar ini!';
+            jawaban = result.jawaban;
+            gambar = result.img;
+            deskripsi = result.deskripsi || null;
+            break;
         case 'tebakbendera':
-            soal = result.img || result.flag || 'Bendera negara apa?';
-            jawaban = result.name || result.jawaban;
+            // Konversi kode negara (GA, ID, JP) ke emoji
+            const flagCode = result.flag?.toLowerCase();
+            let emoji = '🏁';
+            if (flagCode && flagCode.length === 2) {
+                emoji = String.fromCodePoint(0x1F1E6 - 65 + flagCode.charCodeAt(0)) + 
+                        String.fromCodePoint(0x1F1E6 - 65 + flagCode.charCodeAt(1));
+            }
+            soal = emoji;
+            jawaban = result.name;
             break;
         case 'tebakkimia':
-            soal = result.unsur || result.soal || 'Unsur kimia?';
-            jawaban = result.lambang || result.jawaban;
-            break;
-        case 'tebakkabupaten':
-            soal = `Kabupaten/kota: ${result.title || ''}`;
-            jawaban = result.title || result.jawaban;
+            soal = `Unsur kimia: ${result.unsur}`;
+            jawaban = result.lambang;
             break;
         default:
             soal = result.soal;
@@ -45,22 +57,24 @@ async function getGameData(gameType) {
         throw new Error(`Response game ${gameType} tidak valid`);
     }
     
-    return { soal, jawaban };
+    return { soal, jawaban, gambar, deskripsi };
 }
 
 async function startGame(gameType, userId) {
-    const { soal, jawaban } = await getGameData(gameType);
+    const { soal, jawaban, gambar, deskripsi } = await getGameData(gameType);
     const hint = generateHint(jawaban);
     
     activeGames.set(userId, {
         type: gameType,
         soal: soal,
         jawaban: jawaban,
+        gambar: gambar,
+        deskripsi: deskripsi,
         startTime: Date.now(),
         timeout: setTimeout(() => activeGames.delete(userId), TIMEOUT)
     });
     
-    return { soal, jawaban, hint };
+    return { soal, jawaban, hint, gambar, deskripsi };
 }
 
 module.exports = (app) => {
@@ -68,18 +82,26 @@ module.exports = (app) => {
         app.get(`/game/${game}/start`, async (req, res) => {
             const { user_id = 'default' } = req.query;
             
+            // Cek game aktif
             if (activeGames.has(user_id) && user_id !== 'default') {
-                return res.status(400).json({ status: false, error: 'Masih ada game aktif. Selesaikan dulu.' });
+                const remaining = Math.ceil((TIMEOUT - (Date.now() - activeGames.get(user_id).startTime)) / 1000);
+                return res.status(400).json({ 
+                    status: false, 
+                    error: `Masih ada game aktif. Selesaikan dulu atau tunggu ${remaining} detik lagi.`,
+                    remaining_seconds: remaining
+                });
             }
             
+            // Reset otomatis untuk user default (web testing)
             if (user_id === 'default' && activeGames.has('default')) {
                 clearTimeout(activeGames.get('default').timeout);
                 activeGames.delete('default');
             }
             
             try {
-                const { soal, jawaban, hint } = await startGame(game, user_id);
+                const { soal, jawaban, hint, gambar, deskripsi } = await startGame(game, user_id);
                 
+                // Untuk user default, langsung hapus game setelah response
                 if (user_id === 'default') {
                     const gameData = activeGames.get('default');
                     if (gameData) {
@@ -88,23 +110,39 @@ module.exports = (app) => {
                     }
                 }
                 
-                res.json({ status: true, creator: 'AxlyChann', result: { soal, jawaban, hint } });
+                const response = { 
+                    status: true, 
+                    creator: 'AxlyChann', 
+                    result: { soal, jawaban, hint } 
+                };
+                
+                if (gambar) response.result.image_url = gambar;
+                if (deskripsi) response.result.deskripsi = deskripsi;
+                
+                res.json(response);
             } catch (error) {
+                console.error(error);
                 res.status(500).json({ status: false, error: error.message });
             }
         });
     });
     
+    // Jawab game (khusus bot)
     app.get('/game/answer', async (req, res) => {
         const { user_id = 'default', answer } = req.query;
-        if (!answer) return res.status(400).json({ status: false, error: 'Parameter "answer" diperlukan' });
+        
+        if (!answer) {
+            return res.status(400).json({ status: false, error: 'Parameter "answer" diperlukan' });
+        }
         
         if (user_id === 'default') {
-            return res.status(400).json({ status: false, error: 'Endpoint ini khusus untuk bot.' });
+            return res.status(400).json({ status: false, error: 'Endpoint ini khusus untuk bot. Untuk testing langsung lihat response start.' });
         }
         
         const game = activeGames.get(user_id);
-        if (!game) return res.status(400).json({ status: false, error: 'Tidak ada game aktif.' });
+        if (!game) {
+            return res.status(400).json({ status: false, error: 'Tidak ada game aktif. Mulai game baru dulu.' });
+        }
         
         const isCorrect = answer.toLowerCase().trim() === game.jawaban.toLowerCase();
         const timeTaken = (Date.now() - game.startTime) / 1000;
@@ -113,9 +151,35 @@ module.exports = (app) => {
         activeGames.delete(user_id);
         
         if (isCorrect) {
-            res.json({ status: true, creator: 'AxlyChann', result: { correct: true, message: `✅ Jawaban benar! Waktu: ${timeTaken.toFixed(1)} detik`, jawaban: game.jawaban, waktu: timeTaken, bonus: POIN, game_type: game.type } });
+            res.json({ 
+                status: true, 
+                creator: 'AxlyChann', 
+                result: { 
+                    correct: true, 
+                    message: `✅ Jawaban benar! 🎉\nWaktu: ${timeTaken.toFixed(1)} detik\nBonus: +${POIN} XP`,
+                    jawaban: game.jawaban, 
+                    waktu: timeTaken, 
+                    bonus: POIN, 
+                    game_type: game.type 
+                } 
+            });
         } else {
-            res.json({ status: false, error: `❌ Jawaban salah!`, jawaban_benar: game.jawaban, game_type: game.type });
+            res.json({ 
+                status: false, 
+                error: `❌ Jawaban salah!`, 
+                jawaban_benar: game.jawaban, 
+                game_type: game.type 
+            });
         }
+    });
+    
+    // Reset game (opsional)
+    app.get('/game/reset', async (req, res) => {
+        const { user_id = 'default' } = req.query;
+        if (activeGames.has(user_id)) {
+            clearTimeout(activeGames.get(user_id).timeout);
+            activeGames.delete(user_id);
+        }
+        res.json({ status: true, message: 'Game direset' });
     });
 };
