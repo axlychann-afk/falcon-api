@@ -32,7 +32,7 @@ const crypt = {
 const api = axios.create({
     baseURL: 'https://app-v1.live3d.io',
     headers: {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 16; NX729J) AppleWebKit/537.36 Chrome/143.0.7499.34 Mobile Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 16) Chrome/143.0.7499.34 Mobile Safari/537.36',
         'Origin': 'https://live3d.io',
         'Referer': 'https://live3d.io/',
         'theme-version': CONFIG.theme_version
@@ -59,20 +59,15 @@ api.interceptors.request.use((cfg) => {
 });
 
 async function editImage(imageBuffer, prompt) {
-    // Upload gambar
     const form = new FormData();
     form.append('file', imageBuffer, { filename: 'input.jpg', contentType: 'image/jpeg' });
     form.append('fn_name', 'demo-image-editor');
     form.append('request_from', '9');
     form.append('origin_from', CONFIG.origin);
     
-    const uploadRes = await api.post('/aitools/upload-img', form, {
-        headers: form.getHeaders()
-    });
-    
+    const uploadRes = await api.post('/aitools/upload-img', form, { headers: form.getHeaders() });
     if (!uploadRes.data?.data?.path) throw new Error('Upload gagal');
     
-    // Create job
     const jobRes = await api.post('/aitools/of/create', {
         fn_name: 'demo-image-editor',
         call_type: 3,
@@ -91,10 +86,8 @@ async function editImage(imageBuffer, prompt) {
     const taskId = jobRes.data?.data?.task_id;
     if (!taskId) throw new Error('TaskId tidak ditemukan');
     
-    // Polling status
     for (let i = 0; i < 40; i++) {
         await new Promise(r => setTimeout(r, 3000));
-        
         const statusRes = await api.post('/aitools/of/check-status', {
             task_id: taskId,
             fn_name: 'demo-image-editor',
@@ -109,51 +102,40 @@ async function editImage(imageBuffer, prompt) {
             throw new Error('Task failed');
         }
     }
-    
     throw new Error('Timeout');
 }
 
 module.exports = (app) => {
+    // POST - upload file
     app.post('/ai/nanobanana', upload.single('image'), async (req, res) => {
         const { prompt } = req.body;
-        
-        if (!prompt) {
-            return res.status(400).json({ status: false, error: 'Parameter "prompt" diperlukan' });
-        }
-        if (!req.file) {
-            return res.status(400).json({ status: false, error: 'Kirim file gambar dengan key "image"' });
-        }
-        
+        if (!prompt) return res.status(400).json({ status: false, error: 'Parameter "prompt" diperlukan' });
+        if (!req.file) return res.status(400).json({ status: false, error: 'Kirim file gambar' });
+
         try {
             const imageUrl = await editImage(req.file.buffer, prompt);
-            res.json({
-                status: true,
-                creator: 'AxlyChann',
-                result: {
-                    prompt: prompt,
-                    image_url: imageUrl
-                }
-            });
+            // Download dan kirim langsung sebagai gambar
+            const imageRes = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+            res.setHeader('Content-Type', 'image/jpeg');
+            res.send(imageRes.data);
         } catch (error) {
-            console.error(error);
             res.status(500).json({ status: false, error: error.message });
         }
     });
-    
+
+    // GET - dari URL
     app.get('/ai/nanobanana', async (req, res) => {
         const { prompt, url } = req.query;
-        
-        if (!prompt) {
-            return res.status(400).json({ status: false, error: 'Parameter "prompt" diperlukan' });
-        }
-        if (!url) {
-            return res.status(400).json({ status: false, error: 'Parameter "url" diperlukan' });
-        }
-        
+        if (!prompt) return res.status(400).json({ status: false, error: 'Parameter "prompt" diperlukan' });
+        if (!url) return res.status(400).json({ status: false, error: 'Parameter "url" diperlukan' });
+
         try {
             const imageRes = await axios.get(url, { responseType: 'arraybuffer' });
-            const imageUrl = await editImage(Buffer.from(imageRes.data), prompt);
-            res.json({ status: true, creator: 'AxlyChann', result: { prompt, image_url: imageUrl } });
+            const resultUrl = await editImage(Buffer.from(imageRes.data), prompt);
+            // Download dan kirim langsung sebagai gambar
+            const finalRes = await axios.get(resultUrl, { responseType: 'arraybuffer' });
+            res.setHeader('Content-Type', 'image/jpeg');
+            res.send(finalRes.data);
         } catch (error) {
             res.status(500).json({ status: false, error: error.message });
         }
