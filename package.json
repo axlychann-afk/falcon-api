@@ -43,6 +43,7 @@
     "https-proxy-agent": "latest",
     "@vercel/analytics": "latest",
     "sharp": "^0.33.5",
-    "tough-cookie": "^4.1.4"
+    "tough-cookie": "^4.1.4",
+    "iqc-canvas": "^1.0.0"
   }
 }
