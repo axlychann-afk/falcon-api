@@ -1,4 +1,18 @@
-const axios = require('axios');
+const { generateIQC } = require('iqc-canvas');
+
+function randomBattery() {
+    return Math.floor(Math.random() * (100 - 20 + 1) + 20).toString();
+}
+
+function randomTime() {
+    const hours = Math.floor(Math.random() * 24).toString().padStart(2, '0');
+    const minutes = Math.floor(Math.random() * 60).toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
+function randomBoolean() {
+    return Math.random() > 0.5;
+}
 
 module.exports = (app) => {
     app.get('/maker/iqc', async (req, res) => {
@@ -11,20 +25,30 @@ module.exports = (app) => {
             });
         }
 
+        // Random semua parameter
+        const randomTimeValue = randomTime();
+        const randomBateraiValue = randomBattery();
+        const randomOperatorValue = randomBoolean();
+        const randomTimebarValue = randomBoolean();
+        const randomWifiValue = randomBoolean();
+
         try {
-            const response = await axios.get(`https://api.nexray.eu.cc/maker/iqc?text=${encodeURIComponent(text)}`, {
-                responseType: 'arraybuffer',
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                },
-                timeout: 30000
+            const result = await generateIQC(text, randomTimeValue, {
+                baterai: [true, randomBateraiValue],
+                operator: randomOperatorValue,
+                timebar: randomTimebarValue,
+                wifi: randomWifiValue
             });
 
-            const contentType = response.headers['content-type'] || 'image/png';
+            if (!result.success) {
+                throw new Error(result.message || 'Gagal generate IQC');
+            }
+
+            const imageBuffer = Buffer.from(result.image);
             
-            res.setHeader('Content-Type', contentType);
-            res.setHeader('Content-Disposition', `attachment; filename="iqc_${text}.png"`);
-            res.send(response.data);
+            res.setHeader('Content-Type', result.mimeType || 'image/png');
+            res.setHeader('Content-Disposition', 'attachment; filename="iqc.png"');
+            res.send(imageBuffer);
 
         } catch (error) {
             console.error(error);
