@@ -1,5 +1,4 @@
 const scraperGames = require('@bochilteam/scraper-games');
-const { flag } = require('country-flag-emoji');
 
 const gamesList = [
     'tebakgambar', 'caklontong', 'family100', 'asahotak',
@@ -10,6 +9,96 @@ const gamesList = [
 const activeGames = new Map();
 const TIMEOUT = 120000;
 const POIN = 500;
+
+// Mapping lengkap flag code ke emoji
+const flagEmojiMap = {
+    // A
+    'af': '🇦🇫', 'ax': '🇦🇽', 'al': '🇦🇱', 'dz': '🇩🇿', 'as': '🇦🇸',
+    'ad': '🇦🇩', 'ao': '🇦🇴', 'ai': '🇦🇮', 'aq': '🇦🇶', 'ag': '🇦🇬',
+    'ar': '🇦🇷', 'am': '🇦🇲', 'aw': '🇦🇼', 'au': '🇦🇺', 'at': '🇦🇹',
+    'az': '🇦🇿',
+    // B
+    'bs': '🇧🇸', 'bh': '🇧🇭', 'bd': '🇧🇩', 'bb': '🇧🇧', 'by': '🇧🇾',
+    'be': '🇧🇪', 'bz': '🇧🇿', 'bj': '🇧🇯', 'bm': '🇧🇲', 'bt': '🇧🇹',
+    'bo': '🇧🇴', 'ba': '🇧🇦', 'bw': '🇧🇼', 'bv': '🇧🇻', 'br': '🇧🇷',
+    'io': '🇮🇴', 'bn': '🇧🇳', 'bg': '🇧🇬', 'bf': '🇧🇫', 'bi': '🇧🇮',
+    // C
+    'kh': '🇰🇭', 'cm': '🇨🇲', 'ca': '🇨🇦', 'cv': '🇨🇻', 'ky': '🇰🇾',
+    'cf': '🇨🇫', 'td': '🇹🇩', 'cl': '🇨🇱', 'cn': '🇨🇳', 'cx': '🇨🇽',
+    'cc': '🇨🇨', 'co': '🇨🇴', 'km': '🇰🇲', 'cg': '🇨🇬', 'cd': '🇨🇩',
+    'ck': '🇨🇰', 'cr': '🇨🇷', 'ci': '🇨🇮', 'hr': '🇭🇷', 'cu': '🇨🇺',
+    'cy': '🇨🇾', 'cz': '🇨🇿',
+    // D
+    'dk': '🇩🇰', 'dj': '🇩🇯', 'dm': '🇩🇲', 'do': '🇩🇴',
+    // E
+    'ec': '🇪🇨', 'eg': '🇪🇬', 'sv': '🇸🇻', 'gq': '🇬🇶', 'er': '🇪🇷',
+    'ee': '🇪🇪', 'et': '🇪🇹',
+    // F
+    'fk': '🇫🇰', 'fo': '🇫🇴', 'fj': '🇫🇯', 'fi': '🇫🇮', 'fr': '🇫🇷',
+    'gf': '🇬🇫', 'pf': '🇵🇫', 'tf': '🇹🇫',
+    // G
+    'ga': '🇬🇦', 'gm': '🇬🇲', 'ge': '🇬🇪', 'de': '🇩🇪', 'gh': '🇬🇭',
+    'gi': '🇬🇮', 'gr': '🇬🇷', 'gl': '🇬🇱', 'gd': '🇬🇩', 'gp': '🇬🇵',
+    'gu': '🇬🇺', 'gt': '🇬🇹', 'gg': '🇬🇬', 'gn': '🇬🇳', 'gw': '🇬🇼',
+    'gy': '🇬🇾',
+    // H
+    'ht': '🇭🇹', 'hm': '🇭🇲', 'va': '🇻🇦', 'hn': '🇭🇳', 'hk': '🇭🇰',
+    'hu': '🇭🇺',
+    // I
+    'is': '🇮🇸', 'in': '🇮🇳', 'id': '🇮🇩', 'ir': '🇮🇷', 'iq': '🇮🇶',
+    'ie': '🇮🇪', 'im': '🇮🇲', 'il': '🇮🇱', 'it': '🇮🇹',
+    // J
+    'jm': '🇯🇲', 'jp': '🇯🇵', 'je': '🇯🇪', 'jo': '🇯🇴',
+    // K
+    'kz': '🇰🇿', 'ke': '🇰🇪', 'ki': '🇰🇮', 'kp': '🇰🇵', 'kr': '🇰🇷',
+    'kw': '🇰🇼', 'kg': '🇰🇬', 'la': '🇱🇦',
+    // L
+    'lv': '🇱🇻', 'lb': '🇱🇧', 'ls': '🇱🇸', 'lr': '🇱🇷', 'ly': '🇱🇾',
+    'li': '🇱🇮', 'lt': '🇱🇹', 'lu': '🇱🇺',
+    // M
+    'mo': '🇲🇴', 'mk': '🇲🇰', 'mg': '🇲🇬', 'mw': '🇲🇼', 'my': '🇲🇾',
+    'mv': '🇲🇻', 'ml': '🇲🇱', 'mt': '🇲🇹', 'mh': '🇲🇭', 'mq': '🇲🇶',
+    'mr': '🇲🇷', 'mu': '🇲🇺', 'yt': '🇾🇹', 'mx': '🇲🇽', 'fm': '🇫🇲',
+    'md': '🇲🇩', 'mc': '🇲🇨', 'mn': '🇲🇳', 'me': '🇲🇪', 'ms': '🇲🇸',
+    'ma': '🇲🇦', 'mz': '🇲🇿', 'mm': '🇲🇲',
+    // N
+    'na': '🇳🇦', 'nr': '🇳🇷', 'np': '🇳🇵', 'nl': '🇳🇱', 'nc': '🇳🇨',
+    'nz': '🇳🇿', 'ni': '🇳🇮', 'ne': '🇳🇪', 'ng': '🇳🇬', 'nu': '🇳🇺',
+    'nf': '🇳🇫', 'mp': '🇲🇵', 'no': '🇳🇴',
+    // O
+    'om': '🇴🇲',
+    // P
+    'pk': '🇵🇰', 'pw': '🇵🇼', 'ps': '🇵🇸', 'pa': '🇵🇦', 'pg': '🇵🇬',
+    'py': '🇵🇾', 'pe': '🇵🇪', 'ph': '🇵🇭', 'pn': '🇵🇳', 'pl': '🇵🇱',
+    'pt': '🇵🇹', 'pr': '🇵🇷',
+    // Q
+    'qa': '🇶🇦',
+    // R
+    're': '🇷🇪', 'ro': '🇷🇴', 'ru': '🇷🇺', 'rw': '🇷🇼',
+    // S
+    'bl': '🇧🇱', 'sh': '🇸🇭', 'kn': '🇰🇳', 'lc': '🇱🇨', 'mf': '🇲🇫',
+    'pm': '🇵🇲', 'vc': '🇻🇨', 'ws': '🇼🇸', 'sm': '🇸🇲', 'st': '🇸🇹',
+    'sa': '🇸🇦', 'sn': '🇸🇳', 'rs': '🇷🇸', 'sc': '🇸🇨', 'sl': '🇸🇱',
+    'sg': '🇸🇬', 'sx': '🇸🇽', 'sk': '🇸🇰', 'si': '🇸🇮', 'sb': '🇸🇧',
+    'so': '🇸🇴', 'za': '🇿🇦', 'gs': '🇬🇸', 'ss': '🇸🇸', 'es': '🇪🇸',
+    'lk': '🇱🇰', 'sd': '🇸🇩', 'sr': '🇸🇷', 'sj': '🇸🇯', 'sz': '🇸🇿',
+    'se': '🇸🇪', 'ch': '🇨🇭', 'sy': '🇸🇾',
+    // T
+    'tw': '🇹🇼', 'tj': '🇹🇯', 'tz': '🇹🇿', 'th': '🇹🇭', 'tl': '🇹🇱',
+    'tg': '🇹🇬', 'tk': '🇹🇰', 'to': '🇹🇴', 'tt': '🇹🇹', 'tn': '🇹🇳',
+    'tr': '🇹🇷', 'tm': '🇹🇲', 'tc': '🇹🇨', 'tv': '🇹🇻',
+    // U
+    'ug': '🇺🇬', 'ua': '🇺🇦', 'ae': '🇦🇪', 'gb': '🇬🇧', 'us': '🇺🇸',
+    'um': '🇺🇲', 'uy': '🇺🇾', 'uz': '🇺🇿',
+    // V
+    'vu': '🇻🇺', 've': '🇻🇪', 'vn': '🇻🇳', 'vg': '🇻🇬', 'vi': '🇻🇮',
+    // W
+    'wf': '🇼🇫', 'eh': '🇪🇭',
+    // Y
+    'ye': '🇾🇪',
+    // Z
+    'zm': '🇿🇲', 'zw': '🇿🇼'
+};
 
 function generateHint(jawaban) {
     if (!jawaban) return '???';
@@ -36,10 +125,7 @@ async function getGameData(gameType) {
             break;
         case 'tebakbendera':
             const flagCode = result.flag?.toLowerCase();
-            let emoji = '🏁';
-            if (flagCode && flagCode.length === 2) {
-                emoji = flag(flagCode) || '🏁';
-            }
+            const emoji = flagEmojiMap[flagCode] || '🏁';
             soal = emoji;
             jawaban = result.name;
             break;
