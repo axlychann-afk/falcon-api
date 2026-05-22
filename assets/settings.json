@@ -40,7 +40,7 @@
     },
     {
   "name": "Nano Banana AI",
-  "desc": "Edit gambar dengan prompt (ubah gaya, warna, latar, dll) via Live3D",
+  "desc": "Edit gambar dengan prompt (ubah gaya, warna, latar, dll)",
   "path": "/ai/nanobanana?url=",
   "status": "ready",
   "params": {
