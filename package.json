@@ -45,5 +45,6 @@
     "sharp": "^0.33.5",
     "tough-cookie": "^4.1.4",
     "iqc-canvas": "^1.0.0"
+    "@bochilteam/scraper-games": "^1.0.1"
   }
 }
