@@ -1,4 +1,5 @@
 const scraperGames = require('@bochilteam/scraper-games');
+const { flag } = require('country-flag-emoji');
 
 const gamesList = [
     'tebakgambar', 'caklontong', 'family100', 'asahotak',
@@ -7,7 +8,7 @@ const gamesList = [
 ];
 
 const activeGames = new Map();
-const TIMEOUT = 120000; // 2 menit
+const TIMEOUT = 120000;
 const POIN = 500;
 
 function generateHint(jawaban) {
@@ -34,12 +35,10 @@ async function getGameData(gameType) {
             deskripsi = result.deskripsi || null;
             break;
         case 'tebakbendera':
-            // Konversi kode negara (GA, ID, JP) ke emoji
             const flagCode = result.flag?.toLowerCase();
             let emoji = '🏁';
             if (flagCode && flagCode.length === 2) {
-                emoji = String.fromCodePoint(0x1F1E6 - 65 + flagCode.charCodeAt(0)) + 
-                        String.fromCodePoint(0x1F1E6 - 65 + flagCode.charCodeAt(1));
+                emoji = flag(flagCode) || '🏁';
             }
             soal = emoji;
             jawaban = result.name;
@@ -82,7 +81,6 @@ module.exports = (app) => {
         app.get(`/game/${game}/start`, async (req, res) => {
             const { user_id = 'default' } = req.query;
             
-            // Cek game aktif
             if (activeGames.has(user_id) && user_id !== 'default') {
                 const remaining = Math.ceil((TIMEOUT - (Date.now() - activeGames.get(user_id).startTime)) / 1000);
                 return res.status(400).json({ 
@@ -92,7 +90,6 @@ module.exports = (app) => {
                 });
             }
             
-            // Reset otomatis untuk user default (web testing)
             if (user_id === 'default' && activeGames.has('default')) {
                 clearTimeout(activeGames.get('default').timeout);
                 activeGames.delete('default');
@@ -101,7 +98,6 @@ module.exports = (app) => {
             try {
                 const { soal, jawaban, hint, gambar, deskripsi } = await startGame(game, user_id);
                 
-                // Untuk user default, langsung hapus game setelah response
                 if (user_id === 'default') {
                     const gameData = activeGames.get('default');
                     if (gameData) {
@@ -127,7 +123,6 @@ module.exports = (app) => {
         });
     });
     
-    // Jawab game (khusus bot)
     app.get('/game/answer', async (req, res) => {
         const { user_id = 'default', answer } = req.query;
         
@@ -173,7 +168,6 @@ module.exports = (app) => {
         }
     });
     
-    // Reset game (opsional)
     app.get('/game/reset', async (req, res) => {
         const { user_id = 'default' } = req.query;
         if (activeGames.has(user_id)) {
