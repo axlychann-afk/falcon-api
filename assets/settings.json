@@ -456,6 +456,19 @@
       }
         },
         {
+  "name": "Upload ke Catbox",
+  "desc": "Upload file ke catbox.moe (pilih file langsung)",
+  "path": "/tools/upload-catbox",
+  "method": "POST",
+  "status": "ready",
+  "params": {
+    "file": {
+      "description": "File yang mau diupload (gambar, video, dokumen)",
+      "type": "file"
+    }
+  }
+        },
+        {
   "name": "What Anime",
   "desc": "Cari judul anime dari screenshot (upload file atau URL)",
   "path": "/tools/whatanime?url=",
