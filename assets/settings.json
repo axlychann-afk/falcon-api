@@ -311,15 +311,6 @@
   }
         },
         {
-  "name": "YouTube Video (ytmp4)",
-  "desc": "Download video YouTube berbagai kualitas (FHD, HD, SD)",
-  "path": "/download/ytmp4?url=",
-  "status": "ready",
-  "params": {
-    "url": "URL YouTube"
-  }
-},
-        {
   "name": "Pinterest Downloader",
   "desc": "Download gambar/video dari Pinterest",
   "path": "/download/pinterest?url=",
@@ -338,8 +329,17 @@
   }
         },
 {
+  "name": "YouTube Video (ytmp4)",
+  "desc": "Download video YouTube (pilih kualitas)",
+  "path": "/download/ytmp4?url=",
+  "status": "ready",
+  "params": {
+    "url": "URL YouTube"
+  }
+},
+{
   "name": "YouTube Audio (ytmp3)",
-  "desc": "Download audio MP3/M4A dari YouTube",
+  "desc": "Download audio YouTube (MP3/M4A)",
   "path": "/download/ytmp3?url=",
   "status": "ready",
   "params": {
