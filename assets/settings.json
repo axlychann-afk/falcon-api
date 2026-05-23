@@ -260,6 +260,40 @@
             "url": "URL halaman download."
           }
         },
+{
+  "name": "Animekuindo Search",
+  "desc": "Mencari anime di Animekuindo.life (judul, gambar, status, tipe)",
+  "path": "/anime/animekuindo/search?q=",
+  "status": "ready",
+  "params": {
+    "q": "Judul anime yang dicari (contoh: solo leveling)"
+  }
+},
+{
+  "name": "Animekuindo Detail",
+  "desc": "Detail lengkap anime dari Animekuindo.life (sinopsis, genre, episode, rating)",
+  "path": "/anime/animekuindo/detail?url=",
+  "status": "ready",
+  "params": {
+    "url": "URL detail anime (dari hasil search)",
+    "stream": "true/false - ambil link streaming tiap episode (default false)"
+  }
+},
+{
+  "name": "Animekuindo Stream",
+  "desc": "Ambil link streaming video dari episode anime",
+  "path": "/anime/animekuindo/stream?url=",
+  "status": "ready",
+  "params": {
+    "url": "URL episode anime (dari detail)"
+  }
+},
+{
+  "name": "Animekuindo Random",
+  "desc": "Dapatkan anime random dari Animekuindo.life",
+  "path": "/anime/animekuindo/random",
+  "status": "ready"
+},
         {
           "name": "Doujin Search",
           "desc": "Mencari doujin di Maid.my.id.",
