@@ -47,6 +47,16 @@
   }
 },
 {
+  "name": "Google Gemini AI",
+  "desc": "Gemini AI oleh Google (gratis, cepat, dan cerdas). Cukup kirim text aja.",
+  "path": "/ai/gemini?text=",
+  "status": "ready",
+  "params": {
+    "text": "Pertanyaan atau teks untuk AI",
+    "session_id": "ID session (opsional, untuk ngobrol berlanjut)"
+  }
+},
+{
   "name": "Uncensored AI",
   "desc": "AI chat tanpa sensor (gratis, pakai web scraping uncensored.chat)",
   "path": "/ai/uncensored?text=",
