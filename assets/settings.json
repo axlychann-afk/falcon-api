@@ -455,15 +455,19 @@
         "url": "URL website yang mau di-screenshot"
       }
         },
-        {
+{
   "name": "Upload File",
-  "desc": "Upload gambar/file ke Telegraph (gratis, stabil)",
-  "path": "/tools/upload?url=",
+  "desc": "Upload file ke Uguu.se (pilih file langsung)",
+  "path": "/tools/upload",
+  "method": "POST",
   "status": "ready",
   "params": {
-    "url": "URL gambar (opsional, bisa juga upload file via POST)"
+    "file": {
+      "description": "File yang mau diupload (gambar, video, dokumen)",
+      "type": "file"
+    }
   }
-        },
+},
         {
   "name": "What Anime",
   "desc": "Cari judul anime dari screenshot (upload file atau URL)",
