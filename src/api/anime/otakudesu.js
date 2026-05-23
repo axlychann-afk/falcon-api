@@ -1,247 +1,165 @@
-// otakudesu.js - Scraper Otakudesu (Search, Detail, Stream) - FIXED
-const axios = require('axios');
-const cheerio = require('cheerio');
+// OTAKUDESU SCRAPER - KODE ASLI DARI DEFAN
+const https = require('https');
+const http = require('http');
 
 const BASE_URL = 'https://otakudesu.blog';
 
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
   'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-  'Referer': BASE_URL
+  'Accept-Encoding': 'identity',
+  'Referer': 'https://otakudesu.blog/',
+  'Connection': 'keep-alive',
+  'Upgrade-Insecure-Requests': '1',
+  'Cache-Control': 'max-age=0',
 };
 
-async function fetchPage(url) {
-  const response = await axios.get(url, {
-    headers: HEADERS,
-    timeout: 30000,
-    maxRedirects: 5
+function fetchPage(url) {
+  return new Promise((resolve, reject) => {
+    const lib = url.startsWith('https') ? https : http;
+    const req = lib.get(url, { headers: HEADERS }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return fetchPage(res.headers.location).then(resolve).catch(reject);
+      }
+      if (res.statusCode !== 200) {
+        return reject(new Error(`HTTP ${res.statusCode} for ${url}`));
+      }
+      let data = '';
+      res.setEncoding('utf8');
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => resolve(data));
+    });
+    req.on('error', reject);
+    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Timeout')); });
   });
-  return response.data;
 }
 
-// ========== 1. SEARCH ANIME (FIXED) ==========
+function decodeHtml(str) {
+  return str
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code)))
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .trim();
+}
+
+function stripTags(str) {
+  return str.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function parseSearchResults(html) {
+  const results = [];
+  const blocks = html.split(/(?=<a[^>]+href="https:\/\/otakudesu\.blog\/anime\/)/);
+  for (const block of blocks) {
+    const urlMatch = block.match(/href="(https:\/\/otakudesu\.blog\/anime\/[^"]+)"/);
+    if (!urlMatch) continue;
+    const titleMatch = block.match(/href="https:\/\/otakudesu\.blog\/anime\/[^"]+">([^<]+)<\/a>/);
+    const ratingMatch = block.match(/Rating[^0-9]+([\d.]+)/i);
+    const statusMatch = block.match(/Status\s*<\/[^>]+>\s*:\s*([^<]+)/i) || block.match(/Status\s*:\s*([^<\n]+)/i);
+    const genreMatches = [...block.matchAll(/\/genres\/[^"]+">([^<]+)<\/a>/g)].map(m => m[1]);
+    results.push({
+      title: titleMatch ? decodeHtml(titleMatch[1]) : null,
+      url: urlMatch[1],
+      rating: ratingMatch ? ratingMatch[1] : null,
+      status: statusMatch ? decodeHtml(stripTags(statusMatch[1])) : null,
+      genres: genreMatches.length ? genreMatches : null,
+    });
+  }
+  return results;
+}
+
+function parseDetailPage(html, url) {
+  const titleMatch = html.match(/<h1[^>]*class="[^"]*entry-title[^"]*"[^>]*>([\s\S]*?)<\/h1>/i) || html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+  const title = titleMatch ? decodeHtml(stripTags(titleMatch[1])) : null;
+  const ratingMatch = html.match(/Rating[^0-9]+([\d.]+)/i);
+  const rating = ratingMatch ? ratingMatch[1] : null;
+  const genreMatches = [...html.matchAll(/\/genres\/[^"]+">([^<]+)<\/a>/g)].map(m => m[1]);
+  const genres = genreMatches.length ? genreMatches : null;
+  const episodeLinks = [];
+  const epRegex = /<a[^>]+href="(https:\/\/otakudesu\.blog\/episode\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+  let epMatch;
+  while ((epMatch = epRegex.exec(html)) !== null) {
+    const epUrl = epMatch[1];
+    const epTitle = decodeHtml(stripTags(epMatch[2]));
+    if (epTitle && !episodeLinks.find(e => e.url === epUrl)) {
+      episodeLinks.push({ title: epTitle, url: epUrl });
+    }
+  }
+  return { title, url, rating, genres, episodeLinks };
+}
+
+function parseEpisodePage(html, url) {
+  const videoUrls = [];
+  const iframeRegex = /<iframe[^>]+src="([^"]+)"/gi;
+  let match;
+  while ((match = iframeRegex.exec(html)) !== null) {
+    const src = match[1];
+    if (src && !src.includes('disqus') && !src.includes('facebook') && !src.includes('google')) {
+      videoUrls.push(src);
+    }
+  }
+  const mirrorRegex = /href="(https?:\/\/[^"]+\.(?:mp4|mkv|m3u8)[^"]*)"/gi;
+  while ((match = mirrorRegex.exec(html)) !== null) {
+    videoUrls.push(match[1]);
+  }
+  const titleMatch = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+  const title = titleMatch ? decodeHtml(stripTags(titleMatch[1])) : null;
+  return { title, url, videoUrls: [...new Set(videoUrls)] };
+}
+
 async function searchAnime(query) {
   const searchUrl = `${BASE_URL}/?s=${encodeURIComponent(query)}&post_type=anime`;
   const html = await fetchPage(searchUrl);
-  const $ = cheerio.load(html);
-  
-  const results = [];
-  
-  // Selector yang bener buat otakudesu.blog
-  $('.col-md-3, .col-sm-4, .item').each((i, el) => {
-    const link = $(el).find('a').first().attr('href');
-    const title = $(el).find('a').first().attr('title') || $(el).find('h2, h3').text().trim();
-    const image = $(el).find('img').attr('src');
-    const rating = $(el).find('.rating, .score').text().trim();
-    const status = $(el).find('.status, .completed, .ongoing').text().trim();
-    
-    if (link && link.includes('/anime/')) {
-      results.push({
-        title: title || 'Unknown',
-        url: link,
-        image: image || null,
-        rating: rating || null,
-        status: status || null
-      });
-    }
-  });
-  
-  // Fallback: cari dari blok venz
-  if (results.length === 0) {
-    $('.venz').each((i, el) => {
-      const link = $(el).find('h2 a').attr('href');
-      const title = $(el).find('h2 a').text().trim();
-      const image = $(el).find('img').attr('src');
-      
-      if (link && title) {
-        results.push({ title, url: link, image, rating: null, status: null });
-      }
-    });
-  }
-  
-  return {
-    status: true,
-    creator: 'AxlyDev',
-    data: {
-      keyword: query,
-      totalResults: results.length,
-      results: results
-    }
-  };
+  return parseSearchResults(html);
 }
 
-// ========== 2. DETAIL ANIME ==========
 async function getAnimeDetail(animeUrl) {
   const html = await fetchPage(animeUrl);
-  const $ = cheerio.load(html);
-  
-  const title = $('h1.entry-title').text().trim() || $('h1').first().text().trim();
-  const image = $('.thumb img, .foto img, img.attachment-large').attr('src');
-  
-  const info = {};
-  $('.info-content p, .infox p, .info p').each((i, el) => {
-    const text = $(el).text().trim();
-    const parts = text.split(':');
-    if (parts.length >= 2) {
-      const key = parts[0].trim();
-      const value = parts.slice(1).join(':').trim();
-      info[key] = value;
-    }
-  });
-  
-  const genres = [];
-  $('.genres a, .genre a').each((i, el) => {
-    genres.push($(el).text().trim());
-  });
-  
-  const sinopsis = $('.entry-content p, .sinopsis p').first().text().trim();
-  
-  const episodes = [];
-  $('.eplist li, .list-episode li, .episodelist li').each((i, el) => {
-    const episodeLink = $(el).find('a').attr('href');
-    const episodeNum = $(el).find('.episode, .episode-num, .eps').text().trim();
-    const episodeTitle = $(el).find('.title, .episode-title').text().trim();
-    
-    if (episodeLink) {
-      episodes.push({
-        episode: episodeNum || `Episode ${i+1}`,
-        title: episodeTitle || '-',
-        url: episodeLink
-      });
-    }
-  });
-  
-  return {
-    status: true,
-    creator: 'AxlyDev',
-    data: {
-      title: title || 'Unknown',
-      url: animeUrl,
-      image: image || null,
-      info: info,
-      genres: genres,
-      sinopsis: sinopsis ? sinopsis.substring(0, 500) : 'Tidak ada sinopsis',
-      totalEpisodes: episodes.length,
-      episodes: episodes.reverse()
-    }
-  };
+  return parseDetailPage(html, animeUrl);
 }
 
-// ========== 3. STREAM LINK ==========
-async function getEpisodeStream(episodeUrl) {
+async function getEpisodeVideos(episodeUrl) {
   const html = await fetchPage(episodeUrl);
-  const $ = cheerio.load(html);
-  
-  const title = $('h1.entry-title').text().trim();
-  
-  const streamUrls = [];
-  
-  // Ambil semua iframe
-  $('iframe').each((i, el) => {
-    const src = $(el).attr('src');
-    if (src && src.startsWith('http')) {
-      streamUrls.push({
-        provider: getProviderName(src),
-        url: src,
-        type: 'iframe'
-      });
-    }
-  });
-  
-  // Ambil link download langsung
-  $('a[href*="mp4upload"], a[href*="streamtape"], a[href*="drive.google"], a[href$=".mp4"]').each((i, el) => {
-    const url = $(el).attr('href');
-    streamUrls.push({
-      provider: getProviderName(url),
-      url: url,
-      type: 'direct'
-    });
-  });
-  
-  return {
-    status: true,
-    creator: 'AxlyDev',
-    data: {
-      title: title || 'Unknown Episode',
-      url: episodeUrl,
-      streamUrls: streamUrls,
-      totalStreams: streamUrls.length
-    }
-  };
-}
-
-function getProviderName(url) {
-  if (url.includes('mp4upload')) return 'Mp4Upload';
-  if (url.includes('streamtape')) return 'Streamtape';
-  if (url.includes('drive.google')) return 'Google Drive';
-  if (url.includes('.mp4')) return 'Direct MP4';
-  return 'Unknown';
-}
-
-async function randomAnime() {
-  const keywords = ['action', 'fantasy', 'romance', 'comedy', 'adventure'];
-  const randomKeyword = keywords[Math.floor(Math.random() * keywords.length)];
-  const result = await searchAnime(randomKeyword);
-  
-  if (result.data.totalResults === 0) {
-    return { status: false, error: 'Gak dapet anime random' };
-  }
-  
-  const randomIndex = Math.floor(Math.random() * result.data.results.length);
-  const randomAnime = result.data.results[randomIndex];
-  const detail = await getAnimeDetail(randomAnime.url);
-  
-  return {
-    status: true,
-    creator: 'AxlyDev',
-    data: {
-      random: true,
-      keywordUsed: randomKeyword,
-      result: detail.data
-    }
-  };
+  return parseEpisodePage(html, episodeUrl);
 }
 
 module.exports = (app) => {
   
+  // SEARCH
   app.get('/anime/otakudesu/search', async (req, res) => {
     try {
       const { q } = req.query;
       if (!q) return res.status(400).json({ status: false, error: 'Parameter q wajib diisi' });
-      const result = await searchAnime(q);
-      res.json(result);
+      const results = await searchAnime(q);
+      res.json({ status: true, creator: 'AxlyDev', data: { keyword: q, totalResults: results.length, results } });
     } catch (error) {
       res.status(500).json({ status: false, error: error.message });
     }
   });
   
+  // DETAIL
   app.get('/anime/otakudesu/detail', async (req, res) => {
     try {
       const { url } = req.query;
       if (!url) return res.status(400).json({ status: false, error: 'Parameter url wajib diisi' });
       const result = await getAnimeDetail(url);
-      res.json(result);
+      res.json({ status: true, creator: 'AxlyDev', data: result });
     } catch (error) {
       res.status(500).json({ status: false, error: error.message });
     }
   });
   
+  // STREAM
   app.get('/anime/otakudesu/stream', async (req, res) => {
     try {
       const { url } = req.query;
       if (!url) return res.status(400).json({ status: false, error: 'Parameter url wajib diisi' });
-      const result = await getEpisodeStream(url);
-      res.json(result);
-    } catch (error) {
-      res.status(500).json({ status: false, error: error.message });
-    }
-  });
-  
-  app.get('/anime/otakudesu/random', async (req, res) => {
-    try {
-      const result = await randomAnime();
-      res.json(result);
+      const result = await getEpisodeVideos(url);
+      res.json({ status: true, creator: 'AxlyDev', data: result });
     } catch (error) {
       res.status(500).json({ status: false, error: error.message });
     }
