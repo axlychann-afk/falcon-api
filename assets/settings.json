@@ -230,7 +230,6 @@
   "desc": "Dapatkan anime random dari Animekuindo.life",
   "path": "/anime/animekuindo/random",
   "status": "ready"
-          }
         }
       ]
     },
