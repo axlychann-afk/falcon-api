@@ -197,69 +197,6 @@
     {
       "name": "Anime",
       "items": [
-          {
-          "name": "AlqAnime Hangat",
-          "desc": "Daftar anime yang sedang hangat di AlqAnime.",
-          "path": "/anime/alqanime/hangat",
-          "status": "ready"
-        },
-        {
-          "name": "AlqAnime Rilisan",
-          "desc": "Rilisan terbaru dari AlqAnime.",
-          "path": "/anime/alqanime/rilisan",
-          "status": "ready"
-        },
-        {
-          "name": "AlqAnime Selesai",
-          "desc": "Anime yang telah selesai tayang di AlqAnime.",
-          "path": "/anime/alqanime/selesai",
-          "status": "ready"
-        },
-        {
-          "name": "AlqAnime Movie",
-          "desc": "Kumpulan film anime dari AlqAnime.",
-          "path": "/anime/alqanime/movie",
-          "status": "ready"
-        },
-        {
-          "name": "AlqAnime Populer",
-          "desc": "Anime terpopuler di AlqAnime.",
-          "path": "/anime/alqanime/populer",
-          "status": "ready"
-        },
-        {
-          "name": "AlqAnime Ongoing",
-          "desc": "Daftar anime ongoing di AlqAnime.",
-          "path": "/anime/alqanime/ongoing",
-          "status": "ready"
-        },
-        {
-          "name": "AlqAnime Search",
-          "desc": "Mencari anime di AlqAnime.",
-          "path": "/anime/alqanime/search?q=",
-          "status": "ready",
-          "params": {
-            "q": "Judul anime yang dicari."
-          }
-        },
-        {
-          "name": "AlqAnime Detail",
-          "desc": "Detail anime dari AlqAnime.",
-          "path": "/anime/alqanime/detail?url=",
-          "status": "ready",
-          "params": {
-            "url": "URL detail anime AlqAnime."
-          }
-        },
-        {
-          "name": "AlqAnime Download",
-          "desc": "Link download anime dari AlqAnime.",
-          "path": "/anime/alqanime/download?url=",
-          "status": "ready",
-          "params": {
-            "url": "URL halaman download."
-          }
-        },
 {
   "name": "Animekuindo Search",
   "desc": "Mencari anime di Animekuindo.life (judul, gambar, status, tipe)",
@@ -293,59 +230,6 @@
   "desc": "Dapatkan anime random dari Animekuindo.life",
   "path": "/anime/animekuindo/random",
   "status": "ready"
-},
-{
-  "name": "Otakudesu Search",
-  "desc": "Mencari anime di Otakudesu (judul, rating, status, genre)",
-  "path": "/anime/otakudesu/search?q=",
-  "status": "ready",
-  "params": { "q": "Judul anime yang dicari" }
-},
-{
-  "name": "Otakudesu Detail",
-  "desc": "Detail lengkap anime + daftar episode dari Otakudesu",
-  "path": "/anime/otakudesu/detail?url=",
-  "status": "ready",
-  "params": { "url": "URL detail anime (dari hasil search)" }
-},
-{
-  "name": "Otakudesu Stream",
-  "desc": "Dapetin link streaming dari episode (iframe hosting: Mp4Upload, Streamtape, Google Drive)",
-  "path": "/anime/otakudesu/stream?url=",
-  "status": "ready",
-  "params": { "url": "URL episode anime" }
-},
-{
-  "name": "Otakudesu Random",
-  "desc": "Dapatkan anime random dari Otakudesu",
-  "path": "/anime/otakudesu/random",
-  "status": "ready"
-},
-        {
-          "name": "Doujin Search",
-          "desc": "Mencari doujin di Maid.my.id.",
-          "path": "/anime/doujin/search?q=",
-          "status": "ready",
-          "params": {
-            "q": "Kata kunci pencarian."
-          }
-        },
-        {
-          "name": "Doujin Detail",
-          "desc": "Melihat detail doujin.",
-          "path": "/anime/doujin/detail?url=",
-          "status": "ready",
-          "params": {
-            "url": "URL detail doujin."
-          }
-        },
-        {
-          "name": "Doujin Chapter",
-          "desc": "Mengambil gambar dari sebuah chapter doujin.",
-          "path": "/anime/doujin/chapter?url=",
-          "status": "ready",
-          "params": {
-            "url": "URL chapter doujin."
           }
         }
       ]
