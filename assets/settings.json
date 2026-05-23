@@ -295,30 +295,30 @@
   "status": "ready"
 },
 {
-  "name": "Samehadaku Search",
-  "desc": "Mencari anime di Samehadaku (Google Drive, Mp4Upload, Streamtape)",
-  "path": "/anime/samehadaku/search?q=",
+  "name": "Otakudesu Search",
+  "desc": "Mencari anime di Otakudesu (judul, rating, status, genre)",
+  "path": "/anime/otakudesu/search?q=",
   "status": "ready",
   "params": { "q": "Judul anime yang dicari" }
 },
 {
-  "name": "Samehadaku Detail",
-  "desc": "Detail anime + daftar episode dari Samehadaku",
-  "path": "/anime/samehadaku/detail?url=",
+  "name": "Otakudesu Detail",
+  "desc": "Detail lengkap anime + daftar episode dari Otakudesu",
+  "path": "/anime/otakudesu/detail?url=",
   "status": "ready",
-  "params": { "url": "URL detail anime" }
+  "params": { "url": "URL detail anime (dari hasil search)" }
 },
 {
-  "name": "Samehadaku Stream",
-  "desc": "Dapetin link streaming episode (Google Drive, Mp4Upload, dll)",
-  "path": "/anime/samehadaku/stream?url=",
+  "name": "Otakudesu Stream",
+  "desc": "Dapetin link streaming dari episode (iframe hosting: Mp4Upload, Streamtape, Google Drive)",
+  "path": "/anime/otakudesu/stream?url=",
   "status": "ready",
-  "params": { "url": "URL episode" }
+  "params": { "url": "URL episode anime" }
 },
 {
-  "name": "Samehadaku Random",
-  "desc": "Dapatkan anime random dari Samehadaku",
-  "path": "/anime/samehadaku/random",
+  "name": "Otakudesu Random",
+  "desc": "Dapatkan anime random dari Otakudesu",
+  "path": "/anime/otakudesu/random",
   "status": "ready"
 },
         {
