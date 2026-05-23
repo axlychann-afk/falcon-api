@@ -5,7 +5,7 @@ const { fromBuffer } = require('file-type');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-async function uploadToUguu(fileBuffer, filename) {
+async function uploadToUguu(fileBuffer) {
     const type = await fromBuffer(fileBuffer);
     const ext = type ? type.ext : 'bin';
     
@@ -20,14 +20,47 @@ async function uploadToUguu(fileBuffer, filename) {
         timeout: 60000
     });
 
-    if (response.data && response.data.files && response.data.files[0]) {
+    if (response.data?.files?.[0]?.url) {
         return response.data.files[0].url;
     }
     throw new Error('Upload gagal');
 }
 
 module.exports = (app) => {
-    // POST - upload file (buat Try It Out di web)
+    // GET - upload dari URL (buat testing di web)
+    app.get('/tools/upload', async (req, res) => {
+        const { url } = req.query;
+
+        if (!url) {
+            return res.status(400).json({
+                status: false,
+                error: 'Parameter "url" diperlukan. Contoh: /tools/upload?url=https://example.com/gambar.jpg'
+            });
+        }
+
+        try {
+            const imageRes = await axios.get(url, {
+                responseType: 'arraybuffer',
+                headers: { 'User-Agent': 'Mozilla/5.0' }
+            });
+
+            const resultUrl = await uploadToUguu(Buffer.from(imageRes.data));
+            res.json({
+                status: true,
+                creator: 'AxlyChann',
+                result: {
+                    original_url: url,
+                    uploaded_url: resultUrl,
+                    size: imageRes.data.length
+                }
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ status: false, error: error.message });
+        }
+    });
+
+    // POST - upload file langsung (buat bot WA)
     app.post('/tools/upload', upload.single('file'), async (req, res) => {
         if (!req.file) {
             return res.status(400).json({
@@ -37,7 +70,7 @@ module.exports = (app) => {
         }
 
         try {
-            const url = await uploadToUguu(req.file.buffer, req.file.originalname);
+            const url = await uploadToUguu(req.file.buffer);
             res.json({
                 status: true,
                 creator: 'AxlyChann',
