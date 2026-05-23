@@ -1,4 +1,4 @@
-// .js - Edit gambar dengan AI (Easemate)
+// easemate.js - Edit gambar dengan AI (Easemate)
 const crypto = require("crypto");
 const fs = require("fs/promises");
 const path = require("path");
@@ -411,7 +411,6 @@ async function editImage(prompt, imageBuffer, deviceId) {
   const session = await loadSession(deviceId);
   await ensureIdentity(session);
 
-  // Simpan buffer ke temp file
   const tempDir = os.tmpdir();
   const tempPath = path.join(tempDir, `easemate_${Date.now()}.png`);
   await fs.writeFile(tempPath, imageBuffer);
@@ -450,7 +449,7 @@ async function editImage(prompt, imageBuffer, deviceId) {
 // Multer config buat upload file
 const upload = multer({ 
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/jpg' || file.mimetype === 'image/png') {
       cb(null, true);
@@ -466,7 +465,7 @@ module.exports = (app) => {
   // POST /ai/easemate (upload file)
   app.post('/ai/easemate', upload.single('image'), async (req, res) => {
     try {
-      const { prompt, device_id } = req.body;
+      const { prompt, device_id, raw } = req.body;
       
       if (!prompt) {
         return res.status(400).json({ 
@@ -487,22 +486,37 @@ module.exports = (app) => {
       const deviceId = device_id || `axly_${Date.now()}`;
       const result = await editImage(prompt, req.file.buffer, deviceId);
       
-      if (result.success) {
-        res.json({
-          status: true,
-          creator: 'AxlyDev',
-          data: {
-            prompt: prompt,
-            url: result.url
-          }
-        });
-      } else {
-        res.status(500).json({
+      if (!result.success) {
+        return res.status(500).json({
           status: false,
           creator: 'AxlyDev',
           error: result.error
         });
       }
+      
+      // KALO PARAM raw=true → LANGSUNG RETURN GAMBAR
+      if (raw === 'true' || raw === '1') {
+        const imageResponse = await fetch(result.url, {
+          headers: { 'User-Agent': ua }
+        });
+        if (!imageResponse.ok) {
+          throw new Error('Gagal mengambil gambar hasil AI');
+        }
+        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Content-Disposition', 'inline; filename="edited.png"');
+        return res.send(imageBuffer);
+      }
+      
+      // DEFAULT: RETURN JSON
+      res.json({
+        status: true,
+        creator: 'AxlyDev',
+        data: {
+          prompt: prompt,
+          url: result.url
+        }
+      });
       
     } catch (error) {
       res.status(500).json({ 
@@ -513,10 +527,10 @@ module.exports = (app) => {
     }
   });
   
-  // GET /ai/easemate?prompt=...&url=... (pake URL gambar)
+  // GET /ai/easemate?prompt=...&url=...&raw=true
   app.get('/ai/easemate', async (req, res) => {
     try {
-      const { prompt, url, device_id } = req.query;
+      const { prompt, url, device_id, raw } = req.query;
       
       if (!prompt) {
         return res.status(400).json({ 
@@ -534,32 +548,46 @@ module.exports = (app) => {
         });
       }
       
-      // Download gambar dari URL
       const imageResponse = await fetch(url);
       if (!imageResponse.ok) {
         throw new Error('Gagal download gambar dari URL');
       }
-      
       const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+      
       const deviceId = device_id || `axly_${Date.now()}`;
       const result = await editImage(prompt, imageBuffer, deviceId);
       
-      if (result.success) {
-        res.json({
-          status: true,
-          creator: 'AxlyDev',
-          data: {
-            prompt: prompt,
-            url: result.url
-          }
-        });
-      } else {
-        res.status(500).json({
+      if (!result.success) {
+        return res.status(500).json({
           status: false,
           creator: 'AxlyDev',
           error: result.error
         });
       }
+      
+      // KALO PARAM raw=true → LANGSUNG RETURN GAMBAR
+      if (raw === 'true' || raw === '1') {
+        const finalImage = await fetch(result.url, {
+          headers: { 'User-Agent': ua }
+        });
+        if (!finalImage.ok) {
+          throw new Error('Gagal mengambil gambar hasil AI');
+        }
+        const imageBufferFinal = Buffer.from(await finalImage.arrayBuffer());
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Content-Disposition', 'inline; filename="edited.png"');
+        return res.send(imageBufferFinal);
+      }
+      
+      // DEFAULT: RETURN JSON
+      res.json({
+        status: true,
+        creator: 'AxlyDev',
+        data: {
+          prompt: prompt,
+          url: result.url
+        }
+      });
       
     } catch (error) {
       res.status(500).json({ 
