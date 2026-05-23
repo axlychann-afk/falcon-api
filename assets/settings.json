@@ -456,16 +456,12 @@
       }
         },
         {
-  "name": "Upload ke Catbox",
-  "desc": "Upload file ke catbox.moe (pilih file langsung)",
-  "path": "/tools/upload-catbox",
-  "method": "POST",
+  "name": "Upload File",
+  "desc": "Upload gambar/file ke Telegraph (gratis, stabil)",
+  "path": "/tools/upload?url=",
   "status": "ready",
   "params": {
-    "file": {
-      "description": "File yang mau diupload (gambar, video, dokumen)",
-      "type": "file"
-    }
+    "url": "URL gambar (opsional, bisa juga upload file via POST)"
   }
         },
         {
