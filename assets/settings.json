@@ -37,6 +37,16 @@
   }
 },
 {
+  "name": "DeepSeek AI",
+  "desc": "DeepSeek V4 Flash - AI canggih gratis. Cukup kirim text, sisanya otomatis.",
+  "path": "/ai/deepseek?text=",
+  "status": "ready",
+  "params": {
+    "text": "Pertanyaan atau teks untuk AI",
+    "session_id": "ID session (opsional, untuk ngobrol berlanjut)"
+  }
+},
+{
   "name": "Uncensored AI",
   "desc": "AI chat tanpa sensor (gratis, pakai web scraping uncensored.chat)",
   "path": "/ai/uncensored?text=",
