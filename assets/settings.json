@@ -27,13 +27,13 @@
     },
 {
   "name": "Easemate AI Edit Image",
-  "desc": "Edit gambar dengan AI (ubah style, warna, latar, dll) - support upload file atau URL",
+  "desc": "Edit gambar dengan AI (ubah style, warna, dll). Tambahkan &raw=true untuk hasil langsung gambar",
   "path": "/ai/easemate?prompt=&url=",
   "status": "ready",
   "params": {
-    "prompt": "Deskripsi perubahan yang diinginkan (contoh: ubah kulit jadi hitam legam)",
-    "url": "URL gambar (opsional, bisa juga upload file via POST)",
-    "device_id": "ID device (opsional, untuk tracking limit)"
+    "prompt": "Deskripsi perubahan (wajib)",
+    "url": "URL gambar (wajib untuk GET)",
+    "raw": "true/false - true = langsung dapet gambar, false = dapet URL"
   }
 },
 {
