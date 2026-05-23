@@ -101,6 +101,19 @@
         "text": "Teks yang mau dijadikan gambar"
       }
     },
+{
+  "name": "Smeme Generator",
+  "desc": "Buat meme dengan teks atas/bawah (font Impact klasik)",
+  "path": "/maker/smeme?top=&bottom=&url=",
+  "status": "ready",
+  "params": {
+    "top": "Teks di atas (contoh: Halo)",
+    "bottom": "Teks di bawah (contoh: Guyc)",
+    "url": "URL gambar (opsional, bisa upload file via POST)",
+    "fontSize": "Ukuran font (opsional, auto jika tidak diisi)",
+    "strokeWidth": "Tebal outline (opsional)"
+  }
+},
     {
   "name": "WebP to Video(tovid)",
   "desc": "Konversi file WebP animasi ke MP4 (upload file atau URL)",
