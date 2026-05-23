@@ -457,15 +457,11 @@
         },
 {
   "name": "Upload File",
-  "desc": "Upload file ke Uguu.se (pilih file langsung)",
-  "path": "/tools/upload",
-  "method": "POST",
+  "desc": "Upload gambar dari URL ke Uguu.se",
+  "path": "/tools/upload?url=",
   "status": "ready",
   "params": {
-    "file": {
-      "description": "File yang mau diupload (gambar, video, dokumen)",
-      "type": "file"
-    }
+    "url": "URL gambar yang mau diupload"
   }
 },
         {
