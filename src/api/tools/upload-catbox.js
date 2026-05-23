@@ -5,12 +5,8 @@ const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() });
 
 async function uploadToCatbox(fileBuffer, filename) {
-    // Validasi file tidak kosong
     if (!fileBuffer || fileBuffer.length === 0) {
         throw new Error('File kosong');
-    }
-    if (fileBuffer.length > 200 * 1024 * 1024) {
-        throw new Error('File terlalu besar. Maksimal 200MB');
     }
 
     const form = new FormData();
@@ -20,14 +16,19 @@ async function uploadToCatbox(fileBuffer, filename) {
     const response = await axios.post('https://catbox.moe/user/api.php', form, {
         headers: {
             ...form.getHeaders(),
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': '*/*',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
             'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive'
+            'Origin': 'https://catbox.moe',
+            'Referer': 'https://catbox.moe/',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
         },
         maxContentLength: Infinity,
         maxBodyLength: Infinity,
-        timeout: 60000
+        timeout: 30000
     });
 
     const resultUrl = response.data.trim();
