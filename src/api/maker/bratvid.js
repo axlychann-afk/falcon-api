@@ -1,37 +1,65 @@
-const axios = require('axios');
+// bratvid.js - Generate BRAT style video
+const { writeFile } = require("fs/promises");
+const path = require("path");
+const os = require("os");
 
 module.exports = (app) => {
-    app.get('/maker/bratvid', async (req, res) => {
-        const { text } = req.query;
-
-        if (!text) {
-            return res.status(400).json({
-                status: false,
-                error: 'Parameter "text" diperlukan'
-            });
+  
+  app.get('/maker/bratvid', async (req, res) => {
+    try {
+      const { text } = req.query;
+      if (!text) {
+        return res.status(400).json({ 
+          status: false, 
+          error: 'Parameter text wajib diisi' 
+        });
+      }
+      
+      // Cek apakah package ada
+      let bratVid;
+      try {
+        const module = await import('brat-canvas/video');
+        bratVid = module.bratVid;
+      } catch (e) {
+        return res.status(500).json({ 
+          status: false, 
+          error: 'Package brat-canvas tidak terinstall. Jalankan: npm install brat-canvas' 
+        });
+      }
+      
+      // Pake temporary file
+      const tempDir = os.tmpdir();
+      const outputPath = path.join(tempDir, `brat_${Date.now()}.mp4`);
+      
+      const buf = await bratVid(text, {
+        outputFormat: "mp4",
+        fast_progress: true,
+        lyric: {
+          maxWordPerLayer: 5,
+          frameDuration: 0.7,
+          lastFrameDuration: 1.5
+        },
+        brat: { BLUR: 0 },
+        onProgress: ({ current, total, text: progressText }) => {
+          console.log(`Progress: ${current}/${total} - ${progressText}`);
         }
-
-        try {
-            const response = await axios.get(`https://api.nexray.eu.cc/maker/bratvid?text=${encodeURIComponent(text)}`, {
-                responseType: 'arraybuffer',
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                },
-                timeout: 60000
-            });
-
-            const contentType = response.headers['content-type'] || 'video/mp4';
-            
-            res.setHeader('Content-Type', contentType);
-            res.setHeader('Content-Disposition', `attachment; filename="brat_${text}.mp4"`);
-            res.send(response.data);
-
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({
-                status: false,
-                error: error.message || 'Gagal generate video brat'
-            });
-        }
-    });
+      });
+      
+      await writeFile(outputPath, buf);
+      
+      // Kirim file sebagai response
+      res.sendFile(outputPath, (err) => {
+        if (err) console.error(err);
+        // Hapus file setelah dikirim
+        require('fs').unlink(outputPath, () => {});
+      });
+      
+    } catch (error) {
+      res.status(500).json({ 
+        status: false, 
+        error: error.message 
+      });
+    }
+  });
+  
 };
