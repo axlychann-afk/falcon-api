@@ -20,7 +20,7 @@ module.exports = (app) => {
             
             res.json({
                 status: true,
-                creator: 'FlowFalcon',
+                creator: 'AxlyChann',
                 result: {
                     prompt: prompt,
                     image_url: imageUrl,
