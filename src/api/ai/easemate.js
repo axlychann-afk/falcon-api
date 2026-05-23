@@ -1,4 +1,4 @@
-// easemate.js - Edit gambar dengan AI (Easemate)
+// easemate.js - Edit gambar dengan AI (Easemate) - FULL VERSION WITH AUTO DELAY & RETRY
 const crypto = require("crypto");
 const fs = require("fs/promises");
 const path = require("path");
@@ -8,7 +8,6 @@ const multer = require("multer");
 const API = "https://api.easemate.ai";
 const WASM_URL = "https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/chat_generator.wasm";
 
-const MAX_USE_PER_DEVICE = 1;
 const ASPECT_RATIO = "Auto";
 const OUTPUT_FILE_TYPE = "png";
 const MODEL_ID = 10041;
@@ -18,6 +17,7 @@ const OPERATION = "IMAGE_GENERATION";
 
 const ua = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36";
 
+// ========== GLOBAL VARIABLES ==========
 let wasm;
 let wasmUint8 = null;
 let wasmDataView = null;
@@ -26,6 +26,10 @@ let wasmLastLen = 0;
 const decoder = new TextDecoder("utf-8", { ignoreBOM: true, fatal: true });
 const encoder = new TextEncoder();
 
+// Sleep function
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// ========== HELPER FUNCTIONS ==========
 class Window {}
 
 function randomHex(bytes = 16) {
@@ -277,8 +281,12 @@ async function getSigns(body) {
   return JSON.parse(text);
 }
 
-async function apiPost(session, endpoint, body = {}) {
+async function apiPost(session, endpoint, body = {}, retryCount = 0) {
   await initWasm(session);
+  
+  // Delay random sebelum request
+  await sleep(Math.random() * 2000 + 1000);
+  
   const { sign, timestamp } = await getSigns(body);
   if (!sign || !timestamp) throw new Error("Gagal generate sign dari WASM.");
 
@@ -319,6 +327,20 @@ async function apiPost(session, endpoint, body = {}) {
     json = JSON.parse(text);
   } catch {
     throw new Error(`Response bukan JSON: ${text.slice(0, 500)}`);
+  }
+
+  // Kalau error sign (4004), refresh session
+  if (json.code === 4004 && retryCount < 2) {
+    console.log("Error sign detected, refreshing session...");
+    
+    // Buat session baru
+    const newSession = await loadSession(crypto.randomBytes(16).toString("hex"));
+    session.deviceId = newSession.deviceId;
+    session.identityId = "";
+    session.usedCount = 0;
+    
+    await sleep(5000);
+    return apiPost(session, endpoint, body, retryCount + 1);
   }
 
   return { code: response.status, json };
@@ -386,10 +408,6 @@ async function signUrl(session, rawUrl) {
   return signedUrl;
 }
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 async function createTask(session, prompt, uploaded) {
   const body = createGenerateBody(prompt, uploaded);
   const result = await apiPost(session, "/api2/async/create_generate_image", body);
@@ -409,6 +427,8 @@ async function queryTask(session, taskId) {
 
 async function editImage(prompt, imageBuffer, deviceId) {
   const session = await loadSession(deviceId);
+  
+  await sleep(Math.random() * 2000 + 1000);
   await ensureIdentity(session);
 
   const tempDir = os.tmpdir();
@@ -416,6 +436,8 @@ async function editImage(prompt, imageBuffer, deviceId) {
   await fs.writeFile(tempPath, imageBuffer);
 
   try {
+    await sleep(Math.random() * 2000 + 1000);
+    
     const uploadInfo = await queryUploadUrl(session, tempPath);
     const uploadedFile = await uploadFileToS3(uploadInfo.uploadUrl, tempPath, imageBuffer);
 
@@ -426,9 +448,13 @@ async function editImage(prompt, imageBuffer, deviceId) {
       originName: uploadedFile.originName,
     };
 
+    await sleep(Math.random() * 2000 + 1000);
+    
     const taskId = await createTask(session, prompt, uploaded);
 
     for (let i = 0; i < 40; i++) {
+      await sleep(4000 + Math.random() * 2000);
+      
       const data = await queryTask(session, taskId);
       if (data.status === "SUCCESS" && data.url) {
         const signedUrl = await signUrl(session, data.url);
@@ -437,7 +463,6 @@ async function editImage(prompt, imageBuffer, deviceId) {
       if (data.status === "FAILED" || data.status === "FAILURE") {
         return { success: false, error: data.msg || "Generate failed" };
       }
-      await sleep(3000);
     }
 
     return { success: false, error: "Timeout menunggu hasil gambar." };
@@ -446,7 +471,7 @@ async function editImage(prompt, imageBuffer, deviceId) {
   }
 }
 
-// Multer config buat upload file
+// ========== MULTER CONFIG ==========
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -459,7 +484,7 @@ const upload = multer({
   }
 });
 
-// ========== EXPRESS ENDPOINT ==========
+// ========== EXPRESS ENDPOINTS ==========
 module.exports = (app) => {
   
   // POST /ai/easemate (upload file)
@@ -494,7 +519,7 @@ module.exports = (app) => {
         });
       }
       
-      // KALO PARAM raw=true → LANGSUNG RETURN GAMBAR
+      // Kalo raw=true → langsung return gambar
       if (raw === 'true' || raw === '1') {
         const imageResponse = await fetch(result.url, {
           headers: { 'User-Agent': ua }
@@ -508,7 +533,7 @@ module.exports = (app) => {
         return res.send(imageBuffer);
       }
       
-      // DEFAULT: RETURN JSON
+      // Default: return JSON
       res.json({
         status: true,
         creator: 'AxlyDev',
@@ -527,7 +552,7 @@ module.exports = (app) => {
     }
   });
   
-  // GET /ai/easemate?prompt=...&url=...&raw=true
+  // GET /ai/easemate?prompt=...&url=...
   app.get('/ai/easemate', async (req, res) => {
     try {
       const { prompt, url, device_id, raw } = req.query;
@@ -565,7 +590,7 @@ module.exports = (app) => {
         });
       }
       
-      // KALO PARAM raw=true → LANGSUNG RETURN GAMBAR
+      // Kalo raw=true → langsung return gambar
       if (raw === 'true' || raw === '1') {
         const finalImage = await fetch(result.url, {
           headers: { 'User-Agent': ua }
@@ -579,7 +604,7 @@ module.exports = (app) => {
         return res.send(imageBufferFinal);
       }
       
-      // DEFAULT: RETURN JSON
+      // Default: return JSON
       res.json({
         status: true,
         creator: 'AxlyDev',
