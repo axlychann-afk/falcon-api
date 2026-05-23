@@ -25,6 +25,15 @@
         "text": "Teks atau pertanyaan yang ingin diajukan ke AI."
       }
     },
+{
+  "name": "Uncensored AI",
+  "desc": "AI chat tanpa sensor (gratis, pakai web scraping uncensored.chat)",
+  "path": "/ai/uncensored?text=",
+  "status": "ready",
+  "params": {
+    "text": "Pertanyaan atau teks yang ingin ditanyakan ke AI"
+  }
+},
     {
   "name": "AI Music (suno)",
   "desc": "Buat musik dari teks deskripsi",
