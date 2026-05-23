@@ -4,26 +4,25 @@ const multer = require('multer');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-async function uploadToPixhost(fileBuffer, filename) {
+async function uploadToLitterbox(fileBuffer, filename) {
     const form = new FormData();
     form.append('file', fileBuffer, { filename: filename });
-    form.append('content_type', '1'); // 1 = gambar biasa
+    form.append('expiration', '1 hour'); // 1 hour, 1 day, 3 days, 1 week, 1 month
 
-    const response = await axios.post('https://api.pixhost.to/api/images', form, {
+    const response = await axios.post('https://litterbox.catbox.moe/resources.php', form, {
         headers: {
             ...form.getHeaders(),
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'application/json',
-            'Origin': 'https://pixhost.to',
-            'Referer': 'https://pixhost.to/'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         },
-        timeout: 30000
+        timeout: 60000
     });
 
-    if (response.data?.success === true && response.data?.image?.url) {
-        return response.data.image.url;
+    const html = response.data;
+    const urlMatch = html.match(/https:\/\/litterbox\.catbox\.moe\/[a-zA-Z0-9]+/);
+    if (urlMatch) {
+        return urlMatch[0];
     }
-    throw new Error('Upload gagal: ' + JSON.stringify(response.data));
+    throw new Error('Upload gagal: ' + html);
 }
 
 module.exports = (app) => {
@@ -34,7 +33,7 @@ module.exports = (app) => {
         }
 
         try {
-            const url = await uploadToPixhost(req.file.buffer, req.file.originalname);
+            const url = await uploadToLitterbox(req.file.buffer, req.file.originalname);
             res.json({ status: true, creator: 'AxlyChann', result: { url: url, original_name: req.file.originalname, size: req.file.size } });
         } catch (error) {
             console.error(error);
@@ -49,7 +48,7 @@ module.exports = (app) => {
 
         try {
             const imageRes = await axios.get(url, { responseType: 'arraybuffer' });
-            const resultUrl = await uploadToPixhost(Buffer.from(imageRes.data), `upload_${Date.now()}.jpg`);
+            const resultUrl = await uploadToLitterbox(Buffer.from(imageRes.data), `upload_${Date.now()}.jpg`);
             res.json({ status: true, creator: 'AxlyChann', result: { original_url: url, uploaded_url: resultUrl } });
         } catch (error) {
             res.status(500).json({ status: false, error: error.message });
