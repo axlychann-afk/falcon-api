@@ -294,6 +294,33 @@
   "path": "/anime/animekuindo/random",
   "status": "ready"
 },
+{
+  "name": "Samehadaku Search",
+  "desc": "Mencari anime di Samehadaku (Google Drive, Mp4Upload, Streamtape)",
+  "path": "/anime/samehadaku/search?q=",
+  "status": "ready",
+  "params": { "q": "Judul anime yang dicari" }
+},
+{
+  "name": "Samehadaku Detail",
+  "desc": "Detail anime + daftar episode dari Samehadaku",
+  "path": "/anime/samehadaku/detail?url=",
+  "status": "ready",
+  "params": { "url": "URL detail anime" }
+},
+{
+  "name": "Samehadaku Stream",
+  "desc": "Dapetin link streaming episode (Google Drive, Mp4Upload, dll)",
+  "path": "/anime/samehadaku/stream?url=",
+  "status": "ready",
+  "params": { "url": "URL episode" }
+},
+{
+  "name": "Samehadaku Random",
+  "desc": "Dapatkan anime random dari Samehadaku",
+  "path": "/anime/samehadaku/random",
+  "status": "ready"
+},
         {
           "name": "Doujin Search",
           "desc": "Mencari doujin di Maid.my.id.",
