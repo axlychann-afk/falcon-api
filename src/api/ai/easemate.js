@@ -1,4 +1,4 @@
-// easemate.js - Edit gambar dengan AI (Easemate) - FULL VERSION WITH AUTO DELAY & RETRY
+// easemate.js - Edit gambar dengan AI (Easemate) - AUTO GANTI DEVICE ID SETIAP REQUEST
 const crypto = require("crypto");
 const fs = require("fs/promises");
 const path = require("path");
@@ -22,12 +22,22 @@ let wasm;
 let wasmUint8 = null;
 let wasmDataView = null;
 let wasmLastLen = 0;
+let requestCounter = 0; // Counter untuk generate device ID unik
 
 const decoder = new TextDecoder("utf-8", { ignoreBOM: true, fatal: true });
 const encoder = new TextEncoder();
 
-// Sleep function
+// Sleep function dengan delay random
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const randomDelay = (min = 2000, max = 5000) => sleep(Math.random() * (max - min) + min);
+
+// Generate device ID unik setiap request
+function generateDeviceId() {
+  requestCounter++;
+  const timestamp = Date.now();
+  const random = crypto.randomBytes(8).toString("hex");
+  return `axly_${timestamp}_${random}_${requestCounter}`;
+}
 
 // ========== HELPER FUNCTIONS ==========
 class Window {}
@@ -37,7 +47,7 @@ function randomHex(bytes = 16) {
 }
 
 function createDeviceId() {
-  return randomHex(16);
+  return generateDeviceId(); // Selalu generate baru
 }
 
 function createTimestamp() {
@@ -63,18 +73,10 @@ function createUploadKey(session, filePath) {
   return `pro/${session.deviceId}/${hash}_${ts}.${safeExt}`;
 }
 
-function createFreshSession() {
+async function loadSession() {
+  // Setiap request bikin session baru dengan device ID baru
   return {
-    deviceId: createDeviceId(),
-    identityId: "",
-    usedCount: 0,
-    rotatedAt: new Date().toISOString(),
-  };
-}
-
-async function loadSession(deviceId) {
-  return {
-    deviceId: deviceId || createDeviceId(),
+    deviceId: generateDeviceId(),
     identityId: "",
     usedCount: 0,
     rotatedAt: new Date().toISOString(),
@@ -284,8 +286,9 @@ async function getSigns(body) {
 async function apiPost(session, endpoint, body = {}, retryCount = 0) {
   await initWasm(session);
   
-  // Delay random sebelum request
-  await sleep(Math.random() * 2000 + 1000);
+  // Delay sebelum request: 2-5 detik
+  console.log(`⏳ Delay sebelum request: 2-5 detik...`);
+  await randomDelay(2000, 5000);
   
   const { sign, timestamp } = await getSigns(body);
   if (!sign || !timestamp) throw new Error("Gagal generate sign dari WASM.");
@@ -329,17 +332,17 @@ async function apiPost(session, endpoint, body = {}, retryCount = 0) {
     throw new Error(`Response bukan JSON: ${text.slice(0, 500)}`);
   }
 
-  // Kalau error sign (4004), refresh session
-  if (json.code === 4004 && retryCount < 2) {
-    console.log("Error sign detected, refreshing session...");
+  // Kalau error sign, retry dengan device ID baru
+  if ((json.code === 4004 || json.code === 4001) && retryCount < 3) {
+    console.log(`⚠️ Error ${json.code}, retry ${retryCount + 1}/3 dengan device ID baru...`);
     
-    // Buat session baru
-    const newSession = await loadSession(crypto.randomBytes(16).toString("hex"));
-    session.deviceId = newSession.deviceId;
+    // Delay sebelum retry: 5-8 detik
+    await randomDelay(5000, 8000);
+    
+    // Buat session baru dengan device ID baru
+    session.deviceId = generateDeviceId();
     session.identityId = "";
-    session.usedCount = 0;
     
-    await sleep(5000);
     return apiPost(session, endpoint, body, retryCount + 1);
   }
 
@@ -411,7 +414,7 @@ async function signUrl(session, rawUrl) {
 async function createTask(session, prompt, uploaded) {
   const body = createGenerateBody(prompt, uploaded);
   const result = await apiPost(session, "/api2/async/create_generate_image", body);
-  if (result.json?.code === 6101) throw new Error("Free token hari ini sudah habis. Coba lagi besok atau gunakan akun/login resmi.");
+  if (result.json?.code === 6101) throw new Error("Free token hari ini sudah habis. Coba lagi besok.");
   if (result.json?.code !== 200) throw new Error(JSON.stringify(result.json));
   const taskId = result.json?.data?.taskId;
   if (!taskId) throw new Error(`TaskId tidak ditemukan: ${JSON.stringify(result.json)}`);
@@ -425,10 +428,14 @@ async function queryTask(session, taskId) {
   return result.json?.data || {};
 }
 
-async function editImage(prompt, imageBuffer, deviceId) {
-  const session = await loadSession(deviceId);
+async function editImage(prompt, imageBuffer) {
+  // Bikin session baru setiap request (device ID otomatis ganti)
+  const session = await loadSession();
   
-  await sleep(Math.random() * 2000 + 1000);
+  console.log(`🆔 Device ID: ${session.deviceId}`);
+  console.log(`⏳ Delay awal: 2-5 detik...`);
+  await randomDelay(2000, 5000);
+  
   await ensureIdentity(session);
 
   const tempDir = os.tmpdir();
@@ -436,7 +443,8 @@ async function editImage(prompt, imageBuffer, deviceId) {
   await fs.writeFile(tempPath, imageBuffer);
 
   try {
-    await sleep(Math.random() * 2000 + 1000);
+    console.log(`⏳ Sebelum upload: 2-4 detik...`);
+    await randomDelay(2000, 4000);
     
     const uploadInfo = await queryUploadUrl(session, tempPath);
     const uploadedFile = await uploadFileToS3(uploadInfo.uploadUrl, tempPath, imageBuffer);
@@ -448,16 +456,22 @@ async function editImage(prompt, imageBuffer, deviceId) {
       originName: uploadedFile.originName,
     };
 
-    await sleep(Math.random() * 2000 + 1000);
+    console.log(`⏳ Sebelum create task: 2-4 detik...`);
+    await randomDelay(2000, 4000);
     
     const taskId = await createTask(session, prompt, uploaded);
+    
+    console.log(`⏳ Polling hasil (delay 4-6 detik antar cek)...`);
 
     for (let i = 0; i < 40; i++) {
-      await sleep(4000 + Math.random() * 2000);
+      // Delay antar polling: 4-6 detik
+      await randomDelay(4000, 6000);
       
       const data = await queryTask(session, taskId);
       if (data.status === "SUCCESS" && data.url) {
         const signedUrl = await signUrl(session, data.url);
+        console.log(`✅ Success! Delay setelah request: 3-5 detik...`);
+        await randomDelay(3000, 5000);
         return { success: true, url: signedUrl };
       }
       if (data.status === "FAILED" || data.status === "FAILURE") {
@@ -489,8 +503,10 @@ module.exports = (app) => {
   
   // POST /ai/easemate (upload file)
   app.post('/ai/easemate', upload.single('image'), async (req, res) => {
+    const startTime = Date.now();
+    
     try {
-      const { prompt, device_id, raw } = req.body;
+      const { prompt, raw } = req.body;
       
       if (!prompt) {
         return res.status(400).json({ 
@@ -508,8 +524,13 @@ module.exports = (app) => {
         });
       }
       
-      const deviceId = device_id || `axly_${Date.now()}`;
-      const result = await editImage(prompt, req.file.buffer, deviceId);
+      console.log(`📥 Request masuk: ${prompt}`);
+      console.log(`🆔 Device ID akan digenerate otomatis setiap request`);
+      
+      const result = await editImage(prompt, req.file.buffer);
+      
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.log(`⏱️ Total waktu: ${duration} detik`);
       
       if (!result.success) {
         return res.status(500).json({
@@ -518,6 +539,10 @@ module.exports = (app) => {
           error: result.error
         });
       }
+      
+      // Delay setelah request selesai: 3-5 detik
+      console.log(`⏳ Delay setelah request: 3-5 detik...`);
+      await randomDelay(3000, 5000);
       
       // Kalo raw=true → langsung return gambar
       if (raw === 'true' || raw === '1') {
@@ -539,11 +564,15 @@ module.exports = (app) => {
         creator: 'AxlyDev',
         data: {
           prompt: prompt,
-          url: result.url
+          url: result.url,
+          device_id: result.deviceId || 'auto_generated'
         }
       });
       
     } catch (error) {
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.error(`❌ Error setelah ${duration} detik: ${error.message}`);
+      
       res.status(500).json({ 
         status: false, 
         creator: 'AxlyDev',
@@ -554,8 +583,10 @@ module.exports = (app) => {
   
   // GET /ai/easemate?prompt=...&url=...
   app.get('/ai/easemate', async (req, res) => {
+    const startTime = Date.now();
+    
     try {
-      const { prompt, url, device_id, raw } = req.query;
+      const { prompt, url, raw } = req.query;
       
       if (!prompt) {
         return res.status(400).json({ 
@@ -573,14 +604,19 @@ module.exports = (app) => {
         });
       }
       
+      console.log(`📥 Request masuk: ${prompt}`);
+      console.log(`🆔 Device ID akan digenerate otomatis setiap request`);
+      
       const imageResponse = await fetch(url);
       if (!imageResponse.ok) {
         throw new Error('Gagal download gambar dari URL');
       }
       const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
       
-      const deviceId = device_id || `axly_${Date.now()}`;
-      const result = await editImage(prompt, imageBuffer, deviceId);
+      const result = await editImage(prompt, imageBuffer);
+      
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.log(`⏱️ Total waktu: ${duration} detik`);
       
       if (!result.success) {
         return res.status(500).json({
@@ -589,6 +625,10 @@ module.exports = (app) => {
           error: result.error
         });
       }
+      
+      // Delay setelah request selesai: 3-5 detik
+      console.log(`⏳ Delay setelah request: 3-5 detik...`);
+      await randomDelay(3000, 5000);
       
       // Kalo raw=true → langsung return gambar
       if (raw === 'true' || raw === '1') {
@@ -615,6 +655,9 @@ module.exports = (app) => {
       });
       
     } catch (error) {
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.error(`❌ Error setelah ${duration} detik: ${error.message}`);
+      
       res.status(500).json({ 
         status: false, 
         creator: 'AxlyDev',
