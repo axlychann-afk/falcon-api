@@ -1,11 +1,11 @@
-// removebg.js - Remove background gambar (gratis via removal.ai)
+// removebg.js - Remove background gambar (gratis via removal.ai) - LANGSUNG RETURN GAMBAR
 const multer = require("multer");
 const crypto = require("crypto");
 
 // Upload config
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/jpg' || file.mimetype === 'image/png') {
       cb(null, true);
@@ -15,7 +15,7 @@ const upload = multer({
   }
 });
 
-// Fungsi fetch dengan retry
+// Fetch dengan retry
 async function fetchWithRetry(url, options = {}, retries = 2) {
   for (let i = 0; i < retries; i++) {
     try {
@@ -30,20 +30,17 @@ async function fetchWithRetry(url, options = {}, retries = 2) {
 
 // Dapetin web token
 async function getWebToken() {
-  // Fetch homepage
   const htmlRes = await fetchWithRetry("https://removal.ai/", {
     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
   });
   const html = await htmlRes.text();
   
-  // Extract token URL
   const match = html.match(/var ajax_upload_object = ({.*?});/);
   if (!match) throw new Error("Gagal extract token URL");
   
   const data = JSON.parse(match[1]);
   const tokenUrl = `${data.webtoken_url}?action=ajax_get_webtoken&security=${data.security}`;
   
-  // Get web token
   const tokenRes = await fetchWithRetry(tokenUrl);
   const tokenJson = await tokenRes.json();
   
@@ -66,7 +63,7 @@ function createFormData(imageBuffer) {
   };
 }
 
-// Remove background
+// Remove background - return preview URL
 async function removeBackground(imageBuffer) {
   const webToken = await getWebToken();
   const { body, headers } = createFormData(imageBuffer);
@@ -86,13 +83,13 @@ async function removeBackground(imageBuffer) {
     throw new Error(result.message || "Gagal remove background");
   }
   
-  return result;
+  return result.preview_demo || result.low_resolution;
 }
 
-// ========== EXPRESS ENDPOINTS ==========
+// ========== EXPRESS ENDPOINTS (LANGSUNG GAMBAR) ==========
 module.exports = (app) => {
   
-  // POST /tools/removebg (upload file)
+  // POST /tools/removebg (upload file) - langsung return gambar
   app.post('/tools/removebg', upload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
@@ -103,18 +100,20 @@ module.exports = (app) => {
         });
       }
       
-      const result = await removeBackground(req.file.buffer);
+      const previewUrl = await removeBackground(req.file.buffer);
       
-      res.json({
-        status: true,
-        creator: 'AxlyDev',
-        data: {
-          preview_url: result.preview_demo || result.low_resolution,
-          original_url: result.original,
-          width: result.original_width,
-          height: result.original_height
-        }
+      // Download gambar hasil dan kirim langsung
+      const imageRes = await fetch(previewUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
       });
+      
+      if (!imageRes.ok) throw new Error('Gagal mengambil gambar hasil');
+      
+      const imageBuffer = Buffer.from(await imageRes.arrayBuffer());
+      
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Content-Disposition', 'inline; filename="removed_bg.png"');
+      res.send(imageBuffer);
       
     } catch (error) {
       res.status(500).json({
@@ -125,7 +124,7 @@ module.exports = (app) => {
     }
   });
   
-  // GET /tools/removebg?url=...
+  // GET /tools/removebg?url=... - langsung return gambar
   app.get('/tools/removebg', async (req, res) => {
     try {
       const { url } = req.query;
@@ -138,23 +137,25 @@ module.exports = (app) => {
         });
       }
       
-      // Download gambar
+      // Download gambar asli
       const imgRes = await fetch(url);
       if (!imgRes.ok) throw new Error('Gagal download gambar');
       const imageBuffer = Buffer.from(await imgRes.arrayBuffer());
       
-      const result = await removeBackground(imageBuffer);
+      const previewUrl = await removeBackground(imageBuffer);
       
-      res.json({
-        status: true,
-        creator: 'AxlyDev',
-        data: {
-          preview_url: result.preview_demo || result.low_resolution,
-          original_url: result.original,
-          width: result.original_width,
-          height: result.original_height
-        }
+      // Download hasil dan kirim
+      const resultRes = await fetch(previewUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
       });
+      
+      if (!resultRes.ok) throw new Error('Gagal mengambil gambar hasil');
+      
+      const resultBuffer = Buffer.from(await resultRes.arrayBuffer());
+      
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Content-Disposition', 'inline; filename="removed_bg.png"');
+      res.send(resultBuffer);
       
     } catch (error) {
       res.status(500).json({
