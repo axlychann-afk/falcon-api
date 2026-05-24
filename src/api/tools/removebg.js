@@ -1,153 +1,164 @@
-const axios = require('axios');
-const FormData = require('form-data');
-const fs = require('fs');
-const path = require('path');
+// removebg.js - Remove background gambar (gratis via removal.ai)
+const crypto = require("crypto");
 
-class UnwatermarkClient {
-    constructor({
-        productCode = "067003",
-        baseURL = "https://api.unwatermark.ai",
-        userAgent = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Mobile Safari/537.36"
-    } = {}) {
-        this.baseURL = baseURL;
-        this.productCode = productCode;
-        this.userAgent = userAgent;
-        this.productSerial = Buffer.from(String(Date.now())).toString("base64");
+// ========== HELPER FUNCTIONS ==========
+const removal = {
+  // fetch boilerplate
+  _hit: async (url, fetchName = "lu lupa isi fetch name", returnType = "text", opts = {}) => {
+    const response = await fetch(url, opts);
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      throw new Error(`fetch fail\n${response.status} ${response.statusText}\nat: ${fetchName}\n${errorText.slice(0, 500)}`);
     }
-
-    generateFakeIpHeaders() {
-        return {
-            "x-forwarded-for": `${this.rand()}.${this.rand()}.${this.rand()}.${this.rand()}`,
-            "x-real-ip": `${this.rand()}.${this.rand()}.${this.rand()}.${this.rand()}`
-        };
+    try {
+      if (returnType === "json") return await response.json();
+      return await response.text();
+    } catch (err) {
+      const text = await response.text().catch(() => "");
+      throw new Error(`fetch berhasil tapi gagal convert ke ${returnType}\n${err.message}\nat: ${fetchName}\n${text.slice(0, 500)}`);
     }
+  },
 
-    rand() {
-        return Math.floor(Math.random() * 255);
+  // bikin formdata
+  _formData: (imageBuffer) => {
+    const randomBoundary = "----WebKitFormBoundary" + Math.random().toString(32).slice(2);
+    const randomName = crypto.randomBytes(16).toString("hex");
+    const buffers = [];
+    buffers.push(Buffer.from("--" + randomBoundary + "\r\nContent-Disposition: form-data; name=\"image_file\"; filename=\"" + randomName + ".png\"\r\nContent-Type: image/png\r\n\r\n"));
+    buffers.push(imageBuffer);
+    buffers.push(Buffer.from("\r\n--" + randomBoundary + "--\r\n"));
+    const body = Buffer.concat(buffers);
+    const formDataHeaders = { "content-type": "multipart/form-data; boundary=" + randomBoundary };
+    return { formDataHeaders, body };
+  },
+
+  // dapetin web token
+  getWebToken: async () => {
+    const html = await removal._hit("https://removal.ai/", "hit homepage");
+    const match = html.match(/var ajax_upload_object = (.*?);/)?.[1];
+    if (!match) throw new Error(`tidak menemukan match pada homepage`);
+    const { webtoken_url, security } = JSON.parse(match);
+    const webTokenUrl = `${webtoken_url}?action=ajax_get_webtoken&security=${security}`;
+    const json = await removal._hit(webTokenUrl, "mendapatkan web token", "json");
+    const webToken = json?.data?.webtoken;
+    if (!webToken) throw new Error(`berhasil hit url web token tapi gak ada token nya`);
+    return webToken;
+  },
+
+  // main function remove background
+  removeBackground: async (imageBuffer) => {
+    const { formDataHeaders, body } = removal._formData(imageBuffer);
+    const headers = {
+      "web-token": await removal.getWebToken(),
+      ...formDataHeaders
+    };
+    const opts = {
+      headers,
+      body,
+      method: "POST"
+    };
+    const result = await removal._hit("https://api.removal.ai/3.0/remove", "remove background", "json", opts);
+    return result;
+  }
+};
+
+// ========== MULTER CONFIG ==========
+const multer = require("multer");
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/jpg' || file.mimetype === 'image/png') {
+      cb(null, true);
+    } else {
+      cb(new Error('Format harus JPG/JPEG/PNG'));
     }
+  }
+});
 
-    commonHeaders(extra = {}) {
-        return {
-            accept: "*/*",
-            "accept-language": "ms-MY",
-            "cache-control": "no-cache",
-            pragma: "no-cache",
-            origin: "https://unwatermark.ai",
-            referer: "https://unwatermark.ai/",
-            "product-code": this.productCode,
-            "product-serial": this.productSerial,
-            "user-agent": this.userAgent,
-            ...extra
-        };
-    }
-
-    async createJob(imagePath, options = {}) {
-        const form = new FormData();
-        
-        // Cek apakah imagePath berupa buffer atau file path
-        if (Buffer.isBuffer(imagePath)) {
-            form.append("original_image_file", imagePath, { filename: `image_${Date.now()}.png` });
-        } else {
-            form.append("original_image_file", fs.createReadStream(imagePath));
-        }
-        
-        form.append("output_format", options.output_format ?? "jpg");
-        form.append("is_remove_text", options.is_remove_text ?? "true");
-        form.append("is_remove_logo", options.is_remove_logo ?? "false");
-        form.append("is_enhancer", options.is_enhancer ?? "false");
-
-        const { data } = await axios.post(
-            `${this.baseURL}/api/web/v1/image-watermark-auto-remove-upgrade/create-job`,
-            form,
-            {
-                headers: {
-                    ...form.getHeaders(),
-                    ...this.commonHeaders(),
-                    ...this.generateFakeIpHeaders()
-                }
-            }
-        );
-
-        return data;
-    }
-
-    async getJob(jobId) {
-        const { data } = await axios.get(
-            `${this.baseURL}/api/web/v1/image-watermark-auto-remove-upgrade/get-job/${jobId}`,
-            {
-                headers: this.commonHeaders({
-                    "content-type": "application/json; charset=UTF-8"
-                })
-            }
-        );
-        return data;
-    }
-
-    async waitUntilDone(jobId, interval = 7000, onProgress) {
-        return new Promise((resolve, reject) => {
-            const timer = setInterval(async () => {
-                try {
-                    const res = await this.getJob(jobId);
-                    if (onProgress) onProgress(res);
-                    if (res?.result?.status === 1) {
-                        clearInterval(timer);
-                        resolve(res);
-                    }
-                } catch (err) {
-                    clearInterval(timer);
-                    reject(err);
-                }
-            }, interval);
-        });
-    }
-
-    async removeBackground(imagePath, options = {}) {
-        const job = await this.createJob(imagePath, options);
-        if (!job?.result?.job_id) {
-            throw new Error('Gagal membuat job');
-        }
-        const result = await this.waitUntilDone(job.result.job_id, 7000);
-        if (result?.result?.status === 1 && result?.result?.output_image_url) {
-            return result.result.output_image_url;
-        }
-        throw new Error('Gagal menghapus background');
-    }
-}
-
+// ========== EXPRESS ENDPOINTS ==========
 module.exports = (app) => {
-    const client = new UnwatermarkClient();
-
-    // Endpoint untuk remove background dari URL gambar
-    app.get('/tools/removebg', async (req, res) => {
-        const { url } = req.query;
-        
-        if (!url) {
-            return res.status(400).json({
-                status: false,
-                error: 'Parameter "url" diperlukan (URL gambar yang mau dihapus backgroundnya)'
-            });
+  
+  // POST /tools/removebg (upload file)
+  app.post('/tools/removebg', upload.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          status: false,
+          creator: 'AxlyDev',
+          error: 'File gambar (image) wajib diupload'
+        });
+      }
+      
+      const result = await removal.removeBackground(req.file.buffer);
+      
+      res.json({
+        status: true,
+        creator: 'AxlyDev',
+        data: {
+          original_width: result.original_width,
+          original_height: result.original_height,
+          preview_width: result.preview_width,
+          preview_height: result.preview_height,
+          preview_url: result.preview_demo || result.low_resolution,
+          original_url: result.original
         }
-
-        try {
-            // Download gambar dari URL
-            const imageResponse = await axios.get(url, {
-                responseType: 'arraybuffer',
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36'
-                }
-            });
-            
-            const imageBuffer = Buffer.from(imageResponse.data);
-            
-            // Simpan sementara ke temp file
-            const tempPath = path.join('/tmp', `removebg_${Date.now()}.png`);
-            fs.writeFileSync(tempPath, imageBuffer);
-            
-            // Proses remove background
-            const resultUrl = await client.removeBackground(tempPath);
-            
-            // Hapus file temporary
-            fs.unlinkSync(tempPath);
+      });
+      
+    } catch (error) {
+      res.status(500).json({
+        status: false,
+        creator: 'AxlyDev',
+        error: error.message
+      });
+    }
+  });
+  
+  // GET /tools/removebg?url=...
+  app.get('/tools/removebg', async (req, res) => {
+    try {
+      const { url } = req.query;
+      
+      if (!url) {
+        return res.status(400).json({
+          status: false,
+          creator: 'AxlyDev',
+          error: 'Parameter url (gambar) wajib diisi'
+        });
+      }
+      
+      // Download gambar dari URL
+      const imageResponse = await fetch(url);
+      if (!imageResponse.ok) {
+        throw new Error('Gagal download gambar dari URL');
+      }
+      const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+      
+      const result = await removal.removeBackground(imageBuffer);
+      
+      res.json({
+        status: true,
+        creator: 'AxlyDev',
+        data: {
+          original_width: result.original_width,
+          original_height: result.original_height,
+          preview_width: result.preview_width,
+          preview_height: result.preview_height,
+          preview_url: result.preview_demo || result.low_resolution,
+          original_url: result.original
+        }
+      });
+      
+    } catch (error) {
+      res.status(500).json({
+        status: false,
+        creator: 'AxlyDev',
+        error: error.message
+      });
+    }
+  });
+  
+};            fs.unlinkSync(tempPath);
             
             res.json({
                 status: true,
