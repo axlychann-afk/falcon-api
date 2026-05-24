@@ -1,153 +1,67 @@
-// ytdown.js - YouTube Downloader via SaveTube (Fix untuk Node.js)
-/***
- *** Scraper By Fgsi (SaveTube)
- *** Adapted for Axly-API
- ***/
+// ytdown.js - YouTube Downloader via ytdown.to
+const axios = require('axios');
 
-const axios = require("axios");
-const crypto = require("crypto");
-
-const ENCRYPTION_KEY = Buffer.from("C5D58EF67A7584E4A29F6C35BBC4EB12", "hex");
-
-function decryptAesCbc(encryptedBase64) {
+async function ytdownDl(url) {
   try {
-    const encryptedBuffer = Buffer.from(encryptedBase64, "base64");
-    
-    const iv = encryptedBuffer.subarray(0, 16);
-    const ciphertext = encryptedBuffer.subarray(16);
-    
-    const decipher = crypto.createDecipheriv("aes-256-cbc", ENCRYPTION_KEY, iv);
-    
-    let decrypted = decipher.update(ciphertext);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    
-    return JSON.parse(decrypted.toString("utf8"));
-  } catch (err) {
-    throw new Error(`Decrypt failed: ${err.message}`);
-  }
-}
-
-async function getRandomCdn() {
-  const response = await axios.get("https://media.savetube.me/api/random-cdn");
-  return response.data.cdn;
-}
-
-async function getVideoInfo(url) {
-  const cdnHost = await getRandomCdn();
-  
-  const response = await axios.post(`https://${cdnHost}/v2/info`, { url }, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    },
-    timeout: 30000
-  });
-  
-  if (!response.data || !response.data.data) {
-    throw new Error("Gagal mendapatkan data dari SaveTube");
-  }
-  
-  return decryptAesCbc(response.data.data);
-}
-
-async function getDownload(key, downloadType = "video", quality = 360) {
-  const cdnHost = await getRandomCdn();
-  
-  const response = await axios.post(`https://${cdnHost}/download`, {
-    downloadType,
-    quality,
-    key
-  }, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    },
-    timeout: 30000
-  });
-  
-  if (!response.data || !response.data.data) {
-    throw new Error("Gagal mendapatkan link download");
-  }
-  
-  return response.data.data;
-}
-
-async function ytdownDl(url, quality = 360) {
-  // Step 1: Dapetin info video
-  const info = await getVideoInfo(url);
-  
-  if (!info || !info.key) {
-    throw new Error("Gagal mendapatkan key video");
-  }
-  
-  // Step 2: Siapkan array untuk videos & audios
-  const videos = [];
-  const audios = [];
-  
-  // Step 3: Ambil video dengan berbagai kualitas
-  const qualities = [144, 240, 360, 480, 720, 1080];
-  for (const q of qualities) {
-    try {
-      const videoData = await getDownload(info.key, "video", q);
-      if (videoData && videoData.downloadUrl) {
-        videos.push({
-          quality: `${q}p`,
-          resolution: q >= 720 ? "HD" : "SD",
-          size: videoData.size || "-",
-          url: videoData.downloadUrl
-        });
+    const response = await axios.post('https://app.ytdown.to/proxy.php', 
+      new URLSearchParams({ url: url }), 
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'X-Requested-With': 'XMLHttpRequest',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36'
+        },
+        timeout: 30000
       }
-    } catch (err) {
-      // Kualitas tidak tersedia, skip
+    );
+
+    if (!response.data || response.data.api?.status !== 'ok') {
+      throw new Error('Gagal mengambil data dari ytdown');
     }
-  }
-  
-  // Step 4: Ambil audio (128kbps)
-  try {
-    const audioData = await getDownload(info.key, "audio", 128);
-    if (audioData && audioData.downloadUrl) {
-      audios.push({
-        quality: "128kbps",
-        size: audioData.size || "-",
-        url: audioData.downloadUrl
+
+    const apiData = response.data.api;
+    const videos = [];
+    const audios = [];
+
+    if (Array.isArray(apiData.mediaItems)) {
+      apiData.mediaItems.forEach(item => {
+        if (item.type === 'Video') {
+          videos.push({
+            resolution: item.mediaRes || 'unknown',
+            quality: item.mediaQuality || '-',
+            size: item.mediaFileSize || '-',
+            url: item.mediaUrl
+          });
+        } else if (item.type === 'Audio') {
+          audios.push({
+            quality: item.mediaQuality || '-',
+            size: item.mediaFileSize || '-',
+            url: item.mediaUrl
+          });
+        }
       });
     }
-  } catch (err) {
-    // Audio tidak tersedia
+
+    return {
+      title: apiData.title || '-',
+      thumbnail: apiData.imagePreviewUrl || '-',
+      duration: apiData.mediaItems?.[0]?.mediaDuration || '-',
+      channel: apiData.userInfo?.name || '-',
+      videos: videos,
+      audios: audios
+    };
+
+  } catch (e) {
+    throw new Error(e.message);
   }
-  
-  // Step 5: Kalo gagal ambil multiple quality, pake quality default
-  if (videos.length === 0) {
-    try {
-      const videoData = await getDownload(info.key, "video", quality);
-      if (videoData && videoData.downloadUrl) {
-        videos.push({
-          quality: `${quality}p`,
-          resolution: quality >= 720 ? "HD" : "SD",
-          size: videoData.size || "-",
-          url: videoData.downloadUrl
-        });
-      }
-    } catch (err) {
-      throw new Error("Gagal mendapatkan link video");
-    }
-  }
-  
-  return {
-    title: info.title || "-",
-    thumbnail: info.thumbnail || info.imagePreviewUrl || "-",
-    duration: info.duration || "-",
-    channel: info.author || "-",
-    videos: videos,
-    audios: audios
-  };
 }
 
-// ========== EXPRESS ENDPOINT ==========
 module.exports = (app) => {
   
-  // GET /download/ytmp4?url=xxx&quality=360
+  // GET /download/ytmp4?url=xxx
   app.get('/download/ytmp4', async (req, res) => {
     try {
-      const { url, quality } = req.query;
+      const { url } = req.query;
       
       if (!url) {
         return res.status(400).json({
@@ -165,8 +79,7 @@ module.exports = (app) => {
         });
       }
       
-      const videoQuality = parseInt(quality) || 360;
-      const result = await ytdownDl(url, videoQuality);
+      const result = await ytdownDl(url);
       
       res.json({
         status: true,
@@ -175,7 +88,6 @@ module.exports = (app) => {
           title: result.title,
           thumbnail: result.thumbnail,
           duration: result.duration,
-          channel: result.channel,
           videos: result.videos
         }
       });
@@ -210,9 +122,8 @@ module.exports = (app) => {
         });
       }
       
-      const result = await ytdownDl(url, 360);
-      
-      const bestAudio = result.audios.length > 0 ? result.audios[0] : null;
+      const result = await ytdownDl(url);
+      const bestAudio = result.audios.find(a => a.quality === '320k') || result.audios[0];
       
       res.json({
         status: true,
@@ -221,8 +132,7 @@ module.exports = (app) => {
           title: result.title,
           thumbnail: result.thumbnail,
           duration: result.duration,
-          channel: result.channel,
-          audio: bestAudio,
+          audio: bestAudio || null,
           all_audios: result.audios
         }
       });
@@ -236,7 +146,7 @@ module.exports = (app) => {
     }
   });
   
-  // GET /download/ytdown?url=xxx (info lengkap)
+  // GET /download/ytdown?url=xxx
   app.get('/download/ytdown', async (req, res) => {
     try {
       const { url } = req.query;
@@ -257,7 +167,7 @@ module.exports = (app) => {
         });
       }
       
-      const result = await ytdownDl(url, 360);
+      const result = await ytdownDl(url);
       
       res.json({
         status: true,
