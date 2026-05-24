@@ -1,4 +1,4 @@
-// ytdown.js - YouTube Downloader (menggunakan SaveTube engine)
+// ytdown.js - YouTube Downloader via SaveTube (Fix untuk Node.js)
 /***
  *** Scraper By Fgsi (SaveTube)
  *** Adapted for Axly-API
@@ -7,173 +7,135 @@
 const axios = require("axios");
 const crypto = require("crypto");
 
-class SaveTubeClient {
-  constructor() {
-    this.ENCRYPTION_KEY_STRING = "C5D58EF67A7584E4A29F6C35BBC4EB12";
-  }
+const ENCRYPTION_KEY = Buffer.from("C5D58EF67A7584E4A29F6C35BBC4EB12", "hex");
 
-  async getRandomCdn() {
-    const response = await axios.get("https://media.savetube.me/api/random-cdn");
-    return response.data.cdn;
-  }
-
-  hexToUint8Array(hexString) {
-    try {
-      const matched = hexString.match(/[\dA-F]{2}/gi);
-      if (!matched) throw new Error("Invalid format");
-      return new Uint8Array(matched.map((h) => parseInt(h, 16)));
-    } catch (err) {
-      throw err;
-    }
-  }
-
-  async getDecryptionKey() {
-    try {
-      const keyData = this.hexToUint8Array(this.ENCRYPTION_KEY_STRING);
-      return await crypto.webcrypto.subtle.importKey(
-        "raw",
-        keyData,
-        { name: "AES-CBC" },
-        false,
-        ["decrypt"],
-      );
-    } catch (err) {
-      throw err;
-    }
-  }
-
-  base64ToArrayBuffer(base64) {
-    try {
-      const buf = Buffer.from(base64.replace(/\s/g, ""), "base64");
-      return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-    } catch (err) {
-      throw new Error(`format error: ${err.message}`);
-    }
-  }
-
-  async decryptApiResponse(encryptedData) {
-    try {
-      const dataBuffer = this.base64ToArrayBuffer(encryptedData);
-      if (dataBuffer.byteLength < 16) {
-        throw new Error("Invalid format: insufficient length");
-      }
-
-      const iv = dataBuffer.slice(0, 16);
-      const ciphertext = dataBuffer.slice(16);
-      const key = await this.getDecryptionKey();
-
-      const decrypted = await crypto.webcrypto.subtle.decrypt(
-        { name: "AES-CBC", iv: new Uint8Array(iv) },
-        key,
-        ciphertext,
-      );
-
-      const text = new TextDecoder().decode(new Uint8Array(decrypted));
-      return JSON.parse(text);
-    } catch (err) {
-      throw err;
-    }
-  }
-
-  async getVideoInfo(url) {
-    const cdnHost = await this.getRandomCdn();
-    try {
-      const res = await axios.post(`https://${cdnHost}/v2/info`, { url });
-      return this.decryptApiResponse(res.data.data);
-    } catch (err) {
-      return {
-        error: err,
-        statusCode: err?.response?.status,
-      };
-    }
-  }
-
-  async getDownload(key, downloadType = "video", quality = 360) {
-    const cdnHost = await this.getRandomCdn();
-    try {
-      const res = await axios.post(`https://${cdnHost}/download`, {
-        downloadType,
-        quality,
-        key,
-      });
-      return res.data.data;
-    } catch (err) {
-      return {
-        error: err,
-        statusCode: err?.response?.status,
-      };
-    }
+function decryptAesCbc(encryptedBase64) {
+  try {
+    const encryptedBuffer = Buffer.from(encryptedBase64, "base64");
+    
+    const iv = encryptedBuffer.subarray(0, 16);
+    const ciphertext = encryptedBuffer.subarray(16);
+    
+    const decipher = crypto.createDecipheriv("aes-256-cbc", ENCRYPTION_KEY, iv);
+    
+    let decrypted = decipher.update(ciphertext);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    
+    return JSON.parse(decrypted.toString("utf8"));
+  } catch (err) {
+    throw new Error(`Decrypt failed: ${err.message}`);
   }
 }
 
-// ========== FUNGSI UTAMA ==========
-async function ytdownDl(url, type = "video", quality = 360) {
-  const api = new SaveTubeClient();
+async function getRandomCdn() {
+  const response = await axios.get("https://media.savetube.me/api/random-cdn");
+  return response.data.cdn;
+}
+
+async function getVideoInfo(url) {
+  const cdnHost = await getRandomCdn();
   
-  const info = await api.getVideoInfo(url);
+  const response = await axios.post(`https://${cdnHost}/v2/info`, { url }, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    },
+    timeout: 30000
+  });
   
-  if (info.error) {
-    throw new Error(`Gagal mendapatkan info video: ${info.error.message}`);
+  if (!response.data || !response.data.data) {
+    throw new Error("Gagal mendapatkan data dari SaveTube");
   }
   
-  if (!info.key) {
-    throw new Error('Key video tidak ditemukan');
+  return decryptAesCbc(response.data.data);
+}
+
+async function getDownload(key, downloadType = "video", quality = 360) {
+  const cdnHost = await getRandomCdn();
+  
+  const response = await axios.post(`https://${cdnHost}/download`, {
+    downloadType,
+    quality,
+    key
+  }, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    },
+    timeout: 30000
+  });
+  
+  if (!response.data || !response.data.data) {
+    throw new Error("Gagal mendapatkan link download");
   }
   
-  const download = await api.getDownload(info.key, type, quality);
+  return response.data.data;
+}
+
+async function ytdownDl(url, quality = 360) {
+  // Step 1: Dapetin info video
+  const info = await getVideoInfo(url);
   
-  if (download.error) {
-    throw new Error(`Gagal mendapatkan link download: ${download.error.message}`);
+  if (!info || !info.key) {
+    throw new Error("Gagal mendapatkan key video");
   }
   
-  // Format videos & audios array
+  // Step 2: Siapkan array untuk videos & audios
   const videos = [];
   const audios = [];
   
-  // Coba ambil berbagai kualitas video
-  const videoQualities = [144, 240, 360, 480, 720, 1080];
-  for (const q of videoQualities) {
+  // Step 3: Ambil video dengan berbagai kualitas
+  const qualities = [144, 240, 360, 480, 720, 1080];
+  for (const q of qualities) {
     try {
-      const videoDownload = await api.getDownload(info.key, "video", q);
-      if (videoDownload && !videoDownload.error) {
+      const videoData = await getDownload(info.key, "video", q);
+      if (videoData && videoData.downloadUrl) {
         videos.push({
           quality: `${q}p`,
           resolution: q >= 720 ? "HD" : "SD",
-          url: videoDownload.downloadUrl
+          size: videoData.size || "-",
+          url: videoData.downloadUrl
         });
       }
-    } catch (e) {
-      // skip kualitas yang tidak tersedia
+    } catch (err) {
+      // Kualitas tidak tersedia, skip
     }
   }
   
-  // Ambil audio
+  // Step 4: Ambil audio (128kbps)
   try {
-    const audioDownload = await api.getDownload(info.key, "audio", 128);
-    if (audioDownload && !audioDownload.error) {
+    const audioData = await getDownload(info.key, "audio", 128);
+    if (audioData && audioData.downloadUrl) {
       audios.push({
         quality: "128kbps",
-        url: audioDownload.downloadUrl
+        size: audioData.size || "-",
+        url: audioData.downloadUrl
       });
     }
-  } catch (e) {
-    // skip
+  } catch (err) {
+    // Audio tidak tersedia
   }
   
-  // Kalo gagal ambil multiple quality, pake yang dari download pertama
-  if (videos.length === 0 && download.downloadUrl) {
-    videos.push({
-      quality: `${quality}p`,
-      resolution: quality >= 720 ? "HD" : "SD",
-      url: download.downloadUrl
-    });
+  // Step 5: Kalo gagal ambil multiple quality, pake quality default
+  if (videos.length === 0) {
+    try {
+      const videoData = await getDownload(info.key, "video", quality);
+      if (videoData && videoData.downloadUrl) {
+        videos.push({
+          quality: `${quality}p`,
+          resolution: quality >= 720 ? "HD" : "SD",
+          size: videoData.size || "-",
+          url: videoData.downloadUrl
+        });
+      }
+    } catch (err) {
+      throw new Error("Gagal mendapatkan link video");
+    }
   }
   
   return {
-    title: info.title || '-',
-    thumbnail: info.thumbnail || info.imagePreviewUrl || '-',
-    duration: info.duration || '-',
-    channel: info.author || '-',
+    title: info.title || "-",
+    thumbnail: info.thumbnail || info.imagePreviewUrl || "-",
+    duration: info.duration || "-",
+    channel: info.author || "-",
     videos: videos,
     audios: audios
   };
@@ -204,7 +166,7 @@ module.exports = (app) => {
       }
       
       const videoQuality = parseInt(quality) || 360;
-      const result = await ytdownDl(url, "video", videoQuality);
+      const result = await ytdownDl(url, videoQuality);
       
       res.json({
         status: true,
@@ -248,7 +210,7 @@ module.exports = (app) => {
         });
       }
       
-      const result = await ytdownDl(url, "audio", 128);
+      const result = await ytdownDl(url, 360);
       
       const bestAudio = result.audios.length > 0 ? result.audios[0] : null;
       
@@ -295,7 +257,7 @@ module.exports = (app) => {
         });
       }
       
-      const result = await ytdownDl(url, "video", 360);
+      const result = await ytdownDl(url, 360);
       
       res.json({
         status: true,
