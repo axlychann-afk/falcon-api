@@ -37,26 +37,6 @@
   }
 },
 {
-  "name": "DeepSeek AI",
-  "desc": "DeepSeek V4 Flash - AI canggih gratis. Cukup kirim text, sisanya otomatis.",
-  "path": "/ai/deepseek?text=",
-  "status": "ready",
-  "params": {
-    "text": "Pertanyaan atau teks untuk AI",
-    "session_id": "ID session (opsional, untuk ngobrol berlanjut)"
-  }
-},
-{
-  "name": "Google Gemini AI",
-  "desc": "Gemini AI oleh Google (gratis, cepat, dan cerdas). Cukup kirim text aja.",
-  "path": "/ai/gemini?text=",
-  "status": "ready",
-  "params": {
-    "text": "Pertanyaan atau teks untuk AI",
-    "session_id": "ID session (opsional, untuk ngobrol berlanjut)"
-  }
-},
-{
   "name": "Uncensored AI",
   "desc": "AI chat tanpa sensor (gratis, pakai web scraping uncensored.chat)",
   "path": "/ai/uncensored?text=",
@@ -65,19 +45,6 @@
     "text": "Pertanyaan atau teks yang ingin ditanyakan ke AI"
   }
 },
-    {
-  "name": "AI Music (suno)",
-  "desc": "Buat musik dari teks deskripsi",
-  "path": "/ai/music?prompt=",
-  "status": "ready",
-  "params": {
-    "prompt": "Deskripsi musik yang diinginkan",
-    "title": "Judul lagu (opsional)",
-    "modelId": "Model ID (6=v5.0, 5=v4.5-plus, 4=v4.5, 3=v4.0, 1=v3.5)",
-    "instrumental": "true/false (default false)",
-    "style": "Genre/style musik (opsional)"
-  }
-    },
     {
   "name": "Nano Banana AI",
   "desc": "Edit gambar dengan prompt (ubah gaya, warna, latar, dll)",
