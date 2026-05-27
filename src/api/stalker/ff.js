@@ -72,7 +72,7 @@ function formatRank(rank) {
 module.exports = (app) => {
   
   // GET /stalk/ffhub?uid=1234567890
-  app.get('/stalk/ffhub', async (req, res) => {
+  app.get('/stalk/ff', async (req, res) => {
     try {
       const { uid } = req.query;
       
