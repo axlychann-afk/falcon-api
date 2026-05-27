@@ -219,27 +219,31 @@
       "items": [
 {
   "name": "Softkomik - Latest",
-  "desc": "Komik terbaru & update dari Softkomik (Manga/Manhwa/Manhua Indonesia)",
+  "desc": "Daftar komik terbaru & update dari Softkomik",
   "path": "/anime/komik/latest",
-  "status": "ready"
+  "status": "ready",
+  "params": {
+    "limit": "Jumlah komik (opsional, default 20)"
+  }
 },
 {
   "name": "Softkomik - Search",
-  "desc": "Search lengkap komik (sinopsis, genre, author, rating, total chapter)",
+  "desc": "Cari komik dan langsung dapatkan detail lengkap (cukup kasih judul, gak perlu slug)",
   "path": "/anime/komik/search?q=",
   "status": "ready",
   "params": {
-    "slug": "Search komik (contoh: garden-of-may-bahasa-indonesia)"
+    "q": "Judul komik yang dicari (contoh: Little Moments)"
   }
 },
 {
   "name": "Softkomik - Images",
-  "desc": "Dapatkan link gambar dari chapter komik",
-  "path": "/anime/komik/images?slug=&chapter=",
+  "desc": "Dapatkan link gambar dari chapter komik (cukup kasih judul & chapter)",
+  "path": "/anime/komik/images?title=&chapter=",
   "status": "ready",
   "params": {
-    "slug": "Slug komik",
-    "chapter": "Nomor chapter (contoh: 001)"
+    "title": "Judul komik (contoh: Little Moments)",
+    "chapter": "Nomor chapter (contoh: 1 atau 001)",
+    "maxPage": "Maksimal halaman (opsional, default 100)"
   }
 },
 {
