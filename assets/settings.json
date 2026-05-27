@@ -243,16 +243,6 @@
   }
 },
 {
-  "name": "Softkomik - Chapters",
-  "desc": "Daftar semua chapter dari komik",
-  "path": "/anime/komik/chapters?slug=",
-  "status": "ready",
-  "params": {
-    "slug": "Slug komik",
-    "limit": "Jumlah chapter (opsional, default 100)"
-  }
-},
-{
   "name": "Softkomik - Images",
   "desc": "Dapatkan link gambar dari chapter komik",
   "path": "/anime/komik/images?slug=&chapter=",
