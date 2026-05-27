@@ -1,31 +1,34 @@
-// ffhub.js - Free Fire Stalker via freefirehub.com (otomatis deteksi region)
+// ff.js - Free Fire Stalker (support region ALL)
 const axios = require('axios');
 
-// Daftar region yang didukung
-const REGIONS = ['ID', 'SG', 'TH', 'BR', 'IN', 'MY', 'VN', 'PK', 'BD', 'EG'];
+async function getFFPlayer(uid, region = 'ALL', matchType = 'all') {
+  try {
+    const url = `https://freefirehub.com/api/player/${uid}?region=${region}&matchType=${matchType}`;
+    
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 16; Infinix X6837) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.120 Mobile Safari/537.36',
+        'x-requested-with': 'com.xbrowser.play',
+        'referer': 'https://freefirehub.com/player-tracker',
+        'accept-language': 'en-ID,en;q=0.9'
+      },
+      timeout: 30000
+    });
 
-async function detectRegion(uid) {
-  // Coba semua region sampai dapet yang berhasil
-  for (const region of REGIONS) {
-    try {
-      const url = `https://freefirehub.com/api/player/${uid}?region=${region}&type=all`;
-      const response = await axios.get(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36',
-          'Accept': 'application/json'
-        },
-        timeout: 5000
-      });
-      
-      if (response.data && response.data.nickname && !response.data.error) {
-        return { region, data: response.data };
-      }
-    } catch (e) {
-      // Lanjut ke region berikutnya
-      continue;
+    if (!response.data) {
+      throw new Error('Gagal mengambil data');
     }
+
+    return {
+      success: true,
+      data: response.data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
   }
-  throw new Error('UID tidak ditemukan di semua region');
 }
 
 function formatRegion(regionCode) {
@@ -71,10 +74,10 @@ function formatRank(rank) {
 
 module.exports = (app) => {
   
-  // GET /stalk/ffhub?uid=1234567890
+  // GET /stalk/ff?uid=1234567890&region=ALL&matchType=all
   app.get('/stalk/ff', async (req, res) => {
     try {
-      const { uid } = req.query;
+      const { uid, region = 'ALL', matchType = 'all' } = req.query;
       
       if (!uid) {
         return res.status(400).json({
@@ -93,27 +96,40 @@ module.exports = (app) => {
         });
       }
       
-      // Deteksi region otomatis
-      const { region, data } = await detectRegion(uid);
+      const result = await getFFPlayer(uid, region, matchType);
+      
+      if (!result.success) {
+        return res.status(500).json({
+          status: false,
+          creator: 'AxlyDev',
+          error: result.error
+        });
+      }
+      
+      const data = result.data;
       
       // Format response
-      const result = {
-        uid: uid,
-        nickname: data.nickname || '-',
-        region: formatRegion(region),
-        region_code: region,
-        level: data.level || 0,
-        avatar: data.avatar || null,
-        exp: data.exp || 0,
-        created_at: data.created_at || '-',
-        last_login: data.last_login || '-',
-        clan: data.clan?.name || '-',
-        signature: data.signature || '-'
+      const response = {
+        status: true,
+        creator: 'AxlyDev',
+        result: {
+          uid: uid,
+          nickname: data.nickname || '-',
+          region: formatRegion(data.region || region),
+          region_code: data.region || region,
+          level: data.level || 0,
+          avatar: data.avatar || null,
+          exp: data.exp || 0,
+          created_at: data.created_at || '-',
+          last_login: data.last_login || '-',
+          clan: data.clan?.name || '-',
+          signature: data.signature || '-'
+        }
       };
       
-      // Statistik BR
+      // Statistik BR (Battle Royale)
       if (data.br_stats) {
-        result.br_stats = {
+        response.result.br_stats = {
           rank: formatRank(data.br_stats.rank),
           rank_points: data.br_stats.rank_points || 0,
           total_matches: data.br_stats.total_matches || 0,
@@ -126,9 +142,9 @@ module.exports = (app) => {
         };
       }
       
-      // Statistik CS
+      // Statistik CS (Clash Squad)
       if (data.cs_stats) {
-        result.cs_stats = {
+        response.result.cs_stats = {
           rank: formatRank(data.cs_stats.rank),
           rank_points: data.cs_stats.rank_points || 0,
           total_matches: data.cs_stats.total_matches || 0,
@@ -140,9 +156,9 @@ module.exports = (app) => {
         };
       }
       
-      // Match terakhir (ambil 5)
+      // Match terakhir (max 5)
       if (data.last_matches && data.last_matches.length > 0) {
-        result.last_matches = data.last_matches.slice(0, 5).map(match => ({
+        response.result.last_matches = data.last_matches.slice(0, 5).map(match => ({
           mode: match.mode,
           result: match.result,
           kills: match.kills,
@@ -153,11 +169,7 @@ module.exports = (app) => {
         }));
       }
       
-      res.json({
-        status: true,
-        creator: 'AxlyDev',
-        result: result
-      });
+      res.json(response);
       
     } catch (error) {
       res.status(500).json({
