@@ -226,7 +226,7 @@
 {
   "name": "Softkomik - Search",
   "desc": "Search lengkap komik (sinopsis, genre, author, rating, total chapter)",
-  "path": "/anime/komik/detail?slug=",
+  "path": "/anime/komik/search?slug=",
   "status": "ready",
   "params": {
     "slug": "Slug komik (contoh: garden-of-may-bahasa-indonesia)"
