@@ -218,6 +218,60 @@
       "name": "Anime",
       "items": [
 {
+  "name": "Softkomik - Latest",
+  "desc": "Komik terbaru & update dari Softkomik (Manga/Manhwa/Manhua Indonesia)",
+  "path": "/anime/komik/latest",
+  "status": "ready"
+},
+{
+  "name": "Softkomik - Search",
+  "desc": "Mencari komik di Softkomik berdasarkan judul",
+  "path": "/anime/komik/search?q=",
+  "status": "ready",
+  "params": {
+    "q": "Judul komik yang dicari",
+    "limit": "Jumlah hasil (opsional, default 20)"
+  }
+},
+{
+  "name": "Softkomik - Detail",
+  "desc": "Detail lengkap komik (sinopsis, genre, author, rating, total chapter)",
+  "path": "/anime/komik/detail?slug=",
+  "status": "ready",
+  "params": {
+    "slug": "Slug komik (contoh: garden-of-may-bahasa-indonesia)"
+  }
+},
+{
+  "name": "Softkomik - Chapters",
+  "desc": "Daftar semua chapter dari komik",
+  "path": "/anime/komik/chapters?slug=",
+  "status": "ready",
+  "params": {
+    "slug": "Slug komik",
+    "limit": "Jumlah chapter (opsional, default 100)"
+  }
+},
+{
+  "name": "Softkomik - Images",
+  "desc": "Dapatkan link gambar dari chapter komik",
+  "path": "/anime/komik/images?slug=&chapter=",
+  "status": "ready",
+  "params": {
+    "slug": "Slug komik",
+    "chapter": "Nomor chapter (contoh: 001)"
+  }
+},
+{
+  "name": "Softkomik - Rekomendasi",
+  "desc": "Rekomendasi komik random dari Softkomik",
+  "path": "/anime/komik/rekomendasi",
+  "status": "ready",
+  "params": {
+    "limit": "Jumlah rekomendasi (opsional, default 15)"
+  }
+},
+{
   "name": "Animekuindo Search",
   "desc": "Mencari anime di Animekuindo.life (judul, gambar, status, tipe)",
   "path": "/anime/animekuindo/search?q=",
