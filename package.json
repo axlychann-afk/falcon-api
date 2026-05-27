@@ -52,6 +52,7 @@
     "tough-cookie": "^4.1.4",
     "yt-search": "^2.12.1",
     "brat-canvas": "^1.0.0",
+    "ffapis": "^1.5.2",
     "@napi-rs/canvas": "^0.1.65"
   }
 }
