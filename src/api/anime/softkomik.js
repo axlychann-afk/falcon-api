@@ -1,43 +1,28 @@
-// softkomik.js - Scraper Softkomik.co (Manga/Manhwa/Manhua Indonesia)
+// softkomik.js - Scraper Softkomik.co (Manga/Manhwa/Manhua Indonesia) - PURE SCRAPE
 const axios = require('axios');
-const crypto = require('crypto');
+const cheerio = require('cheerio');
 
 const CONFIG = {
     baseUrl: 'https://softkomik.co',
-    apiUrl: 'https://v2.softdevices.my.id',
     timeout: 30000,
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36'
 };
 
-const getHeaders = () => ({
-    'accept': 'application/json, text/plain, */*',
-    'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-    'origin': CONFIG.baseUrl,
-    'referer': CONFIG.baseUrl,
-    'user-agent': CONFIG.userAgent,
-    'sec-ch-ua': '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-    'sec-ch-ua-mobile': '?1',
-    'sec-ch-ua-platform': '"Android"'
-});
-
-// Ekstrak data dari __NEXT_DATA__
-async function fetchPageData(url) {
+// Fetch dan parse __NEXT_DATA__
+async function fetchNextData(url) {
     const response = await axios.get(url, {
-        headers: {
-            'user-agent': CONFIG.userAgent,
-            'accept': 'text/html,application/xhtml+xml',
-            'accept-language': 'id-ID,id;q=0.9'
-        },
+        headers: { 'User-Agent': CONFIG.userAgent },
         timeout: CONFIG.timeout
     });
     
     const html = response.data;
-    const nextDataMatch = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s);
+    const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s);
     
-    if (nextDataMatch && nextDataMatch[1]) {
-        return JSON.parse(nextDataMatch[1]);
+    if (!match || !match[1]) {
+        throw new Error('__NEXT_DATA__ tidak ditemukan');
     }
-    return null;
+    
+    return JSON.parse(match[1]);
 }
 
 // Format type icon
@@ -48,54 +33,69 @@ function getTypeIcon(type) {
     return '📖 Unknown';
 }
 
-// Format status
 function getStatusText(status) {
     return status === 'ongoing' ? 'Ongoing 🟢' : 'Completed 🔴';
 }
 
 // ========== 1. LATEST KOMIK ==========
 async function getLatestKomik(limit = 20) {
-    const jsonData = await fetchPageData(CONFIG.baseUrl);
+    const jsonData = await fetchNextData(CONFIG.baseUrl);
+    const data = jsonData.props?.pageProps?.data;
     
-    if (!jsonData?.props?.pageProps?.data) {
-        throw new Error('Gagal mengambil data');
-    }
+    if (!data) throw new Error('Gagal mengambil data');
     
-    const komikData = jsonData.props.pageProps.data;
-    const newKomik = (komikData.newKomik || []).slice(0, limit);
-    const updateKomik = (komikData.updateNonProject || []).slice(0, limit);
+    const newKomik = data.newKomik || [];
+    const updateKomik = data.updateNonProject || [];
     
-    return { newKomik, updateKomik };
+    return {
+        newKomik: newKomik.slice(0, limit),
+        updateKomik: updateKomik.slice(0, limit)
+    };
 }
 
 // ========== 2. SEARCH KOMIK ==========
 async function searchKomik(query, limit = 20) {
     const url = `${CONFIG.baseUrl}/?s=${encodeURIComponent(query)}`;
-    const jsonData = await fetchPageData(url);
+    const jsonData = await fetchNextData(url);
+    const data = jsonData.props?.pageProps?.data;
     
-    if (!jsonData?.props?.pageProps?.data) {
-        return [];
+    if (!data) return [];
+    
+    // Gabungkan newKomik dan updateNonProject dari hasil search
+    let results = [];
+    
+    if (data.newKomik && Array.isArray(data.newKomik)) {
+        results.push(...data.newKomik);
+    }
+    if (data.updateNonProject && Array.isArray(data.updateNonProject)) {
+        results.push(...data.updateNonProject);
     }
     
-    const results = jsonData.props.pageProps.data.slice(0, limit);
-    return results;
+    // Hapus duplikat berdasarkan slug
+    const unique = [];
+    const seen = new Set();
+    for (const item of results) {
+        if (item.title_slug && !seen.has(item.title_slug)) {
+            seen.add(item.title_slug);
+            unique.push(item);
+        }
+    }
+    
+    return unique.slice(0, limit);
 }
 
 // ========== 3. DETAIL KOMIK ==========
 async function getDetailKomik(slug) {
     const url = `${CONFIG.baseUrl}/${slug}`;
-    const jsonData = await fetchPageData(url);
+    const jsonData = await fetchNextData(url);
+    const data = jsonData.props?.pageProps?.data;
     
-    if (!jsonData?.props?.pageProps?.data) {
-        throw new Error('Komik tidak ditemukan');
-    }
-    
-    const data = jsonData.props.pageProps.data;
+    if (!data) throw new Error('Komik tidak ditemukan');
     
     return {
-        title: data.title,
+        title: data.title || '-',
         title_alt: data.title_alt || '-',
-        slug: data.title_slug,
+        slug: data.title_slug || slug,
         type: data.type,
         type_name: getTypeIcon(data.type),
         status: data.status,
@@ -114,49 +114,68 @@ async function getDetailKomik(slug) {
     };
 }
 
-// ========== 4. DAFTAR CHAPTER ==========
-async function listChapters(slug, limit = 9999) {
-    const apiUrl = `${CONFIG.apiUrl}/komik/${slug}/chapter?limit=${limit}`;
+// ========== 4. DAFTAR CHAPTER (dari HTML) ==========
+async function listChapters(slug, limit = 100) {
+    const url = `${CONFIG.baseUrl}/${slug}`;
+    const jsonData = await fetchNextData(url);
+    const data = jsonData.props?.pageProps?.data;
     
-    const response = await axios.get(apiUrl, {
-        headers: getHeaders(),
-        timeout: CONFIG.timeout
-    });
-    
-    const data = response.data;
-    
-    if (!data?.chapter || data.chapter.length === 0) {
+    if (!data?.chapter || !Array.isArray(data.chapter)) {
         return [];
     }
     
     // Reverse biar dari chapter terbaru
     const chapters = [...data.chapter].reverse();
     
-    return chapters.map(ch => ({
+    return chapters.slice(0, limit).map(ch => ({
         chapter: ch.chapter,
+        title: ch.title || `Chapter ${ch.chapter}`,
         url: `${CONFIG.baseUrl}/${slug}/chapter/${ch.chapter}`
     }));
 }
 
-// ========== 5. DAPATKAN GAMBAR CHAPTER ==========
+// ========== 5. DAPATKAN GAMBAR CHAPTER (Scrape dari halaman chapter) ==========
 async function getChapterImages(slug, chapterNum) {
-    const apiUrl = `${CONFIG.apiUrl}/komik/${slug}/chapter/${chapterNum}/imgs`;
+    const url = `${CONFIG.baseUrl}/${slug}/chapter/${chapterNum}`;
     
-    const response = await axios.get(apiUrl, {
-        headers: getHeaders(),
+    const response = await axios.get(url, {
+        headers: { 'User-Agent': CONFIG.userAgent },
         timeout: CONFIG.timeout
     });
     
-    const data = response.data;
+    const html = response.data;
+    const $ = cheerio.load(html);
     
-    if (!data?.imageSrc || data.imageSrc.length === 0) {
-        throw new Error('Gambar tidak ditemukan');
+    // Cari gambar dari berbagai kemungkinan selector
+    const images = [];
+    
+    // Selector umum gambar chapter
+    $('img').each((i, el) => {
+        const src = $(el).attr('src') || $(el).attr('data-src') || $(el).attr('data-original');
+        if (src && src.includes('.webp') && !src.includes('logo') && !src.includes('icon')) {
+            images.push({
+                url: src.startsWith('http') ? src : `https:${src}`,
+                page: i + 1
+            });
+        }
+    });
+    
+    // Kalo gak dapet, coba dari div.chapter-image
+    if (images.length === 0) {
+        $('.chapter-image img, .reading-content img, .entry-content img').each((i, el) => {
+            const src = $(el).attr('src');
+            if (src) {
+                images.push({
+                    url: src.startsWith('http') ? src : `https:${src}`,
+                    page: i + 1
+                });
+            }
+        });
     }
     
-    const images = data.imageSrc.map(img => ({
-        url: `https://v2.softdevices.my.id/${img}`,
-        page: parseInt(img.match(/(\d+)\.webp$/)?.[1]) || 0
-    }));
+    if (images.length === 0) {
+        throw new Error('Gambar tidak ditemukan');
+    }
     
     return {
         total: images.length,
@@ -166,16 +185,14 @@ async function getChapterImages(slug, chapterNum) {
 
 // ========== 6. REKOMENDASI ==========
 async function getRekomendasi(limit = 15) {
-    const jsonData = await fetchPageData(CONFIG.baseUrl);
+    const jsonData = await fetchNextData(CONFIG.baseUrl);
+    const data = jsonData.props?.pageProps?.data;
     
-    if (!jsonData?.props?.pageProps?.data) {
-        throw new Error('Gagal mengambil data');
-    }
+    if (!data) throw new Error('Gagal mengambil data');
     
-    const komikData = jsonData.props.pageProps.data;
-    const allKomik = [...(komikData.newKomik || []), ...(komikData.updateNonProject || [])];
+    const allKomik = [...(data.newKomik || []), ...(data.updateNonProject || [])];
     
-    // Hapus duplikat berdasarkan slug
+    // Hapus duplikat
     const unique = [];
     const seen = new Set();
     for (const komik of allKomik) {
@@ -197,7 +214,7 @@ async function getRekomendasi(limit = 15) {
 // ========== EXPRESS ENDPOINT ==========
 module.exports = (app) => {
     
-    // 1. GET /anime/komik/latest?limit=20
+    // 1. GET /anime/komik/latest
     app.get('/anime/komik/latest', async (req, res) => {
         try {
             const { limit = 20 } = req.query;
@@ -237,7 +254,7 @@ module.exports = (app) => {
         }
     });
     
-    // 2. GET /anime/komik/search?q=keyword&limit=20
+    // 2. GET /anime/komik/search?q=keyword
     app.get('/anime/komik/search', async (req, res) => {
         try {
             const { q, limit = 20 } = req.query;
@@ -292,7 +309,7 @@ module.exports = (app) => {
         }
     });
     
-    // 4. GET /anime/komik/chapters?slug=xxx&limit=100
+    // 4. GET /anime/komik/chapters?slug=xxx
     app.get('/anime/komik/chapters', async (req, res) => {
         try {
             const { slug, limit = 100 } = req.query;
@@ -343,7 +360,7 @@ module.exports = (app) => {
         }
     });
     
-    // 6. GET /anime/komik/rekomendasi?limit=15
+    // 6. GET /anime/komik/rekomendasi
     app.get('/anime/komik/rekomendasi', async (req, res) => {
         try {
             const { limit = 15 } = req.query;
