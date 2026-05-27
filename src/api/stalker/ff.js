@@ -1,20 +1,39 @@
-// ff.js - Free Fire Stalker (dengan konversi rank angka ke nama)
-const fetch = require('node-fetch');
+// ff.js - Free Fire Stalker (All-in-One, cukup UID)
+const { FreeFireAPI } = require('ffapis');
 
-// Konversi rank value ke nama rank
-function getRankName(rankValue) {
-  if (rankValue >= 2800) return 'Elite Grand Master';
-  if (rankValue >= 2500) return 'Grand Master';
-  if (rankValue >= 2200) return 'Heroic';
-  if (rankValue >= 2100) return 'Diamond';
-  if (rankValue >= 2000) return 'Platinum';
-  if (rankValue >= 1900) return 'Gold';
-  if (rankValue >= 1800) return 'Silver';
-  if (rankValue >= 1700) return 'Bronze';
+const api = new FreeFireAPI();
+
+// Mapping rank points ke nama rank
+function getRankName(rankPoints) {
+  if (rankPoints >= 2800) return 'Elite Grand Master';
+  if (rankPoints >= 2500) return 'Grand Master';
+  if (rankPoints >= 2200) return 'Heroic';
+  if (rankPoints >= 2100) return 'Diamond';
+  if (rankPoints >= 2000) return 'Platinum';
+  if (rankPoints >= 1900) return 'Gold';
+  if (rankPoints >= 1800) return 'Silver';
+  if (rankPoints >= 1700) return 'Bronze';
   return 'Unranked';
 }
 
-// Format tanggal dari timestamp Unix
+// Mapping region
+function getRegionInfo(regionCode) {
+  const regions = {
+    'ID': { name: 'Indonesia', flag: '🇮🇩' },
+    'SG': { name: 'Singapore', flag: '🇸🇬' },
+    'TH': { name: 'Thailand', flag: '🇹🇭' },
+    'BR': { name: 'Brazil', flag: '🇧🇷' },
+    'IN': { name: 'India', flag: '🇮🇳' },
+    'MY': { name: 'Malaysia', flag: '🇲🇾' },
+    'VN': { name: 'Vietnam', flag: '🇻🇳' },
+    'PK': { name: 'Pakistan', flag: '🇵🇰' },
+    'BD': { name: 'Bangladesh', flag: '🇧🇩' },
+    'EG': { name: 'Egypt', flag: '🇪🇬' }
+  };
+  return regions[regionCode] || { name: regionCode, flag: '🌍' };
+}
+
+// Format timestamp ke tanggal
 function formatDate(timestamp) {
   if (!timestamp) return '-';
   const date = new Date(parseInt(timestamp) * 1000);
@@ -25,55 +44,12 @@ function formatDate(timestamp) {
   });
 }
 
-// Format region
-function formatRegion(regionCode) {
-  const regions = {
-    'ID': 'Indonesia',
-    'SG': 'Singapore',
-    'TH': 'Thailand',
-    'BR': 'Brazil',
-    'IN': 'India',
-    'MY': 'Malaysia',
-    'VN': 'Vietnam',
-    'PK': 'Pakistan',
-    'BD': 'Bangladesh',
-    'EG': 'Egypt'
-  };
-  return regions[regionCode] || regionCode;
-}
-
-async function getFFPlayer(uid, region = 'ALL', matchType = 'all') {
-  try {
-    const options = {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 16; Infinix X6837) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.120 Mobile Safari/537.36',
-        'x-requested-with': 'com.xbrowser.play',
-        'referer': 'https://freefirehub.com/player-tracker',
-        'accept-language': 'en-ID,en;q=0.9'
-      }
-    };
-
-    const url = `https://freefirehub.com/api/player/${uid}?region=${region}&matchType=${matchType}`;
-
-    const response = await fetch(url, options);
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
 module.exports = (app) => {
   
-  // GET /stalk/ff?uid=12345678
+  // GET /stalk/ff?uid=12345678 (CUKUP UID, SEMUA DATA KELUAR)
   app.get('/stalk/ff', async (req, res) => {
     try {
-      const { uid, region = 'ALL', matchType = 'all' } = req.query;
+      const { uid, region = 'ID' } = req.query;
       
       if (!uid) {
         return res.status(400).json({
@@ -83,7 +59,7 @@ module.exports = (app) => {
         });
       }
       
-      // Validasi UID (8-9 digit angka)
+      // Validasi UID (8-9 digit)
       if (!/^\d{8,9}$/.test(uid)) {
         return res.status(400).json({
           status: false,
@@ -92,18 +68,14 @@ module.exports = (app) => {
         });
       }
       
-      const data = await getFFPlayer(uid, region, matchType);
+      // Fetch profile dan stats paralel pake Promise.all
+      const [profile, stats] = await Promise.all([
+        api.fetchProfile(uid, region).catch(() => null),
+        api.fetchStats(uid, region).catch(() => null)
+      ]);
       
-      if (data.error) {
-        return res.status(500).json({
-          status: false,
-          creator: 'AxlyDev',
-          error: data.error
-        });
-      }
-      
-      // Cek apakah data ada
-      if (!data.profile || !data.profile.basicinfo) {
+      // Cek apakah profile ditemukan
+      if (!profile || !profile.basicInfo) {
         return res.status(404).json({
           status: false,
           creator: 'AxlyDev',
@@ -111,91 +83,114 @@ module.exports = (app) => {
         });
       }
       
-      const basicInfo = data.profile.basicinfo;
-      const clanInfo = data.profile.clanbasicinfo;
-      const socialInfo = data.profile.socialinfo;
-      const creditscoreInfo = data.profile.creditscoreinfo;
-      const petInfo = data.profile.petinfo;
-      const profileInfo = data.profile.profileinfo;
+      const basicInfo = profile.basicInfo;
+      const clanInfo = profile.clanBasicInfo;
+      const socialInfo = profile.socialInfo;
+      const profileInfo = profile.profileInfo;
+      const petInfo = profile.petInfo;
+      const creditScoreInfo = profile.creditScoreInfo;
+      const regionInfo = getRegionInfo(basicInfo.region || region);
       
-      // Format response
+      // Format response lengkap
       const result = {
-        uid: basicInfo.accountid,
+        // ========== BASIC INFO ==========
+        uid: basicInfo.accountId,
         nickname: basicInfo.nickname || '-',
-        region: formatRegion(basicInfo.region),
-        region_code: basicInfo.region,
+        region: regionInfo.name,
+        region_code: basicInfo.region || region,
+        region_flag: regionInfo.flag,
         level: basicInfo.level || 0,
         exp: basicInfo.exp || 0,
         liked: basicInfo.liked || 0,
-        headpic_id: basicInfo.headpic || null,
-        avatarframe_id: basicInfo.avatarframe || null,
-        banner_id: basicInfo.bannerid || null,
-        title_id: basicInfo.title || null,
-        created_at: formatDate(basicInfo.createat),
-        last_login: formatDate(basicInfo.lastloginat),
-        has_elite_pass: basicInfo.haselitepass || false,
+        created_at: formatDate(basicInfo.createAt),
+        last_login: formatDate(basicInfo.lastLoginAt),
+        has_elite_pass: basicInfo.hasElitePass || false,
         signature: socialInfo?.signature || '-',
-        language: socialInfo?.language || '-'
+        
+        // ========== RANK ==========
+        rank: {
+          battle_royale: {
+            rank_value: basicInfo.rank || 0,
+            rank_name: getRankName(basicInfo.rankingPoints || 0),
+            rank_points: basicInfo.rankingPoints || 0,
+            max_rank_value: basicInfo.maxRank || 0,
+            max_rank_name: getRankName(basicInfo.maxRankPoints || 0)
+          },
+          clash_squad: {
+            rank_value: basicInfo.csRank || 0,
+            rank_name: getRankName(basicInfo.csRankingPoints || 0),
+            rank_points: basicInfo.csRankingPoints || 0,
+            max_rank_value: basicInfo.csMaxRank || 0,
+            max_rank_name: getRankName(basicInfo.csMaxRankPoints || 0)
+          },
+          season_id: basicInfo.seasonId || 0
+        },
+        
+        // ========== CLAN ==========
+        clan: clanInfo && clanInfo.clanId ? {
+          id: clanInfo.clanId,
+          name: clanInfo.clanName || '-',
+          level: clanInfo.clanLevel || 0,
+          member_count: clanInfo.memberNum || 0,
+          captain_id: clanInfo.captainId || '-'
+        } : null,
+        
+        // ========== PET ==========
+        pet: petInfo && petInfo.id ? {
+          id: petInfo.id,
+          level: petInfo.level || 0,
+          exp: petInfo.exp || 0,
+          skin_id: petInfo.skinId || null
+        } : null,
+        
+        // ========== CREDIT SCORE ==========
+        credit_score: creditScoreInfo?.creditScore || 100,
+        
+        // ========== EQUIPMENT ==========
+        equipment: profileInfo ? {
+          avatar_id: profileInfo.avatarId,
+          clothes: profileInfo.clothes || [],
+          equipped_skills: profileInfo.equippedSkills || [],
+          pve_weapon: profileInfo.pvePrimaryWeapon
+        } : null,
+        
+        // ========== STATISTICS ==========
+        statistics: stats ? {
+          solo: {
+            matches: stats.solo?.matches || 0,
+            wins: stats.solo?.wins || 0,
+            kills: stats.solo?.kills || 0,
+            headshots: stats.solo?.headshots || 0,
+            top10: stats.solo?.top10 || 0
+          },
+          duo: {
+            matches: stats.duo?.matches || 0,
+            wins: stats.duo?.wins || 0,
+            kills: stats.duo?.kills || 0,
+            headshots: stats.duo?.headshots || 0,
+            top10: stats.duo?.top10 || 0
+          },
+          squad: {
+            matches: stats.squad?.matches || 0,
+            wins: stats.squad?.wins || 0,
+            kills: stats.squad?.kills || 0,
+            headshots: stats.squad?.headshots || 0,
+            top10: stats.squad?.top10 || 0
+          },
+          total: {
+            matches: (stats.solo?.matches || 0) + (stats.duo?.matches || 0) + (stats.squad?.matches || 0),
+            wins: (stats.solo?.wins || 0) + (stats.duo?.wins || 0) + (stats.squad?.wins || 0),
+            kills: (stats.solo?.kills || 0) + (stats.duo?.kills || 0) + (stats.squad?.kills || 0),
+            headshots: (stats.solo?.headshots || 0) + (stats.duo?.headshots || 0) + (stats.squad?.headshots || 0),
+            top10: (stats.solo?.top10 || 0) + (stats.duo?.top10 || 0) + (stats.squad?.top10 || 0)
+          },
+          win_rate: 0
+        } : null
       };
       
-      // Battle Royale Rank
-      if (basicInfo.rank) {
-        result.br_rank = {
-          rank_value: basicInfo.rank,
-          rank_name: getRankName(basicInfo.rank),
-          rank_points: basicInfo.rankingpoints || 0,
-          max_rank_value: basicInfo.maxrank || 0,
-          max_rank_name: getRankName(basicInfo.maxrank),
-          season_id: basicInfo.seasonid || 0
-        };
-      }
-      
-      // Clash Squad Rank
-      if (basicInfo.csrank) {
-        result.cs_rank = {
-          rank_value: basicInfo.csrank,
-          rank_name: getRankName(basicInfo.csrank),
-          rank_points: basicInfo.csrankingpoints || 0,
-          max_rank_value: basicInfo.csmaxrank || 0,
-          max_rank_name: getRankName(basicInfo.csmaxrank)
-        };
-      }
-      
-      // Clan info
-      if (clanInfo && clanInfo.clanname) {
-        result.clan = {
-          id: clanInfo.clanid,
-          name: clanInfo.clanname,
-          level: clanInfo.clanlevel,
-          member_count: clanInfo.membernum,
-          captain_id: clanInfo.captainid
-        };
-      }
-      
-      // Credit score
-      if (creditscoreInfo) {
-        result.credit_score = creditscoreInfo.creditscore || 0;
-      }
-      
-      // Pet info
-      if (petInfo && petInfo.id) {
-        result.pet = {
-          id: petInfo.id,
-          name: petInfo.name,
-          level: petInfo.level,
-          exp: petInfo.exp,
-          skin_id: petInfo.skinid
-        };
-      }
-      
-      // Equipment / Profile
-      if (profileInfo) {
-        result.equipment = {
-          avatar_id: profileInfo.avatarid,
-          clothes: profileInfo.clothes,
-          equipped_skills: profileInfo.equipedskills,
-          pve_weapon: profileInfo.pveprimaryweapon
-        };
+      // Hitung win rate
+      if (result.statistics && result.statistics.total.matches > 0) {
+        result.statistics.win_rate = ((result.statistics.total.wins / result.statistics.total.matches) * 100).toFixed(2);
       }
       
       res.json({
@@ -205,6 +200,7 @@ module.exports = (app) => {
       });
       
     } catch (error) {
+      console.error('FF Stalker Error:', error);
       res.status(500).json({
         status: false,
         creator: 'AxlyDev',
