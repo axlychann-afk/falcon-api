@@ -225,17 +225,7 @@
 },
 {
   "name": "Softkomik - Search",
-  "desc": "Mencari komik di Softkomik berdasarkan judul",
-  "path": "/anime/komik/search?q=",
-  "status": "ready",
-  "params": {
-    "q": "Judul komik yang dicari",
-    "limit": "Jumlah hasil (opsional, default 20)"
-  }
-},
-{
-  "name": "Softkomik - Detail",
-  "desc": "Detail lengkap komik (sinopsis, genre, author, rating, total chapter)",
+  "desc": "Search lengkap komik (sinopsis, genre, author, rating, total chapter)",
   "path": "/anime/komik/detail?slug=",
   "status": "ready",
   "params": {
