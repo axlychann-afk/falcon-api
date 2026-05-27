@@ -1,33 +1,29 @@
-// ff.js - Free Fire Stalker (support region ALL)
-const axios = require('axios');
+// ff.js - Free Fire Stalker (sesuai format respon asli freefirehub.com)
+const fetch = require('node-fetch');
 
 async function getFFPlayer(uid, region = 'ALL', matchType = 'all') {
   try {
-    const url = `https://freefirehub.com/api/player/${uid}?region=${region}&matchType=${matchType}`;
-    
-    const response = await axios.get(url, {
+    const options = {
+      method: 'GET',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 16; Infinix X6837) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.120 Mobile Safari/537.36',
         'x-requested-with': 'com.xbrowser.play',
         'referer': 'https://freefirehub.com/player-tracker',
         'accept-language': 'en-ID,en;q=0.9'
-      },
-      timeout: 30000
-    });
+      }
+    };
 
-    if (!response.data) {
-      throw new Error('Gagal mengambil data');
+    const url = `https://freefirehub.com/api/player/${uid}?region=${region}&matchType=${matchType}`;
+
+    const response = await fetch(url, options);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
 
-    return {
-      success: true,
-      data: response.data
-    };
+    return await response.json();
   } catch (error) {
-    return {
-      success: false,
-      error: error.message
-    };
+    return { error: error.message };
   }
 }
 
@@ -47,34 +43,19 @@ function formatRegion(regionCode) {
   return regions[regionCode] || regionCode;
 }
 
-function formatRank(rank) {
-  const ranks = {
-    0: 'Unranked',
-    1: 'Bronze I',
-    2: 'Bronze II',
-    3: 'Bronze III',
-    4: 'Silver I',
-    5: 'Silver II',
-    6: 'Silver III',
-    7: 'Gold I',
-    8: 'Gold II',
-    9: 'Gold III',
-    10: 'Platinum I',
-    11: 'Platinum II',
-    12: 'Platinum III',
-    13: 'Diamond I',
-    14: 'Diamond II',
-    15: 'Diamond III',
-    16: 'Heroic',
-    17: 'Grand Master',
-    18: 'Elite Grand Master'
-  };
-  return ranks[rank] || rank;
+function formatDate(timestamp) {
+  if (!timestamp) return '-';
+  const date = new Date(parseInt(timestamp) * 1000);
+  return date.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
 }
 
 module.exports = (app) => {
   
-  // GET /stalk/ff?uid=1234567890&region=ALL&matchType=all
+  // GET /stalk/ff?uid=12345678&region=ALL&matchType=all
   app.get('/stalk/ff', async (req, res) => {
     try {
       const { uid, region = 'ALL', matchType = 'all' } = req.query;
@@ -96,80 +77,112 @@ module.exports = (app) => {
         });
       }
       
-      const result = await getFFPlayer(uid, region, matchType);
+      const data = await getFFPlayer(uid, region, matchType);
       
-      if (!result.success) {
+      if (data.error) {
         return res.status(500).json({
           status: false,
           creator: 'AxlyDev',
-          error: result.error
+          error: data.error
         });
       }
       
-      const data = result.data;
+      // Cek apakah data ada
+      if (!data.profile || !data.profile.basicinfo) {
+        return res.status(404).json({
+          status: false,
+          creator: 'AxlyDev',
+          error: 'UID tidak ditemukan atau akun tidak aktif'
+        });
+      }
+      
+      const basicInfo = data.profile.basicinfo;
+      const clanInfo = data.profile.clanbasicinfo;
+      const socialInfo = data.profile.socialinfo;
+      const creditscoreInfo = data.profile.creditscoreinfo;
+      const petInfo = data.profile.petinfo;
       
       // Format response
-      const response = {
-        status: true,
-        creator: 'AxlyDev',
-        result: {
-          uid: uid,
-          nickname: data.nickname || '-',
-          region: formatRegion(data.region || region),
-          region_code: data.region || region,
-          level: data.level || 0,
-          avatar: data.avatar || null,
-          exp: data.exp || 0,
-          created_at: data.created_at || '-',
-          last_login: data.last_login || '-',
-          clan: data.clan?.name || '-',
-          signature: data.signature || '-'
-        }
+      const result = {
+        uid: basicInfo.accountid,
+        nickname: basicInfo.nickname || '-',
+        region: formatRegion(basicInfo.region),
+        region_code: basicInfo.region,
+        level: basicInfo.level || 0,
+        exp: basicInfo.exp || 0,
+        liked: basicInfo.liked || 0,
+        headpic: basicInfo.headpic || null,
+        avatarframe: basicInfo.avatarframe || null,
+        bannerid: basicInfo.bannerid || null,
+        title: basicInfo.title || null,
+        created_at: formatDate(basicInfo.createat),
+        last_login: formatDate(basicInfo.lastloginat),
+        has_elite_pass: basicInfo.haselitepass || false,
+        signature: socialInfo?.signature || '-',
+        language: socialInfo?.language || '-'
       };
       
-      // Statistik BR (Battle Royale)
-      if (data.br_stats) {
-        response.result.br_stats = {
-          rank: formatRank(data.br_stats.rank),
-          rank_points: data.br_stats.rank_points || 0,
-          total_matches: data.br_stats.total_matches || 0,
-          wins: data.br_stats.wins || 0,
-          kills: data.br_stats.kills || 0,
-          deaths: data.br_stats.deaths || 0,
-          kd_ratio: data.br_stats.kd_ratio || 0,
-          headshots: data.br_stats.headshots || 0,
-          top_10: data.br_stats.top_10 || 0
+      // Clan info
+      if (clanInfo) {
+        result.clan = {
+          id: clanInfo.clanid,
+          name: clanInfo.clanname,
+          level: clanInfo.clanlevel,
+          member_count: clanInfo.membernum,
+          captain_id: clanInfo.captainid
         };
       }
       
-      // Statistik CS (Clash Squad)
-      if (data.cs_stats) {
-        response.result.cs_stats = {
-          rank: formatRank(data.cs_stats.rank),
-          rank_points: data.cs_stats.rank_points || 0,
-          total_matches: data.cs_stats.total_matches || 0,
-          wins: data.cs_stats.wins || 0,
-          kills: data.cs_stats.kills || 0,
-          deaths: data.cs_stats.deaths || 0,
-          kd_ratio: data.cs_stats.kd_ratio || 0,
-          headshots: data.cs_stats.headshots || 0
+      // Credit score
+      if (creditscoreInfo) {
+        result.credit_score = creditscoreInfo.creditscore || 0;
+      }
+      
+      // Pet info
+      if (petInfo) {
+        result.pet = {
+          id: petInfo.id,
+          name: petInfo.name,
+          level: petInfo.level,
+          exp: petInfo.exp,
+          skin_id: petInfo.skinid
         };
       }
       
-      // Match terakhir (max 5)
-      if (data.last_matches && data.last_matches.length > 0) {
-        response.result.last_matches = data.last_matches.slice(0, 5).map(match => ({
-          mode: match.mode,
-          result: match.result,
-          kills: match.kills,
-          deaths: match.deaths,
-          assists: match.assists,
-          damage: match.damage,
-          date: match.date
-        }));
+      // Rank info (BR)
+      if (basicInfo.rank) {
+        result.br_rank = {
+          rank: basicInfo.rank,
+          rank_points: basicInfo.rankingpoints || 0,
+          max_rank: basicInfo.maxrank || 0,
+          season_id: basicInfo.seasonid || 0
+        };
       }
       
-      res.json(response);
+      // Rank info (CS)
+      if (basicInfo.csrank) {
+        result.cs_rank = {
+          rank: basicInfo.csrank,
+          rank_points: basicInfo.csrankingpoints || 0,
+          max_rank: basicInfo.csmaxrank || 0
+        };
+      }
+      
+      // Equipment
+      if (data.profile.profileinfo) {
+        result.equipment = {
+          avatar_id: data.profile.profileinfo.avatarid,
+          clothes: data.profile.profileinfo.clothes,
+          equipped_skills: data.profile.profileinfo.equipedskills,
+          pve_weapon: data.profile.profileinfo.pveprimaryweapon
+        };
+      }
+      
+      res.json({
+        status: true,
+        creator: 'AxlyDev',
+        result: result
+      });
       
     } catch (error) {
       res.status(500).json({
