@@ -4,22 +4,21 @@ const cheerio = require('cheerio');
 
 const CONFIG = {
     baseUrl: 'https://softkomik.co',
+    apiUrl: 'https://v2.softdevices.my.id',
     timeout: 30000,
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36'
 };
 
-// Headers untuk gambar
+// Headers untuk gambar (bypass Cloudflare)
 const imageHeaders = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
-    'Accept': 'image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+    'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
     'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
     'Referer': 'https://softkomik.co/',
-    'Origin': 'https://softkomik.co',
-    'Sec-Fetch-Dest': 'image',
-    'Sec-Fetch-Mode': 'no-cors',
-    'Sec-Fetch-Site': 'cross-site'
+    'Origin': 'https://softkomik.co'
 };
 
+// ========== HELPER FUNCTIONS ==========
 async function fetchNextData(url) {
     const response = await axios.get(url, {
         headers: { 'User-Agent': CONFIG.userAgent },
@@ -42,29 +41,7 @@ function getStatusText(status) {
     return status === 'ongoing' ? 'Ongoing 🟢' : 'Completed 🔴';
 }
 
-// ========== 1. GET IMAGES (FIXED - TANPA HEAD REQUEST) ==========
-async function getChapterImages(slug, chapterNum, maxPage = 100) {
-    const cleanChapter = String(parseInt(chapterNum)).padStart(3, '0');
-    const domain = 'https://psy1.komik.im';
-    const images = [];
-    
-    // Generate URL tanpa ngecek satu per satu (biar cepet)
-    for (let page = 1; page <= maxPage; page++) {
-        images.push({
-            url: `${domain}/NodeJs/new-nodeJs/${slug}/chapter-${cleanChapter}/softkomik-${page}.webp`,
-            page: page
-        });
-    }
-    
-    return {
-        total: images.length,
-        images: images,
-        note: 'URL di-generate berdasarkan pola. Beberapa URL mungkin 404 jika chapter lebih pendek.',
-        chapter_url: `${CONFIG.baseUrl}/${slug}/chapter/${cleanChapter}`
-    };
-}
-
-// ========== 2. LATEST KOMIK ==========
+// ========== 1. LATEST KOMIK ==========
 async function getLatestKomik(limit = 20) {
     const jsonData = await fetchNextData(CONFIG.baseUrl);
     const data = jsonData.props?.pageProps?.data;
@@ -75,29 +52,45 @@ async function getLatestKomik(limit = 20) {
     };
 }
 
-// ========== 3. SEARCH KOMIK ==========
+// ========== 2. SEARCH KOMIK (PAKE API) ==========
 async function searchKomik(query, limit = 20) {
-    const url = `${CONFIG.baseUrl}/?s=${encodeURIComponent(query)}`;
-    const jsonData = await fetchNextData(url);
-    const data = jsonData.props?.pageProps?.data;
-    if (!data) return [];
-    
-    let results = [];
-    if (data.newKomik) results.push(...data.newKomik);
-    if (data.updateNonProject) results.push(...data.updateNonProject);
-    
-    const unique = [];
-    const seen = new Set();
-    for (const item of results) {
-        if (item.title_slug && !seen.has(item.title_slug)) {
-            seen.add(item.title_slug);
-            unique.push(item);
+    try {
+        const encodedQuery = encodeURIComponent(query);
+        const url = `${CONFIG.apiUrl}/search?name=${encodedQuery}`;
+        
+        const response = await axios.get(url, {
+            headers: {
+                'User-Agent': CONFIG.userAgent,
+                'Origin': 'https://softkomik.co',
+                'Referer': 'https://softkomik.co/'
+            },
+            timeout: 10000
+        });
+        
+        if (!response.data || !response.data.data) {
+            return [];
         }
+        
+        const results = response.data.data.slice(0, limit).map(item => ({
+            title: item.title,
+            slug: item.title_slug,
+            type: 'unknown',
+            type_name: '📖 Unknown',
+            status: 'unknown',
+            status_text: 'Unknown',
+            latest_chapter: '-',
+            cover_url: null
+        }));
+        
+        return results;
+        
+    } catch (error) {
+        console.error('Search API error:', error.message);
+        return [];
     }
-    return unique.slice(0, limit);
 }
 
-// ========== 4. DETAIL KOMIK ==========
+// ========== 3. DETAIL KOMIK ==========
 async function getDetailKomik(slug) {
     const url = `${CONFIG.baseUrl}/${slug}`;
     const jsonData = await fetchNextData(url);
@@ -122,7 +115,7 @@ async function getDetailKomik(slug) {
     };
 }
 
-// ========== 5. LIST CHAPTERS ==========
+// ========== 4. CHAPTERS ==========
 async function listChapters(slug, limit = 100) {
     const url = `${CONFIG.baseUrl}/${slug}`;
     const jsonData = await fetchNextData(url);
@@ -134,6 +127,27 @@ async function listChapters(slug, limit = 100) {
         chapter: ch.chapter,
         url: `${CONFIG.baseUrl}/${slug}/chapter/${ch.chapter}`
     }));
+}
+
+// ========== 5. IMAGES ==========
+async function getChapterImages(slug, chapterNum, maxPage = 100) {
+    const cleanChapter = String(parseInt(chapterNum)).padStart(3, '0');
+    const domain = 'https://psy1.komik.im';
+    const images = [];
+    
+    for (let page = 1; page <= maxPage; page++) {
+        images.push({
+            url: `${domain}/NodeJs/new-nodeJs/${slug}/chapter-${cleanChapter}/softkomik-${page}.webp`,
+            page: page
+        });
+    }
+    
+    return {
+        total: images.length,
+        images: images,
+        note: 'URL di-generate berdasarkan pola. Beberapa URL mungkin 404 jika chapter lebih pendek.',
+        chapter_url: `${CONFIG.baseUrl}/${slug}/chapter/${cleanChapter}`
+    };
 }
 
 // ========== 6. REKOMENDASI ==========
@@ -151,11 +165,22 @@ async function getRekomendasi(limit = 15) {
             unique.push(komik);
         }
     }
+    // Acak
     for (let i = unique.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [unique[i], unique[j]] = [unique[j], unique[i]];
     }
     return unique.slice(0, limit);
+}
+
+// ========== 7. PROXY GAMBAR (BYPASS CLOUDFLARE) ==========
+async function proxyImage(imageUrl) {
+    const response = await axios.get(imageUrl, {
+        headers: imageHeaders,
+        responseType: 'stream',
+        timeout: 30000
+    });
+    return response;
 }
 
 // ========== EXPRESS ENDPOINT ==========
@@ -212,16 +237,7 @@ module.exports = (app) => {
                 result: {
                     keyword: q,
                     total: results.length,
-                    data: results.map(k => ({
-                        title: k.title,
-                        slug: k.title_slug,
-                        type: k.type,
-                        type_name: getTypeIcon(k.type),
-                        status: k.status,
-                        status_text: getStatusText(k.status),
-                        latest_chapter: k.latest_chapter,
-                        cover_url: k.cover
-                    }))
+                    data: results
                 }
             });
         } catch (error) {
@@ -265,7 +281,7 @@ module.exports = (app) => {
         }
     });
     
-    // 5. IMAGES (FIXED - WORKING)
+    // 5. IMAGES
     app.get('/anime/komik/images', async (req, res) => {
         try {
             const { slug, chapter, maxPage = 100 } = req.query;
@@ -273,11 +289,7 @@ module.exports = (app) => {
                 return res.status(400).json({ status: false, creator: 'AxlyDev', error: 'Parameter slug dan chapter wajib diisi' });
             }
             const images = await getChapterImages(slug, chapter, parseInt(maxPage));
-            res.json({
-                status: true,
-                creator: 'AxlyDev',
-                result: images
-            });
+            res.json({ status: true, creator: 'AxlyDev', result: images });
         } catch (error) {
             res.status(500).json({ status: false, creator: 'AxlyDev', error: error.message });
         }
@@ -302,6 +314,23 @@ module.exports = (app) => {
                     cover_url: k.cover
                 }))
             });
+        } catch (error) {
+            res.status(500).json({ status: false, creator: 'AxlyDev', error: error.message });
+        }
+    });
+    
+    // 7. PROXY GAMBAR (opsional)
+    app.get('/anime/komik/proxy', async (req, res) => {
+        try {
+            const { url } = req.query;
+            if (!url || !url.includes('komik.im')) {
+                return res.status(400).json({ status: false, creator: 'AxlyDev', error: 'Parameter url valid wajib diisi' });
+            }
+            
+            const response = await proxyImage(url);
+            res.setHeader('Content-Type', response.headers['content-type']);
+            response.data.pipe(res);
+            
         } catch (error) {
             res.status(500).json({ status: false, creator: 'AxlyDev', error: error.message });
         }
