@@ -193,6 +193,15 @@
     "username": "Username Roblox (contoh: bulderman)"
   }
     },
+{
+  "name": "TikTok Stalker",
+  "desc": "Cek profil TikTok (nickname, followers, following, total likes, verified, bio, dll)",
+  "path": "/stalk/tiktok?user=",
+  "status": "ready",
+  "params": {
+    "user": "Username TikTok (contoh: khaby.lame atau @khaby.lame atau link profil)"
+  }
+},
     {
   "name": "Mobile Legends Stalker",
   "desc": "Cek profil player Mobile Legends (ID & Zone)",
