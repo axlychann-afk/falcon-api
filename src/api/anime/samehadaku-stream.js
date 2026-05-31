@@ -26,98 +26,58 @@ module.exports = (app) => {
             });
             
             const $ = cheerio.load(data);
-            let filedonUrl = null;
             
-            // 2. Cari link filedon
-            $('iframe[src*="filedon.co"]').each((i, el) => {
-                filedonUrl = $(el).attr('src');
+            // 2. LANGSUNG cari link Krakenfiles (tanpa Filedon)
+            let krakenUrl = null;
+            
+            $('a[href*="krakenfiles.com/view/"]').each((i, el) => {
+                krakenUrl = $(el).attr('href');
                 return false;
             });
             
-            if (!filedonUrl) {
-                $('a[href*="filedon.co"]').each((i, el) => {
-                    filedonUrl = $(el).attr('href');
+            if (!krakenUrl) {
+                throw new Error('Link Krakenfiles tidak ditemukan di halaman episode');
+            }
+            
+            console.log('[Stream] Kraken URL:', krakenUrl);
+            
+            // 3. Ambil halaman Krakenfiles
+            const krakenRes = await axios.get(krakenUrl, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+                timeout: 15000
+            });
+            
+            // 4. Ekstrak MP4 URL
+            const $$ = cheerio.load(krakenRes.data);
+            let mp4Url = null;
+            
+            $$('source[type="video/mp4"]').each((i, el) => {
+                mp4Url = $$(el).attr('src');
+                return false;
+            });
+            
+            if (!mp4Url) {
+                $$('video').each((i, el) => {
+                    mp4Url = $$(el).attr('src');
                     return false;
                 });
             }
             
-            if (!filedonUrl) {
-                throw new Error('Link filedon tidak ditemukan');
-            }
-            
-            // 3. Konversi ke embed URL (filedon.co/embed/xxx)
-            let embedUrl = filedonUrl;
-            if (embedUrl.includes('/view/')) {
-                embedUrl = embedUrl.replace('/view/', '/embed/');
-            }
-            
-            console.log('[Stream] Embed URL:', embedUrl);
-            
-            // 4. Ambil halaman embed filedon
-            const filedonRes = await axios.get(embedUrl, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                    'Referer': 'https://v2.samehadaku.how/'
-                },
-                timeout: 15000
-            });
-            
-            // 5. Cari link krakenfiles atau MP4 langsung
-            let mp4Url = null;
-            let krakenUrl = null;
-            
-            // Cari link krakenfiles
-            const krakenMatch = filedonRes.data.match(/krakenfiles\.com\/view\/[a-zA-Z0-9]+/);
-            if (krakenMatch) {
-                krakenUrl = `https://${krakenMatch[0]}`;
-                console.log('[Stream] Kraken URL:', krakenUrl);
-                
-                // Ambil halaman krakenfiles
-                const krakenRes = await axios.get(krakenUrl, {
-                    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-                    timeout: 15000
-                });
-                
-                // Ekstrak MP4 dari krakenfiles
-                const $$ = cheerio.load(krakenRes.data);
-                $$('source').each((i, el) => {
-                    const src = $$(el).attr('src');
-                    if (src && src.includes('.mp4')) {
-                        mp4Url = src;
-                        return false;
-                    }
-                });
-            }
-            
-            // 6. Kalo ga nemu kraken, cari MP4 langsung
             if (!mp4Url) {
-                const mp4Match = filedonRes.data.match(/https?:\/\/[^"'\s]+\.mp4[^"'\s]*/);
-                if (mp4Match) mp4Url = mp4Match[0];
+                throw new Error('MP4 URL tidak ditemukan di Krakenfiles');
             }
             
-            // 7. Ambil judul episode
+            console.log('[Stream] MP4 URL ditemukan!');
+            
+            // 5. Ambil judul episode
             const title = $('h1.entry-title').text().trim() || 'Episode';
             
-            if (mp4Url) {
-                console.log('[Stream] MP4 URL ditemukan!');
-                return res.json({
-                    status: true,
-                    creator: 'AxlyDev',
-                    result: {
-                        title: title,
-                        mp4_url: mp4Url
-                    }
-                });
-            }
-            
-            // 8. Fallback: kasih player_url
-            return res.json({
+            res.json({
                 status: true,
                 creator: 'AxlyDev',
                 result: {
                     title: title,
-                    player_url: embedUrl,
-                    note: 'MP4 tidak bisa diambil langsung, silakan buka link player'
+                    mp4_url: mp4Url
                 }
             });
             
