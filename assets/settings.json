@@ -236,6 +236,18 @@
       }
     },
     {
+      "name": "Samehadaku Latest",
+      "desc": "Mendapatkan daftar anime terbaru dari Samehadaku",
+      "path": "/anime/samehadaku/latest",
+      "status": "ready"
+    },
+    {
+      "name": "Samehadaku Schedule",
+      "desc": "Mendapatkan jadwal rilis anime per hari (Senin - Minggu)",
+      "path": "/anime/samehadaku/schedule",
+      "status": "ready"
+    },
+    {
       "name": "Samehadaku Stream",
       "desc": "Mendapatkan link player video dari episode anime Samehadaku",
       "path": "/anime/samehadaku/stream?url=",
@@ -243,7 +255,7 @@
       "params": {
         "url": "URL episode anime dari Samehadaku (contoh: https://v2.samehadaku.how/anime/xxx/episode-1/)"
       }
-        },
+    },
 {
   "name": "Softkomik - Latest",
   "desc": "Daftar komik terbaru & update dari Softkomik",
