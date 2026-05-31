@@ -27,49 +27,54 @@ module.exports = (app) => {
             
             const $ = cheerio.load(data);
             
-            // 2. LANGSUNG cari link Krakenfiles (tanpa Filedon)
-            let krakenUrl = null;
-            
-            $('a[href*="krakenfiles.com/view/"]').each((i, el) => {
-                krakenUrl = $(el).attr('href');
+            // 2. Cari link Filedon
+            let filedonUrl = null;
+            $('iframe[src*="filedon.co"]').each((i, el) => {
+                filedonUrl = $(el).attr('src');
                 return false;
             });
             
-            if (!krakenUrl) {
-                throw new Error('Link Krakenfiles tidak ditemukan di halaman episode');
-            }
-            
-            console.log('[Stream] Kraken URL:', krakenUrl);
-            
-            // 3. Ambil halaman Krakenfiles
-            const krakenRes = await axios.get(krakenUrl, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-                timeout: 15000
-            });
-            
-            // 4. Ekstrak MP4 URL
-            const $$ = cheerio.load(krakenRes.data);
-            let mp4Url = null;
-            
-            $$('source[type="video/mp4"]').each((i, el) => {
-                mp4Url = $$(el).attr('src');
-                return false;
-            });
-            
-            if (!mp4Url) {
-                $$('video').each((i, el) => {
-                    mp4Url = $$(el).attr('src');
+            if (!filedonUrl) {
+                $('a[href*="filedon.co"]').each((i, el) => {
+                    filedonUrl = $(el).attr('href');
                     return false;
                 });
             }
             
-            if (!mp4Url) {
-                throw new Error('MP4 URL tidak ditemukan di Krakenfiles');
+            if (!filedonUrl) {
+                throw new Error('Link Filedon tidak ditemukan');
             }
             
-            console.log('[Stream] MP4 URL ditemukan!');
+            // 3. Konversi ke embed URL
+            let embedUrl = filedonUrl;
+            if (embedUrl.includes('/view/')) {
+                embedUrl = embedUrl.replace('/view/', '/embed/');
+            }
             
-            // 5. Ambil judul episode
+            console.log('[Stream] Embed URL:', embedUrl);
+            
+            // 4. Ambil halaman embed Filedon
+            const filedonRes = await axios.get(embedUrl, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0',
+                    'Referer': 'https://v2.samehadaku.how/'
+                },
+                timeout: 15000
+            });
+            
+            // 5. Cari link Pixeldrain
+            const pixeldrainMatch = filedonRes.data.match(/pixeldrain\.com\/u\/([a-zA-Z0-9]+)/);
+            
+            if (!pixeldrainMatch) {
+                throw new Error('Link Pixeldrain tidak ditemukan');
+            }
+            
+            const fileId = pixeldrainMatch[1];
+            const mp4Url = `https://pixeldrain.com/api/file/${fileId}`;
+            
+            console.log('[Stream] MP4 URL:', mp4Url);
+            
+            // 6. Ambil judul episode
             const title = $('h1.entry-title').text().trim() || 'Episode';
             
             res.json({
