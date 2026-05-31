@@ -4,126 +4,6 @@ const cheerio = require('cheerio');
 // Domain API kamu
 const API_DOMAIN = 'https://axlyapi.qzz.io';
 
-// Fungsi untuk ambil direct MP4 dari berbagai source
-async function getDirectMp4(url, type) {
-    try {
-        // 1. PIXELDRAIN -> langsung return API URL
-        if (type === 'pixeldrain') {
-            const match = url.match(/pixeldrain\.com\/u\/([a-zA-Z0-9]+)/);
-            if (match) {
-                return {
-                    success: true,
-                    mp4_url: `https://pixeldrain.com/api/file/${match[1]}`,
-                    note: 'Link direct MP4 dari Pixeldrain'
-                };
-            }
-        }
-        
-        // 2. FILEDON -> cari MP4 di dalam embed
-        if (type === 'filedon') {
-            let embedUrl = url;
-            if (embedUrl.includes('/view/')) {
-                embedUrl = embedUrl.replace('/view/', '/embed/');
-            }
-            
-            const { data } = await axios.get(embedUrl, {
-                headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://v2.samehadaku.how/' }
-            });
-            
-            // Cari MP4 URL di halaman embed
-            const match = data.match(/https?:\/\/[^"'\s]+\.mp4[^"'\s]*/);
-            if (match) {
-                return {
-                    success: true,
-                    mp4_url: match[0],
-                    note: 'Link direct MP4 dari Filedon'
-                };
-            }
-        }
-        
-        // 3. WIBUFILE -> langsung return .mp4
-        if (type === 'wibufile' && url.includes('.mp4')) {
-            return {
-                success: true,
-                mp4_url: url,
-                note: 'Link direct MP4 dari Wibufile'
-            };
-        }
-        
-        // 4. BLOGSPOT -> langsung return
-        if (type === 'blogspot') {
-            return {
-                success: true,
-                mp4_url: url,
-                note: 'Link direct MP4 dari Blogspot'
-            };
-        }
-        
-        // 5. MEGA -> return embed (Mega ga bisa direct)
-        if (type === 'mega') {
-            return {
-                success: true,
-                mp4_url: url,
-                note: 'Link embed Mega (buka di browser)'
-            };
-        }
-        
-        // 6. GOOGLE DRIVE -> konversi ke direct download
-        if (type === 'gdrive') {
-            const fileMatch = url.match(/\/d\/([^\/]+)/);
-            if (fileMatch) {
-                return {
-                    success: true,
-                    mp4_url: `https://drive.google.com/uc?export=download&id=${fileMatch[1]}`,
-                    note: 'Link direct download dari Google Drive'
-                };
-            }
-        }
-        
-        // 7. GOFILE -> perlu ambil direct link
-        if (type === 'gofile') {
-            const match = url.match(/gofile\.io\/d\/([a-zA-Z0-9]+)/);
-            if (match) {
-                const fileId = match[1];
-                const apiUrl = `https://api.gofile.io/contents/${fileId}`;
-                const { data } = await axios.get(apiUrl, {
-                    headers: { 'User-Agent': 'Mozilla/5.0' }
-                });
-                if (data.status === 'ok' && data.data.contents) {
-                    const firstFile = Object.values(data.data.contents)[0];
-                    if (firstFile.link) {
-                        return {
-                            success: true,
-                            mp4_url: firstFile.link,
-                            note: 'Link direct MP4 dari Gofile'
-                        };
-                    }
-                }
-            }
-        }
-        
-        // 8. ACEFILE -> perlu ambil direct link
-        if (type === 'acefile') {
-            const { data } = await axios.get(url, {
-                headers: { 'User-Agent': 'Mozilla/5.0' }
-            });
-            const match = data.match(/https?:\/\/[^"'\s]+\.mp4[^"'\s]*/);
-            if (match) {
-                return {
-                    success: true,
-                    mp4_url: match[0],
-                    note: 'Link direct MP4 dari Acefile'
-                };
-            }
-        }
-        
-        return { success: false, error: 'Tidak bisa mendapatkan direct MP4' };
-        
-    } catch (error) {
-        return { success: false, error: error.message };
-    }
-}
-
 async function getStreamingUrl(episodeUrl) {
     try {
         const { data } = await axios.get(episodeUrl, {
@@ -136,56 +16,106 @@ async function getStreamingUrl(episodeUrl) {
         const $ = cheerio.load(data);
         const sources = [];
         
-        // 1. Pixeldrain
-        $('a[href*="pixeldrain.com/u/"]').each(async (i, el) => {
+        // ==================== SEMUA SUMBER VIDEO ====================
+        
+        // 1. Pixeldrain (prioritas utama)
+        $('a[href*="pixeldrain.com/u/"]').each((i, el) => {
             const href = $(el).attr('href');
-            sources.push({ type: 'pixeldrain', url: href, name: 'Pixeldrain' });
+            const match = href.match(/pixeldrain\.com\/u\/([a-zA-Z0-9]+)/);
+            if (match) {
+                sources.push({
+                    name: 'Pixeldrain',
+                    url: `${API_DOMAIN}/dl/${match[1]}`
+                });
+            }
         });
         
-        // 2. Filedon
+        // 2. Filedon / Pucuk
         $('a[href*="filedon.co"]').each((i, el) => {
             let href = $(el).attr('href');
-            sources.push({ type: 'filedon', url: href, name: 'Filedon' });
+            let name = $(el).text().trim() || 'Pucuk';
+            
+            // Konversi view ke embed
+            if (href.includes('/view/')) {
+                href = href.replace('/view/', '/embed/');
+            }
+            
+            // Deteksi kualitas
+            if (href.includes('FULLHD')) name = 'Pucuk 1080p';
+            else if (href.includes('MP4HD')) name = 'Pucuk 720p';
+            
+            sources.push({ name, url: href });
         });
         
         // 3. Wibufile
         $('a[href*="wibufile.com"]').each((i, el) => {
             const href = $(el).attr('href');
-            sources.push({ type: 'wibufile', url: href, name: 'Wibufile' });
+            let name = $(el).text().trim() || 'Wibufile';
+            
+            if (href.includes('FULLHD')) name = 'Wibufile 1080p';
+            else if (href.includes('MP4HD')) name = 'Wibufile 720p';
+            else if (href.includes('.mp4')) name = 'Wibufile 480p';
+            
+            sources.push({ name, url: href });
         });
         
         // 4. Blogspot
         $('a[href*="blogger.com/video"]').each((i, el) => {
             const href = $(el).attr('href');
-            sources.push({ type: 'blogspot', url: href, name: 'Blogspot' });
+            sources.push({
+                name: $(el).text().trim() || 'Blogspot',
+                url: href
+            });
         });
         
-        // 5. Mega
+        // 5. Mega.nz
         $('a[href*="mega.nz"]').each((i, el) => {
             let href = $(el).attr('href');
+            let name = $(el).text().trim() || 'Mega';
+            
+            // Konversi ke embed
             if (href.includes('#!')) {
                 href = href.replace('#!', '/embed');
             }
-            sources.push({ type: 'mega', url: href, name: 'Mega' });
+            
+            if (href.includes('FULLHD')) name = 'Mega 1080p';
+            else if (href.includes('MP4HD')) name = 'Mega 720p';
+            
+            sources.push({ name, url: href });
         });
         
         // 6. Google Drive
         $('a[href*="drive.google.com"]').each((i, el) => {
             const href = $(el).attr('href');
-            sources.push({ type: 'gdrive', url: href, name: 'Google Drive' });
+            let name = $(el).text().trim() || 'Google Drive';
+            
+            // Konversi ke preview
+            const fileMatch = href.match(/\/d\/([^\/]+)/);
+            if (fileMatch) {
+                sources.push({
+                    name,
+                    url: `https://drive.google.com/file/d/${fileMatch[1]}/preview`
+                });
+            } else {
+                sources.push({ name, url: href });
+            }
         });
         
-        // 7. Gofile
-        $('a[href*="gofile.io/d/"]').each((i, el) => {
-            const href = $(el).attr('href');
-            sources.push({ type: 'gofile', url: href, name: 'Gofile' });
-        });
+        // 7. Krakenfiles (opsional, tapi butuh POST request)
+        // Skip dulu karena ribet
         
-        // 8. Acefile
-        $('a[href*="acefile.co/f/"]').each((i, el) => {
-            const href = $(el).attr('href');
-            sources.push({ type: 'acefile', url: href, name: 'Acefile' });
-        });
+        // 8. Iframe (fallback untuk embed lainnya)
+        if (sources.length === 0) {
+            $('iframe').each((i, el) => {
+                const src = $(el).attr('src');
+                if (src && (src.includes('embed') || src.includes('player'))) {
+                    sources.push({
+                        name: 'Embed Player',
+                        url: src
+                    });
+                }
+            });
+        }
         
         // Hapus duplikat
         const uniqueSources = [];
@@ -197,27 +127,10 @@ async function getStreamingUrl(episodeUrl) {
             }
         }
         
-        // Ambil direct MP4 untuk setiap sumber (dijalankan paralel)
-        const directResults = await Promise.all(
-            uniqueSources.map(async (source) => {
-                const result = await getDirectMp4(source.url, source.type);
-                if (result.success) {
-                    return {
-                        name: source.name,
-                        mp4_url: result.mp4_url,
-                        note: result.note
-                    };
-                }
-                return null;
-            })
-        );
-        
-        const validSources = directResults.filter(r => r !== null);
-        
         return {
             success: true,
-            total: validSources.length,
-            sources: validSources
+            total: uniqueSources.length,
+            sources: uniqueSources
         };
         
     } catch (error) {
@@ -244,7 +157,7 @@ module.exports = (app) => {
                 return res.status(404).json({
                     status: false,
                     creator: 'AxlyDev',
-                    error: 'Tidak ada sumber video yang bisa diambil'
+                    error: 'Tidak ada sumber video ditemukan'
                 });
             }
             
