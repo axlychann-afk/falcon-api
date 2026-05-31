@@ -27,55 +27,29 @@ module.exports = (app) => {
             
             const $ = cheerio.load(data);
             
-            // 2. Cari link Filedon
-            let filedonUrl = null;
-            $('iframe[src*="filedon.co"]').each((i, el) => {
-                filedonUrl = $(el).attr('src');
-                return false;
-            });
+            // 2. LANGSUNG cari link Pixeldrain
+            let pixeldrainId = null;
             
-            if (!filedonUrl) {
-                $('a[href*="filedon.co"]').each((i, el) => {
-                    filedonUrl = $(el).attr('href');
+            $('a[href*="pixeldrain.com/u/"]').each((i, el) => {
+                const href = $(el).attr('href');
+                const match = href.match(/pixeldrain\.com\/u\/([a-zA-Z0-9]+)/);
+                if (match) {
+                    pixeldrainId = match[1];
                     return false;
-                });
-            }
-            
-            if (!filedonUrl) {
-                throw new Error('Link Filedon tidak ditemukan');
-            }
-            
-            // 3. Konversi ke embed URL
-            let embedUrl = filedonUrl;
-            if (embedUrl.includes('/view/')) {
-                embedUrl = embedUrl.replace('/view/', '/embed/');
-            }
-            
-            console.log('[Stream] Embed URL:', embedUrl);
-            
-            // 4. Ambil halaman embed Filedon
-            const filedonRes = await axios.get(embedUrl, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0',
-                    'Referer': 'https://v2.samehadaku.how/'
-                },
-                timeout: 15000
+                }
             });
             
-            // 5. Cari link Pixeldrain
-            const pixeldrainMatch = filedonRes.data.match(/pixeldrain\.com\/u\/([a-zA-Z0-9]+)/);
-            
-            if (!pixeldrainMatch) {
-                throw new Error('Link Pixeldrain tidak ditemukan');
+            if (!pixeldrainId) {
+                throw new Error('Link Pixeldrain tidak ditemukan di halaman episode');
             }
             
-            const fileId = pixeldrainMatch[1];
-            const mp4Url = `https://pixeldrain.com/api/file/${fileId}`;
+            // 3. Bangun MP4 URL
+            const mp4Url = `https://pixeldrain.com/api/file/${pixeldrainId}`;
+            
+            // 4. Ambil judul episode
+            const title = $('h1.entry-title').text().trim() || 'Episode';
             
             console.log('[Stream] MP4 URL:', mp4Url);
-            
-            // 6. Ambil judul episode
-            const title = $('h1.entry-title').text().trim() || 'Episode';
             
             res.json({
                 status: true,
