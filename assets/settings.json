@@ -281,6 +281,12 @@
         "url": "URL episode anime dari Samehadaku (contoh: https://v2.samehadaku.how/anime/xxx/episode-1/)"
       }
             },
+        {
+      "name": "Samehadaku Schedule",
+      "desc": "Mendapatkan jadwal rilis anime per hari (Senin - Minggu)",
+      "path": "/anime/samehadaku/schedule",
+      "status": "ready"
+    },
  {
   "name": "Animekuindo Search",
   "desc": "Mencari anime di Animekuindo.life (judul, gambar, status, tipe)",
