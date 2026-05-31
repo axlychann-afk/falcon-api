@@ -226,36 +226,6 @@
     {
       "name": "Anime",
       "items": [
-    {
-      "name": "Samehadaku Search",
-      "desc": "Mencari anime di Samehadaku (judul, genre, rating, dll)",
-      "path": "/anime/samehadaku/search?q=",
-      "status": "ready",
-      "params": {
-        "q": "Judul anime yang ingin dicari (contoh: naruto, one piece)"
-      }
-    },
-    {
-      "name": "Samehadaku Latest",
-      "desc": "Mendapatkan daftar anime terbaru dari Samehadaku",
-      "path": "/anime/samehadaku/latest",
-      "status": "ready"
-    },
-    {
-      "name": "Samehadaku Schedule",
-      "desc": "Mendapatkan jadwal rilis anime per hari (Senin - Minggu)",
-      "path": "/anime/samehadaku/schedule",
-      "status": "ready"
-    },
-    {
-      "name": "Samehadaku Stream",
-      "desc": "Mendapatkan link player video dari episode anime Samehadaku",
-      "path": "/anime/samehadaku/stream?url=",
-      "status": "ready",
-      "params": {
-        "url": "URL episode anime dari Samehadaku (contoh: https://v2.samehadaku.how/anime/xxx/episode-1/)"
-      }
-    },
 {
   "name": "Softkomik - Latest",
   "desc": "Daftar komik terbaru & update dari Softkomik",
