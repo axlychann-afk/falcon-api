@@ -27,45 +27,70 @@ function getCurrentDay() {
 }
 
 // ──────────────────────────────────────────────────────────────
-// 1️⃣ SEARCH ANIME
+// 1️⃣ SEARCH ANIME (DENGAN SELECTOR YANG BENAR)
 // ──────────────────────────────────────────────────────────────
 async function searchAnime(query) {
     try {
         const searchUrl = `https://v2.samehadaku.how/?s=${encodeURIComponent(query)}`;
+        console.log('[Search] URL:', searchUrl);
+        
         const { data } = await axios.get(searchUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            headers: { 
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'text/html,application/xhtml+xml'
+            },
             timeout: 15000
         });
         
         const $ = cheerio.load(data);
         const results = [];
         
-        $('a[href*="/anime/"]').each((i, el) => {
-            const link = $(el).attr('href');
-            let title = $(el).find('h2, h3, .title').text().trim();
-            if (!title) title = $(el).text().trim();
+        // Selector untuk setiap anime di halaman search
+        $('article.animpost, .animepost').each((i, el) => {
+            // Ambil link dan title
+            const link = $(el).find('.animposx > a').attr('href');
+            const title = $(el).find('.data .title h2').text().trim();
             
-            if (title && link && link.includes('/anime/') && title.length > 3 && title.length < 100) {
-                const exists = results.find(r => r.url === link);
-                if (!exists) {
-                    results.push({
-                        title: title,
-                        url: link,
-                        image: null,
-                        type: '-',
-                        score: '-',
-                        status: '-'
-                    });
-                }
+            // Ambil gambar
+            const image = $(el).find('.content-thumb img').attr('src');
+            
+            // Ambil type (TV, Movie, OVA, dll) - dari .content-thumb .type
+            const type = $(el).find('.content-thumb .type').text().trim();
+            
+            // Ambil score - dari .content-thumb .score
+            let score = $(el).find('.content-thumb .score').text().trim();
+            score = score.replace(/[^0-9.]/g, ''); // Bersihkan jadi angka saja
+            
+            // Ambil status (Completed/Ongoing) - dari .data .type
+            const status = $(el).find('.data .type').text().trim();
+            
+            // Ambil genre dari tooltip (opsional)
+            const genres = [];
+            $(el).find('.stooltip .genres .mta a').each((j, genreEl) => {
+                genres.push($(genreEl).text().trim());
+            });
+            
+            if (title && link) {
+                results.push({
+                    title: title,
+                    url: link,
+                    image: image || null,
+                    type: type || '-',
+                    score: score || '-',
+                    status: status || '-',
+                    genres: genres.slice(0, 5)
+                });
             }
         });
         
+        console.log('[Search] Found:', results.length);
         return results.slice(0, 20);
+        
     } catch (error) {
         console.error('[Search Error]', error.message);
         return [];
     }
-}
+                        }
 
 // ──────────────────────────────────────────────────────────────
 // 2️⃣ GET LATEST ANIME
