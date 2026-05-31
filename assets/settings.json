@@ -257,6 +257,12 @@
   "status": "ready",
   "params": { "limit": "Jumlah rekomendasi (opsional, default 15)" }
 },
+    {
+      "name": "Samehadaku Latest",
+      "desc": "Mendapatkan daftar anime terbaru dari Samehadaku",
+      "path": "/anime/samehadaku/latest",
+      "status": "ready"
+    },
  {
   "name": "Animekuindo Search",
   "desc": "Mencari anime di Animekuindo.life (judul, gambar, status, tipe)",
