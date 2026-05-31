@@ -1,7 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 
-async function getStreamingUrl(episodeUrl) {
+async function getDirectMp4(episodeUrl) {
     try {
         console.log('[Stream] Episode URL:', episodeUrl);
         
@@ -9,8 +9,7 @@ async function getStreamingUrl(episodeUrl) {
         const { data } = await axios.get(episodeUrl, {
             headers: { 
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': 'text/html,application/xhtml+xml',
-                'Referer': 'https://v2.samehadaku.how/'
+                'Accept': 'text/html,application/xhtml+xml'
             },
             timeout: 15000
         });
@@ -18,12 +17,13 @@ async function getStreamingUrl(episodeUrl) {
         const $ = cheerio.load(data);
         let filedonUrl = null;
         
-        // 2. Cari link filedon dari iframe atau anchor
+        // 2. Cari link filedon dari iframe
         $('iframe[src*="filedon.co"]').each((i, el) => {
             filedonUrl = $(el).attr('src');
             return false;
         });
         
+        // 3. Kalo ga ada di iframe, cari di link
         if (!filedonUrl) {
             $('a[href*="filedon.co"]').each((i, el) => {
                 filedonUrl = $(el).attr('href');
@@ -35,23 +35,30 @@ async function getStreamingUrl(episodeUrl) {
             throw new Error('Link filedon tidak ditemukan');
         }
         
-        console.log('[Stream] Filedon URL:', filedonUrl);
+        console.log('[Stream] Raw filedon URL:', filedonUrl);
         
-        // 3. Ambil halaman filedon embed
-        const filedonRes = await axios.get(filedonUrl, {
+        // 4. KONVERSI KE EMBED URL (kunci utama!)
+        let embedUrl = filedonUrl;
+        if (filedonUrl.includes('/view/')) {
+            embedUrl = filedonUrl.replace('/view/', '/embed/');
+        }
+        
+        console.log('[Stream] Embed URL:', embedUrl);
+        
+        // 5. Ambil halaman embed
+        const filedonRes = await axios.get(embedUrl, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': 'text/html,application/xhtml+xml',
                 'Referer': 'https://v2.samehadaku.how/'
             },
             timeout: 15000
         });
         
-        // 4. Ekstrak MP4 URL dari tag <video>
+        // 6. Ekstrak MP4 URL dari tag <video>
         const $$ = cheerio.load(filedonRes.data);
         let mp4Url = null;
         
-        // Cara 1: Cari di tag <video> langsung
+        // Cari tag video
         $$('video').each((i, el) => {
             const src = $$(el).attr('src');
             if (src && src.includes('.mp4')) {
@@ -60,7 +67,7 @@ async function getStreamingUrl(episodeUrl) {
             }
         });
         
-        // Cara 2: Cari di tag <source> di dalam <video>
+        // Cari tag source
         if (!mp4Url) {
             $$('video source').each((i, el) => {
                 const src = $$(el).attr('src');
@@ -71,103 +78,96 @@ async function getStreamingUrl(episodeUrl) {
             });
         }
         
-        // Cara 3: Cari pake regex (fallback)
+        // Regex fallback
         if (!mp4Url) {
             const regex = /https?:\/\/[^"'\s<>]+\.mp4[^"'\s<>]*/;
             const match = filedonRes.data.match(regex);
             if (match) mp4Url = match[0];
         }
         
-        // 5. Ambil judul episode
-        const title = $('h1.entry-title').text().trim() || 
-                      $('.titleep').text().trim() || 
-                      'Episode';
+        if (!mp4Url) {
+            throw new Error('MP4 URL tidak ditemukan');
+        }
         
-        console.log('[Stream] MP4 found:', !!mp4Url);
+        console.log('[Stream] MP4 URL:', mp4Url);
+        
+        const title = $('h1.entry-title').text().trim() || 'Episode';
         
         return {
             success: true,
             title: title,
-            player_url: filedonUrl,
-            mp4_url: mp4Url,
-            download_links: mp4Url ? [mp4Url] : []
+            mp4_url: mp4Url
         };
         
     } catch (error) {
         console.error('[Stream Error]', error.message);
-        throw new Error(`Gagal ambil streaming: ${error.message}`);
+        return {
+            success: false,
+            error: error.message
+        };
     }
 }
 
 module.exports = (app) => {
-    // Endpoint stream biasa (return JSON)
-    app.get('/anime/samehadaku/stream', async (req, res) => {
-        const { url } = req.query;
+    
+    // Endpoint: /stream?url=xxx -> return JSON
+    // Endpoint: /watch?url=xxx -> redirect ke MP4
+    // Endpoint: /stream?url=xxx&redirect=true -> redirect ke MP4
+    
+    app.get('/stream', async (req, res) => {
+        const { url, redirect } = req.query;
         
         if (!url) {
             return res.status(400).json({
                 status: false,
                 creator: 'AxlyDev',
-                error: 'Parameter "url" diperlukan (URL episode Samehadaku)'
+                error: 'Parameter "url" diperlukan'
             });
         }
         
-        try {
-            const result = await getStreamingUrl(url);
-            
-            if (!result.mp4_url && !result.player_url) {
-                return res.status(404).json({
-                    status: false,
-                    creator: 'AxlyDev',
-                    error: 'Link video tidak ditemukan'
-                });
+        const result = await getDirectMp4(url);
+        
+        if (!result.success) {
+            if (redirect === 'true') {
+                return res.status(404).send('Video tidak ditemukan');
             }
-            
-            res.json({
-                status: true,
-                creator: 'AxlyDev',
-                result: {
-                    title: result.title,
-                    player_url: result.player_url,
-                    mp4_url: result.mp4_url,
-                    download_links: result.download_links
-                }
-            });
-            
-        } catch (error) {
-            res.status(500).json({
+            return res.status(404).json({
                 status: false,
                 creator: 'AxlyDev',
-                error: error.message
+                error: result.error
             });
         }
+        
+        // Jika redirect=true, langsung redirect ke MP4
+        if (redirect === 'true') {
+            return res.redirect(result.mp4_url);
+        }
+        
+        // Default: return JSON
+        res.json({
+            status: true,
+            creator: 'AxlyDev',
+            result: {
+                title: result.title,
+                url: result.mp4_url
+            }
+        });
     });
     
-    // Endpoint redirect langsung ke MP4 (buat streaming langsung)
-    app.get('/anime/samehadaku/stream', async (req, res) => {
+    // Endpoint watch (lebih pendek, selalu redirect)
+    app.get('/watch', async (req, res) => {
         const { url } = req.query;
         
         if (!url) {
             return res.status(400).send('Parameter "url" diperlukan');
         }
         
-        try {
-            const result = await getStreamingUrl(url);
-            
-            if (result.mp4_url) {
-                // Redirect langsung ke file MP4
-                return res.redirect(result.mp4_url);
-            }
-            
-            if (result.player_url) {
-                // Fallback ke player kalo ga ada MP4
-                return res.redirect(result.player_url);
-            }
-            
-            res.status(404).send('Link video tidak ditemukan');
-            
-        } catch (error) {
-            res.status(500).send(`Error: ${error.message}`);
+        const result = await getDirectMp4(url);
+        
+        if (!result.success || !result.mp4_url) {
+            return res.status(404).send('Video tidak ditemukan');
         }
+        
+        res.redirect(result.mp4_url);
     });
 };
