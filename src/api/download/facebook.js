@@ -1,289 +1,137 @@
-const { fbdown } = require('btch-downloader');
 const axios = require('axios');
-const cheerio = require('cheerio');
+const crypto = require('crypto');
+const forge = require('node-forge');
 
-// ─── Deteksi tipe konten ──────────────────────────────────────────────────────
-function detectContentType(url) {
-    if (/\/(photo|photos|photo\.php)/i.test(url)) return 'photo';
-    if (/\/(watch|videos?|reel|video\.php)/i.test(url)) return 'video';
-    if (/fb\.watch/i.test(url)) return 'video';
-    return 'auto';
+const HITUBE_API = "https://api.hitube.io";
+const HITUBE_WEB = "https://www.hitube.io";
+const PUBLIC_KEY = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDCAdf/EyIbLBxjGqmh7qLU6/CPCzru+75+82OSPZ+nf4BFvg88drpZ6KigNW0J8TNgxe6Yms1irCZNVDyu+RXsl4y/7c2KOHc4OGTzHB5fUMiMasFUvcEs2P70e6yA/sKHZfBLG1XPhlb84Ibs3nhD3W5e2SuC+4EuVkaqzN08LQIDAQAB";
+const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0";
+
+function createSessionId() {
+    const random = crypto.randomBytes(6).toString("base64url").slice(0, 10);
+    return `hitube.io_${random}_${Date.now()}`;
 }
 
-// ─── Decode escaped string ────────────────────────────────────────────────────
-function cleanUrl(str) {
-    return str
-        .replace(/\\u002F/gi, '/')
-        .replace(/\\u0026/gi, '&')
-        .replace(/\\u003D/gi, '=')
-        .replace(/\\\//g, '/')
-        .replace(/&amp;/g, '&')
-        .replace(/\\"/g, '"');
+function createSecureMessage() {
+    const pem = `-----BEGIN PUBLIC KEY-----\n${PUBLIC_KEY.match(/.{1,64}/g).join("\n")}\n-----END PUBLIC KEY-----`;
+    const publicKey = forge.pki.publicKeyFromPem(pem);
+    const encrypted = publicKey.encrypt(Date.now().toString(), "RSAES-PKCS1-V1_5");
+    return forge.util.encode64(encrypted);
 }
 
-// ─── Upgrade resolusi URL fbcdn ───────────────────────────────────────────────
-function upgradeResolution(url) {
-    return url
-        .replace(/\/p\d+x\d+\//, '/p2048x2048/')
-        .replace(/_s\.jpg/, '_n.jpg')
-        .replace(/_t\.jpg/, '_n.jpg')
-        .replace(/_q\.jpg/, '_n.jpg');
-}
-
-// ─── Fetch HTML ───────────────────────────────────────────────────────────────
-async function fetchHtml(url) {
-    const attempts = [
-        {
-            url,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
-                'Accept-Language': 'id-ID,id;q=0.9',
-                'Accept': 'text/html,application/xhtml+xml',
-            }
-        },
-        {
-            url,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                'Accept-Language': 'id-ID,id;q=0.9',
-            }
-        },
-        {
-            url: url.replace(/www\.facebook\.com/, 'm.facebook.com'),
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
-                'Accept-Language': 'id-ID,id;q=0.9',
-            }
-        }
-    ];
-
-    for (const attempt of attempts) {
-        try {
-            const res = await axios.get(attempt.url, {
-                headers: attempt.headers,
-                timeout: 20000,
-                maxRedirects: 10,
-            });
-            if (res.data?.length > 1000) return { html: res.data, finalUrl: attempt.url };
-        } catch { continue }
-    }
-    return null;
-}
-
-// ─── Ekstrak foto dari HTML ────────────────────────────────────────────────────
-function extractPostImages(html) {
-    const candidates = [];
-
-    const jsonImagePatterns = [
-        /"photo_image"\s*:\s*\{[^}]*"uri"\s*:\s*"([^"]+)"[^}]*"width"\s*:\s*(\d+)[^}]*"height"\s*:\s*(\d+)/g,
-        /"image"\s*:\s*\{[^}]*"uri"\s*:\s*"([^"]+)"[^}]*"width"\s*:\s*(\d+)[^}]*"height"\s*:\s*(\d+)/g,
-        /"uri"\s*:\s*"([^"]+)"[^,}]*,\s*"width"\s*:\s*(\d+)\s*,\s*"height"\s*:\s*(\d+)/g,
-        /"src"\s*:\s*"(https:\\?\/\\?\/[^"]*fbcdn[^"]*\.(?:jpg|png|webp)[^"]*)"[^}]*"width"\s*:\s*(\d+)[^}]*"height"\s*:\s*(\d+)/g,
-    ];
-
-    for (const pattern of jsonImagePatterns) {
-        let m;
-        const re = new RegExp(pattern.source, pattern.flags);
-        while ((m = re.exec(html)) !== null) {
-            const imgUrl = cleanUrl(m[1]);
-            const w = parseInt(m[2]);
-            const h = parseInt(m[3]);
-            if (
-                imgUrl.includes('fbcdn') &&
-                !imgUrl.includes('emoji') &&
-                !imgUrl.includes('safe_image') &&
-                !imgUrl.includes('cp0') &&
-                w >= 400 && h >= 400
-            ) {
-                candidates.push({ url: imgUrl, area: w * h, w, h });
-            }
-        }
-    }
-
-    const ogPatterns = [
-        /property="og:image"\s+content="([^"]+)"/,
-        /og:image[^>]*?content="([^"]+)"/,
-    ];
-    for (const pattern of ogPatterns) {
-        const m = html.match(pattern);
-        if (m) {
-            const imgUrl = cleanUrl(m[1]);
-            if (
-                imgUrl.includes('fbcdn') &&
-                !imgUrl.includes('profile') &&
-                !imgUrl.includes('p50x50') &&
-                !imgUrl.includes('p100x100')
-            ) {
-                const upgraded = upgradeResolution(imgUrl);
-                candidates.push({ url: upgraded, area: 9000 * 9000, w: 9000, h: 9000 });
-            }
-        }
-    }
-
-    if (candidates.length === 0) return [];
-
-    const seen = new Set();
-    const unique = candidates.filter(c => {
-        const key = c.url.split('?')[0];
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-    });
-
-    unique.sort((a, b) => b.area - a.area);
-    return unique.map(c => c.url);
-}
-
-// ─── Validasi URL gambar ─────────────────────────────────────────────────────
-async function validateImageUrl(url) {
-    try {
-        const res = await axios.head(url, {
-            timeout: 8000,
-            headers: { 'User-Agent': 'Mozilla/5.0' },
-            maxRedirects: 5,
-        });
-        const ct = res.headers['content-type'] || '';
-        const cl = parseInt(res.headers['content-length'] || '0');
-        return ct.startsWith('image/') && (cl === 0 || cl > 5000);
-    } catch {
-        return false;
-    }
-}
-
-// ─── Ambil foto dari HTML ────────────────────────────────────────────────────
-async function tryGetPhoto(url) {
-    const result = await fetchHtml(url);
-    if (!result) return null;
-
-    const images = extractPostImages(result.html);
-    if (images.length === 0) return null;
-
-    for (const imgUrl of images.slice(0, 5)) {
-        const valid = await validateImageUrl(imgUrl);
-        if (valid) {
-            console.log(`[Facebook] ✅ valid image: ${imgUrl.slice(0, 100)}`);
-            return imgUrl;
-        }
-    }
-    return images[0] || null;
-}
-
-// ─── Ambil video pake btch-downloader ────────────────────────────────────────
-async function tryGetVideo(url) {
-    try {
-        const data = await fbdown(url);
-        console.log('[Facebook] video data:', JSON.stringify(data, null, 2));
-        
-        const videos = [];
-        
-        // Cek berbagai kemungkinan format response dari btch-downloader
-        if (data?.hd) videos.push({ quality: 'HD', url: data.hd });
-        if (data?.sd) videos.push({ quality: 'SD', url: data.sd });
-        if (data?.HD) videos.push({ quality: 'HD', url: data.HD });
-        if (data?.Normal_video) videos.push({ quality: 'Normal', url: data.Normal_video });
-        if (data?.url) videos.push({ quality: 'SD', url: data.url });
-        if (data?.video) videos.push({ quality: 'SD', url: data.video });
-        
-        // Cek juga kalo response berupa array
-        if (Array.isArray(data) && data.length > 0) {
-            data.forEach(item => {
-                if (item.url) videos.push({ quality: item.quality || 'SD', url: item.url });
-            });
-        }
-        
-        // Cek kalo response punya property media
-        if (data?.media && Array.isArray(data.media)) {
-            data.media.forEach(item => {
-                if (item.url) videos.push({ quality: item.quality || 'SD', url: item.url });
-            });
-        }
-        
-        if (videos.length === 0) return null;
-        
-        return {
-            videos: videos,
-            title: data?.title || 'Facebook Video',
-            thumbnail: data?.thumbnail || data?.thumb || null
-        };
-    } catch (error) {
-        console.error('[Facebook Video Error]', error.message);
-        return null;
-    }
-}
-
-// ─── Handler utama ────────────────────────────────────────────────────────────
 async function facebookDownloader(url) {
-    const contentType = detectContentType(url);
-    console.log(`[Facebook] type=${contentType} url=${url}`);
+    const sessionid = createSessionId();
+    
+    try {
+        const response = await axios.get(`${HITUBE_API}/st-tik-video/fb/dl`, {
+            params: { url, sessionid },
+            headers: {
+                "x-secure-message": createSecureMessage(),
+                "accept": "application/json, text/plain, */*",
+                "origin": HITUBE_WEB,
+                "referer": `${HITUBE_WEB}/`,
+                "user-agent": UA
+            },
+            timeout: 30000
+        });
 
-    // Kalo jelas video
-    if (contentType === 'video') {
-        const videoResult = await tryGetVideo(url);
-        if (videoResult && videoResult.videos.length > 0) {
+        console.log('[Hitube] Response code:', response.data?.code);
+
+        if (response.data?.code !== 200) {
             return {
-                status: true,
-                type: 'video',
-                title: videoResult.title,
-                thumbnail: videoResult.thumbnail,
-                videos: videoResult.videos,
-                images: [],
-                audio: null
+                status: false,
+                error: response.data?.msg || 'Gagal mengambil data dari hitube.io'
             };
         }
-        return { status: false, error: 'Gagal mengambil video dari URL tersebut' };
-    }
 
-    // Kalo jelas foto
-    if (contentType === 'photo') {
-        const photoUrl = await tryGetPhoto(url);
-        if (photoUrl) {
+        const result = response.data?.result;
+        const mediaList = result?.fbBos || [];
+        
+        if (mediaList.length === 0) {
             return {
-                status: true,
-                type: 'photo',
-                title: 'Facebook Photo',
-                thumbnail: photoUrl,
-                videos: [],
-                images: [{ url: photoUrl, quality: 'HD' }],
-                audio: null
+                status: false,
+                error: 'Tidak ada media yang ditemukan di URL ini'
             };
         }
-        return { status: false, error: 'Gagal mengambil foto dari URL tersebut' };
-    }
 
-    // AUTO: coba video dulu, baru foto
-    const videoResult = await tryGetVideo(url);
-    if (videoResult && videoResult.videos.length > 0) {
+        const videos = [];
+        const images = [];
+        const audios = [];
+
+        for (const item of mediaList) {
+            const mediaUrl = item.url ? `${HITUBE_API}/st-tik-video/token/${encodeURIComponent(item.url)}?sessionid=${sessionid}&wh=www.hitube.io` : null;
+            
+            if (!mediaUrl) continue;
+
+            const itemType = item.type?.toLowerCase() || '';
+            
+            // Video: mp4, mov, avi, webm
+            if (itemType === 'mp4' || itemType === 'video' || itemType === 'mov' || itemType === 'avi' || itemType === 'webm') {
+                videos.push({
+                    quality: item.tag || (itemType === 'mp4' ? 'SD' : 'Unknown'),
+                    url: mediaUrl,
+                    size: item.size || null
+                });
+            } 
+            // Audio: m4a, mp3, aac, ogg
+            else if (itemType === 'm4a' || itemType === 'mp3' || itemType === 'aac' || itemType === 'ogg' || itemType === 'audio') {
+                audios.push({
+                    quality: item.tag || 'Audio',
+                    url: mediaUrl,
+                    size: item.size || null,
+                    type: item.type
+                });
+            }
+            // Foto: jpg, jpeg, png, gif, webp, photo, image
+            else if (itemType === 'jpg' || itemType === 'jpeg' || itemType === 'png' || itemType === 'gif' || itemType === 'webp' || itemType === 'photo' || itemType === 'image') {
+                images.push({
+                    url: mediaUrl,
+                    size: item.size || null,
+                    type: item.type
+                });
+            }
+        }
+
+        if (videos.length === 0 && images.length === 0 && audios.length === 0) {
+            return {
+                status: false,
+                error: 'Tidak ada media yang dapat diekstrak (unknown type)'
+            };
+        }
+
+        // Tentukan tipe utama
+        let mainType = 'unknown';
+        if (videos.length > 0) mainType = 'video';
+        else if (images.length > 0) mainType = 'photo';
+        else if (audios.length > 0) mainType = 'audio';
+
+        // Ambil thumbnail
+        let thumbnail = null;
+        if (result?.fbCover) {
+            thumbnail = `${HITUBE_API}/st-tik-video/token/${encodeURIComponent(result.fbCover)}?sessionid=${sessionid}&wh=www.hitube.io`;
+        } else if (images.length > 0) {
+            thumbnail = images[0].url;
+        }
+
         return {
             status: true,
-            type: 'video',
-            title: videoResult.title,
-            thumbnail: videoResult.thumbnail,
-            videos: videoResult.videos,
-            images: [],
-            audio: null
+            type: mainType,
+            title: result?.title || 'Facebook Media',
+            thumbnail: thumbnail,
+            videos: videos,
+            images: images,
+            audios: audios
         };
-    }
 
-    const photoUrl = await tryGetPhoto(url);
-    if (photoUrl) {
+    } catch (error) {
+        console.error('[Hitube Error]', error.message);
         return {
-            status: true,
-            type: 'photo',
-            title: 'Facebook Photo',
-            thumbnail: photoUrl,
-            videos: [],
-            images: [{ url: photoUrl, quality: 'HD' }],
-            audio: null
+            status: false,
+            error: error.message
         };
     }
-
-    return {
-        status: false,
-        error: 'Tidak ada konten media (foto/video) yang dapat diambil. Pastikan postingan bersifat publik.'
-    };
 }
 
-// ─── Export endpoint ──────────────────────────────────────────────────────────
 module.exports = (app) => {
     app.get('/download/facebook', async (req, res) => {
         const { url } = req.query;
@@ -324,7 +172,7 @@ module.exports = (app) => {
                     thumbnail: result.thumbnail,
                     videos: result.videos,
                     images: result.images,
-                    audio: result.audio
+                    audios: result.audios
                 }
             });
 
