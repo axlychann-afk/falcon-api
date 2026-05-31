@@ -7,6 +7,8 @@ const cheerio = require('cheerio');
 async function searchAnime(query) {
     try {
         const searchUrl = `https://v2.samehadaku.how/?s=${encodeURIComponent(query)}`;
+        console.log('[Search] URL:', searchUrl);
+        
         const { data } = await axios.get(searchUrl, {
             headers: { 
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -18,28 +20,56 @@ async function searchAnime(query) {
         const $ = cheerio.load(data);
         const results = [];
         
-        $('article.animpost').each((i, el) => {
-            const link = $(el).find('.animposx a').attr('href');
-            const title = $(el).find('.data .title h2').text().trim();
-            const image = $(el).find('.content-thumb img').attr('src');
-            const type = $(el).find('.content-thumb .type').text().trim();
-            const score = $(el).find('.content-thumb .score').text().trim();
-            const status = $(el).find('.data .type').text().trim();
+        // Coba berbagai selector
+        $('article.animpost, .animepost, .post, .item').each((i, el) => {
+            // Ambil link
+            let link = $(el).find('.animposx a').attr('href');
+            if (!link) link = $(el).find('h2 a').attr('href');
+            if (!link) link = $(el).find('.title a').attr('href');
+            if (!link) link = $(el).find('a').first().attr('href');
             
-            if (title && link) {
+            // Ambil judul
+            let title = $(el).find('.data .title h2').text().trim();
+            if (!title) title = $(el).find('h2').text().trim();
+            if (!title) title = $(el).find('.title').text().trim();
+            if (!title) title = $(el).find('h3').text().trim();
+            
+            // Ambil gambar
+            let image = $(el).find('.content-thumb img').attr('src');
+            if (!image) image = $(el).find('img').first().attr('src');
+            
+            // Ambil info lain
+            const type = $(el).find('.type').text().trim() || '-';
+            const score = $(el).find('.score').text().trim() || '-';
+            const status = $(el).find('.status').text().trim() || '-';
+            
+            if (title && link && link.includes('/anime/')) {
                 results.push({
                     title: title,
                     url: link,
                     image: image || null,
-                    type: type || 'Unknown',
-                    score: score || '-',
-                    status: status || '-'
+                    type: type,
+                    score: score,
+                    status: status
                 });
             }
         });
         
-        return results;
+        // Hapus duplikat berdasarkan URL
+        const unique = [];
+        const seen = new Set();
+        for (const item of results) {
+            if (!seen.has(item.url)) {
+                seen.add(item.url);
+                unique.push(item);
+            }
+        }
+        
+        console.log('[Search] Found:', unique.length);
+        return unique;
+        
     } catch (error) {
+        console.error('[Search Error]', error.message);
         throw new Error(`Gagal search: ${error.message}`);
     }
 }
@@ -49,7 +79,9 @@ async function searchAnime(query) {
 // ──────────────────────────────────────────────────────────────
 async function getLatestAnime() {
     try {
-        const url = 'https://v2.samehadaku.how/anime-terbaru/';
+        const url = 'https://v2.samehadaku.how/';
+        console.log('[Latest] URL:', url);
+        
         const { data } = await axios.get(url, {
             headers: { 
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -60,18 +92,20 @@ async function getLatestAnime() {
         const $ = cheerio.load(data);
         const animes = [];
         
-        $('.animepost, .item, .post, .list-item, article').each((i, el) => {
-            const link = $(el).find('a[href*="samehadaku.how/anime/"]').attr('href') ||
-                        $(el).find('.title a, h3 a, .judul a, .anime-title a').attr('href') ||
-                        $(el).find('a').first().attr('href');
+        // Cari di bagian terbaru (biasanya di homepage)
+        $('.animepost, .post, .item, article').each((i, el) => {
+            let link = $(el).find('a[href*="/anime/"]').attr('href');
+            if (!link) link = $(el).find('a').first().attr('href');
             
-            const title = $(el).find('.judul, .title, h3, .anime-title, h2').first().text().trim();
-            const episode = $(el).find('.episode, .eps, .epz').text().trim();
-            const thumbnail = $(el).find('img').first().attr('src');
+            let title = $(el).find('.title, h3, h2').first().text().trim();
+            if (!title) title = $(el).find('a').first().text().trim();
             
-            if (title && link && !animes.find(a => a.url === link)) {
+            let episode = $(el).find('.episode, .eps, .epz').text().trim();
+            let thumbnail = $(el).find('img').first().attr('src');
+            
+            if (title && link && link.includes('/anime/') && animes.length < 30) {
                 animes.push({
-                    title: title,
+                    title: title.substring(0, 60),
                     url: link,
                     episode: episode || 'Episode terbaru',
                     thumbnail: thumbnail || null
@@ -79,34 +113,21 @@ async function getLatestAnime() {
             }
         });
         
-        if (animes.length === 0) {
-            $('a[href*="samehadaku.how/anime/"]').each((i, el) => {
-                const link = $(el).attr('href');
-                const title = $(el).text().trim();
-                
-                if (title && link && title.length > 3 && animes.length < 30) {
-                    animes.push({
-                        title: title.substring(0, 60),
-                        url: link,
-                        episode: 'Episode terbaru',
-                        thumbnail: null
-                    });
-                }
-            });
-        }
-        
-        const uniqueAnimes = [];
-        const seenUrls = new Set();
-        for (const anime of animes) {
-            if (!seenUrls.has(anime.url)) {
-                seenUrls.add(anime.url);
-                uniqueAnimes.push(anime);
+        // Hapus duplikat
+        const unique = [];
+        const seen = new Set();
+        for (const item of animes) {
+            if (!seen.has(item.url)) {
+                seen.add(item.url);
+                unique.push(item);
             }
         }
         
-        return uniqueAnimes.slice(0, 20);
+        console.log('[Latest] Found:', unique.length);
+        return unique.slice(0, 20);
         
     } catch (error) {
+        console.error('[Latest Error]', error.message);
         throw new Error(`Gagal ambil anime terbaru: ${error.message}`);
     }
 }
@@ -116,7 +137,10 @@ async function getLatestAnime() {
 // ──────────────────────────────────────────────────────────────
 async function getSchedule() {
     try {
+        // Coba API endpoint
         const apiUrl = 'https://v2.samehadaku.how/wp-json/custom/v1/all-schedule?perpage=50';
+        console.log('[Schedule] URL:', apiUrl);
+        
         const { data } = await axios.get(apiUrl, {
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
             timeout: 15000
@@ -142,61 +166,28 @@ async function getSchedule() {
             'Minggu': []
         };
         
-        for (const item of data) {
-            const hari = hariMap[item.day] || item.day;
-            if (schedule[hari]) {
-                schedule[hari].push({
-                    title: item.title,
-                    url: item.url,
-                    time: item.east_time || '-',
-                    genre: item.genre || '-',
-                    score: item.east_score || '-'
-                });
+        if (data && Array.isArray(data)) {
+            for (const item of data) {
+                const hari = hariMap[item.day] || item.day;
+                if (schedule[hari]) {
+                    schedule[hari].push({
+                        title: item.title || 'Unknown',
+                        url: item.url || '#',
+                        time: item.east_time || '-',
+                        genre: item.genre || '-',
+                        score: item.east_score || '-'
+                    });
+                }
             }
         }
         
+        console.log('[Schedule] Success');
         return schedule;
         
     } catch (error) {
-        // Fallback: ambil per hari
-        try {
-            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-            const hariIndo = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
-            
-            const schedule = {
-                'Senin': [],
-                'Selasa': [],
-                'Rabu': [],
-                'Kamis': [],
-                'Jumat': [],
-                'Sabtu': [],
-                'Minggu': []
-            };
-            
-            for (let i = 0; i < days.length; i++) {
-                const { data } = await axios.get(`https://v2.samehadaku.how/wp-json/custom/v1/all-schedule?day=${days[i]}&perpage=20`, {
-                    headers: { 'User-Agent': 'Mozilla/5.0' },
-                    timeout: 10000
-                });
-                
-                if (data && data.length > 0) {
-                    for (const anime of data) {
-                        schedule[hariIndo[i]].push({
-                            title: anime.title,
-                            url: anime.url,
-                            time: anime.east_time || '-',
-                            genre: anime.genre || '-',
-                            score: anime.east_score || '-'
-                        });
-                    }
-                }
-            }
-            
-            return schedule;
-            
-        } catch (fallbackErr) {
-            throw new Error(`Gagal ambil jadwal: ${fallbackErr.message}`);
-        }
+        console.error('[Schedule Error]', error.message);
+        // Return schedule kosong dengan pesan error
+        throw new Error(`Gagal ambil jadwal: ${error.message}`);
     }
 }
 
@@ -205,6 +196,8 @@ async function getSchedule() {
 // ──────────────────────────────────────────────────────────────
 async function getStreamingUrl(episodeUrl) {
     try {
+        console.log('[Stream] URL:', episodeUrl);
+        
         const { data } = await axios.get(episodeUrl, {
             headers: { 
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -216,16 +209,18 @@ async function getStreamingUrl(episodeUrl) {
         let playerUrl = null;
         let downloadLinks = [];
         
+        // Cari iframe player
         $('iframe').each((i, el) => {
             const src = $(el).attr('src');
-            if (src && (src.includes('filedon') || src.includes('embed') || src.includes('player') || src.includes('drive') || src.includes('dood') || src.includes('stream'))) {
+            if (src && (src.includes('filedon') || src.includes('embed') || src.includes('player') || src.includes('drive') || src.includes('dood') || src.includes('stream') || src.includes('mp4'))) {
                 playerUrl = src;
                 return false;
             }
         });
         
+        // Cari link download
         if (!playerUrl) {
-            $('a[href*="filedon.co"], a[href*="doodstream"], a[href*="drive.google"], a[href*="mp4"]').each((i, el) => {
+            $('a[href*="filedon.co"], a[href*="doodstream"], a[href*="drive.google"], a[href*=".mp4"]').each((i, el) => {
                 const href = $(el).attr('href');
                 if (href && !downloadLinks.includes(href)) {
                     downloadLinks.push(href);
@@ -234,7 +229,12 @@ async function getStreamingUrl(episodeUrl) {
             playerUrl = downloadLinks[0] || null;
         }
         
-        const title = $('h1.entry-title').text().trim() || $('.titleep').text().trim() || 'Episode';
+        // Ambil judul episode
+        const title = $('h1.entry-title').text().trim() || 
+                      $('.titleep').text().trim() || 
+                      'Episode';
+        
+        console.log('[Stream] Player found:', !!playerUrl);
         
         return {
             success: true,
@@ -242,7 +242,9 @@ async function getStreamingUrl(episodeUrl) {
             player_url: playerUrl,
             download_links: downloadLinks
         };
+        
     } catch (error) {
+        console.error('[Stream Error]', error.message);
         throw new Error(`Gagal ambil streaming: ${error.message}`);
     }
 }
@@ -284,7 +286,7 @@ module.exports = (app) => {
             });
             
         } catch (error) {
-            console.error('[Search Error]', error.message);
+            console.error('[Search API Error]', error.message);
             res.status(500).json({
                 status: false,
                 creator: 'AxlyChann',
@@ -314,7 +316,7 @@ module.exports = (app) => {
             });
             
         } catch (error) {
-            console.error('[Latest Error]', error.message);
+            console.error('[Latest API Error]', error.message);
             res.status(500).json({
                 status: false,
                 creator: 'AxlyChann',
@@ -328,14 +330,15 @@ module.exports = (app) => {
         try {
             const schedule = await getSchedule();
             
-            // Cek apakah semua hari kosong
+            // Cek apakah ada data
             const hasData = Object.values(schedule).some(day => day.length > 0);
             
             if (!hasData) {
                 return res.status(404).json({
                     status: false,
                     creator: 'AxlyChann',
-                    error: 'Tidak ada jadwal yang ditemukan'
+                    error: 'Tidak ada jadwal yang ditemukan',
+                    fallback_url: 'https://v2.samehadaku.how/jadwal-rilis/'
                 });
             }
             
@@ -346,7 +349,7 @@ module.exports = (app) => {
             });
             
         } catch (error) {
-            console.error('[Schedule Error]', error.message);
+            console.error('[Schedule API Error]', error.message);
             res.status(500).json({
                 status: false,
                 creator: 'AxlyChann',
@@ -390,43 +393,7 @@ module.exports = (app) => {
             });
             
         } catch (error) {
-            console.error('[Stream Error]', error.message);
-            res.status(500).json({
-                status: false,
-                creator: 'AxlyChann',
-                error: error.message
-            });
-        }
-    });
-};                status: false,
-                creator: 'AxlyChann',
-                error: 'Parameter "url" diperlukan (URL episode anime)'
-            });
-        }
-        
-        try {
-            const result = await getStreamingUrl(url);
-            
-            if (!result.player_url && result.download_links.length === 0) {
-                return res.status(404).json({
-                    status: false,
-                    creator: 'AxlyChann',
-                    error: 'Link player tidak ditemukan'
-                });
-            }
-            
-            res.json({
-                status: true,
-                creator: 'AxlyChann',
-                result: {
-                    title: result.title,
-                    player_url: result.player_url,
-                    download_links: result.download_links
-                }
-            });
-            
-        } catch (error) {
-            console.error('[Stream Error]', error.message);
+            console.error('[Stream API Error]', error.message);
             res.status(500).json({
                 status: false,
                 creator: 'AxlyChann',
