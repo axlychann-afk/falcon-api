@@ -1,184 +1,192 @@
-const axios = require("axios");
-const forge = require("node-forge");
-const crypto = require("crypto");
+const axios = require('axios');
+const crypto = require('crypto');
+const forge = require('node-forge');
 
-// Konfigurasi
-const API = "https://api.hitube.io";
-const WEB = "https://www.hitube.io";
-const PUBLIC_KEY =
-  "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDCAdf/EyIbLBxjGqmh7qLU6/CPCzru+75+82OSPZ+nf4BFvg88drpZ6KigNW0J8TNgxe6Yms1irCZNVDyu+RXsl4y/7c2KOHc4OGTzHB5fUMiMasFUvcEs2P70e6yA/sKHZfBLG1XPhlb84Ibs3nhD3W5e2SuC+4EuVkaqzN08LQIDAQAB";
-
-const UA =
-  "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36";
+const HITUBE_API = "https://api.hitube.io";
+const HITUBE_WEB = "https://www.hitube.io";
+const PUBLIC_KEY = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDCAdf/EyIbLBxjGqmh7qLU6/CPCzru+75+82OSPZ+nf4BFvg88drpZ6KigNW0J8TNgxe6Yms1irCZNVDyu+RXsl4y/7c2KOHc4OGTzHB5fUMiMasFUvcEs2P70e6yA/sKHZfBLG1XPhlb84Ibs3nhD3W5e2SuC+4EuVkaqzN08LQIDAQAB";
+const UA = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36";
 
 function createSessionId() {
-  const random = crypto.randomBytes(6).toString("base64url").slice(0, 10);
-  return `hitube.io_${random}_${Date.now()}`;
+    const random = crypto.randomBytes(6).toString("base64url").slice(0, 10);
+    return `hitube.io_${random}_${Date.now()}`;
 }
 
 function createSecureMessage() {
-  const pem = `-----BEGIN PUBLIC KEY-----\n${PUBLIC_KEY.match(/.{1,64}/g).join("\n")}\n-----END PUBLIC KEY-----`;
-  const publicKey = forge.pki.publicKeyFromPem(pem);
-  const encrypted = publicKey.encrypt(Date.now().toString(), "RSAES-PKCS1-V1_5");
-  return forge.util.encode64(encrypted);
+    const pem = `-----BEGIN PUBLIC KEY-----\n${PUBLIC_KEY.match(/.{1,64}/g).join("\n")}\n-----END PUBLIC KEY-----`;
+    const publicKey = forge.pki.publicKeyFromPem(pem);
+    const encrypted = publicKey.encrypt(Date.now().toString(), "RSAES-PKCS1-V1_5");
+    return forge.util.encode64(encrypted);
 }
 
-function mediaUrl(token, sessionid) {
-  return `${API}/st-tik-video/token/${encodeURIComponent(token)}?sessionid=${encodeURIComponent(sessionid)}&wh=www.hitube.io`;
-}
+async function facebookDownloader(url) {
+    const sessionid = createSessionId();
+    
+    try {
+        console.log(`[Facebook Download] Processing: ${url}`);
+        
+        const response = await axios.get(`${HITUBE_API}/st-tik-video/fb/dl`, {
+            params: { url, sessionid },
+            headers: {
+                "x-secure-message": createSecureMessage(),
+                "accept": "application/json, text/plain, */*",
+                "origin": HITUBE_WEB,
+                "referer": `${HITUBE_WEB}/`,
+                "user-agent": UA
+            },
+            timeout: 30000
+        });
 
-function mapMedia(item, sessionid) {
-  const data = {
-    type: item.type || "file",
-    url: item.url ? mediaUrl(item.url, sessionid) : null
-  };
+        console.log(`[Facebook Download] Response status: ${response.status}, code: ${response.data?.code}`);
 
-  if (item.tag) data.quality = item.tag;
-  if (item.size) data.size = item.size;
-  if (item.cover) data.cover = mediaUrl(item.cover, sessionid);
-  if (item.thumb) data.thumbnail = mediaUrl(item.thumb, sessionid);
+        if (response.status !== 200 || response.data?.code !== 200) {
+            throw new Error(response.data?.msg || 'Gagal mengambil data dari hitube.io');
+        }
 
-  return data;
-}
+        const list = response.data?.result?.fbBos || [];
+        if (list.length === 0) {
+            throw new Error('Tidak ada media yang ditemukan');
+        }
 
-async function hitube(url) {
-  const sessionid = createSessionId();
+        const videos = [];
+        const images = [];
 
-  try {
-    const res = await axios.get(`${API}/st-tik-video/fb/dl`, {
-      timeout: 60000,
-      validateStatus: () => true,
-      params: {
-        url,
-        sessionid
-      },
-      headers: {
-        "x-secure-message": createSecureMessage(),
-        "accept": "application/json, text/plain, */*",
-        "origin": WEB,
-        "referer": `${WEB}/`,
-        "user-agent": UA
-      }
-    });
+        for (const item of list) {
+            const mediaUrl = item.url ? `${HITUBE_API}/st-tik-video/token/${encodeURIComponent(item.url)}?sessionid=${sessionid}&wh=www.hitube.io` : null;
+            
+            if (!mediaUrl) continue;
 
-    const data = res.data;
+            if (item.type === 'video') {
+                videos.push({
+                    quality: item.tag || 'SD',
+                    url: mediaUrl,
+                    size: item.size || null
+                });
+            } else if (item.type === 'photo') {
+                images.push({
+                    url: mediaUrl,
+                    size: item.size || null
+                });
+            }
+        }
 
-    if (res.status !== 200 || data?.code !== 200) {
-      return {
-        success: false,
-        code: data?.code || res.status,
-        error: "Gagal mendapatkan data dari hitube"
-      };
+        // Ambil thumbnail kalo ada
+        let thumbnail = null;
+        if (response.data?.result?.fbCover) {
+            thumbnail = `${HITUBE_API}/st-tik-video/token/${encodeURIComponent(response.data.result.fbCover)}?sessionid=${sessionid}&wh=www.hitube.io`;
+        }
+
+        return {
+            status: true,
+            title: response.data?.result?.title || "Facebook Media",
+            thumbnail: thumbnail,
+            videos: videos,
+            images: images,
+            audio: null
+        };
+
+    } catch (error) {
+        console.error(`[Facebook Download Error] ${error.message}`);
+        return {
+            status: false,
+            error: error.message
+        };
     }
-
-    const list = Array.isArray(data?.result?.fbBos) ? data.result.fbBos : [];
-    const result = list.map(item => mapMedia(item, sessionid)).filter(item => item.url);
-
-    return {
-      success: result.length > 0,
-      code: data.code,
-      data: result
-    };
-  } catch (e) {
-    return {
-      success: false,
-      code: e.response?.status || 500,
-      error: e.message
-    };
-  }
 }
 
 module.exports = (app) => {
-  app.get("/download/facebook", async (req, res) => {
-    try {
-      const { url } = req.query;
+    app.get('/download/facebook', async (req, res) => {
+        const { url } = req.query;
 
-      // Validasi URL
-      if (!url) {
-        return res.status(400).json({
-          status: false,
-          creator: global.apikey?.[0] || "AxlyDev",
-          error: "Parameter 'url' diperlukan"
-        });
-      }
-
-      // Validasi URL Facebook
-      if (!url.includes("facebook.com") && !url.includes("fb.watch")) {
-        return res.status(400).json({
-          status: false,
-          creator: global.apikey?.[0] || "AxlyDev",
-          error: "URL harus dari Facebook (facebook.com atau fb.watch)"
-        });
-      }
-
-      const result = await hitube(url);
-
-      if (!result.success) {
-        return res.status(400).json({
-          status: false,
-          creator: global.apikey?.[0] || "AxlyDev",
-          error: result.error || "Gagal mendownload video",
-          code: result.code
-        });
-      }
-
-      res.json({
-        status: true,
-        creator: global.apikey?.[0] || "AxlyDev",
-        data: {
-          url: url,
-          media: result.data
+        if (!url) {
+            return res.status(400).json({
+                status: false,
+                creator: 'AxlyChann',
+                error: 'Parameter "url" diperlukan (URL Facebook video/photo)'
+            });
         }
-      });
 
-    } catch (error) {
-      console.error("Facebook Download Error:", error);
-      res.status(500).json({
-        status: false,
-        creator: global.apikey?.[0] || "AxlyDev",
-        error: error.message
-      });
-    }
-  });
-
-  // Support POST juga (buat upload file nanti kalo perlu)
-  app.post("/download/facebook", async (req, res) => {
-    try {
-      const { url } = req.body;
-
-      if (!url) {
-        return res.status(400).json({
-          status: false,
-          creator: global.apikey?.[0] || "AxlyDev",
-          error: "Parameter 'url' diperlukan"
-        });
-      }
-
-      const result = await hitube(url);
-
-      if (!result.success) {
-        return res.status(400).json({
-          status: false,
-          creator: global.apikey?.[0] || "AxlyDev",
-          error: result.error || "Gagal mendownload video"
-        });
-      }
-
-      res.json({
-        status: true,
-        creator: global.apikey?.[0] || "AxlyDev",
-        data: {
-          url: url,
-          media: result.data
+        // Validasi URL Facebook
+        if (!url.includes('facebook.com') && !url.includes('fb.watch')) {
+            return res.status(400).json({
+                status: false,
+                creator: 'AxlyChann',
+                error: 'URL harus dari Facebook (facebook.com atau fb.watch)'
+            });
         }
-      });
 
-    } catch (error) {
-      res.status(500).json({
-        status: false,
-        creator: global.apikey?.[0] || "AxlyDev",
-        error: error.message
-      });
-    }
-  });
+        try {
+            const result = await facebookDownloader(url);
+            
+            if (!result.status) {
+                throw new Error(result.error);
+            }
+
+            res.json({
+                status: true,
+                creator: 'AxlyChann',
+                result: {
+                    title: result.title,
+                    thumbnail: result.thumbnail,
+                    videos: result.videos,
+                    images: result.images,
+                    audio: result.audio
+                }
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({
+                status: false,
+                creator: 'AxlyChann',
+                error: error.message || 'Gagal download Facebook media'
+            });
+        }
+    });
+
+    // Support POST method juga
+    app.post('/download/facebook', async (req, res) => {
+        const { url } = req.body;
+
+        if (!url) {
+            return res.status(400).json({
+                status: false,
+                creator: 'AxlyChann',
+                error: 'Parameter "url" diperlukan (URL Facebook video/photo)'
+            });
+        }
+
+        if (!url.includes('facebook.com') && !url.includes('fb.watch')) {
+            return res.status(400).json({
+                status: false,
+                creator: 'AxlyChann',
+                error: 'URL harus dari Facebook (facebook.com atau fb.watch)'
+            });
+        }
+
+        try {
+            const result = await facebookDownloader(url);
+            
+            if (!result.status) {
+                throw new Error(result.error);
+            }
+
+            res.json({
+                status: true,
+                creator: 'AxlyChann',
+                result: {
+                    title: result.title,
+                    thumbnail: result.thumbnail,
+                    videos: result.videos,
+                    images: result.images,
+                    audio: result.audio
+                }
+            });
+        } catch (error) {
+            res.status(500).json({
+                status: false,
+                creator: 'AxlyChann',
+                error: error.message || 'Gagal download Facebook media'
+            });
+        }
+    });
 };
