@@ -3,6 +3,16 @@ const cheerio = require('cheerio');
 
 const API_DOMAIN = 'https://axlyapi.qzz.io';
 
+// Header biar ga kena block
+const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    'Accept-Language': 'id-ID,id;q=0.9,en;q=0.8',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Upgrade-Insecure-Requests': '1'
+};
+
 module.exports = (app) => {
     
     app.get('/anime/samehadaku/stream', async (req, res) => {
@@ -17,129 +27,63 @@ module.exports = (app) => {
         }
         
         try {
-            const { data } = await axios.get(url, {
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+            console.log('[Stream] Fetching:', url);
+            
+            const { data } = await axios.get(url, { 
+                headers: headers,
+                timeout: 15000
             });
             
             const $ = cheerio.load(data);
             const sources = [];
             
-            // 1. Pixeldrain
-            $('a[href*="pixeldrain.com/u/"]').each((i, el) => {
+            // CARI SEMUA LINK <a>
+            $('a').each((i, el) => {
                 const href = $(el).attr('href');
-                const match = href.match(/pixeldrain\.com\/u\/([a-zA-Z0-9]+)/);
-                if (match) {
+                const name = $(el).text().trim();
+                
+                if (!href) return;
+                
+                // 1. GOFILE
+                if (href.includes('gofile.io')) {
                     sources.push({
-                        name: 'Pixeldrain',
-                        url: `${API_DOMAIN}/dl/${match[1]}`
-                    });
-                }
-            });
-            
-            // 2. Filedon
-            $('a[href*="filedon.co"]').each((i, el) => {
-                let href = $(el).attr('href');
-                let name = $(el).text().trim() || 'Pucuk';
-                if (href.includes('/view/')) {
-                    href = href.replace('/view/', '/embed/');
-                }
-                sources.push({ name, url: href });
-            });
-            
-            // 3. Wibufile
-            $('a[href*="wibufile.com"]').each((i, el) => {
-                sources.push({
-                    name: $(el).text().trim() || 'Wibufile',
-                    url: $(el).attr('href')
-                });
-            });
-            
-            // 4. Blogspot
-            $('a[href*="blogger.com/video"]').each((i, el) => {
-                sources.push({
-                    name: $(el).text().trim() || 'Blogspot',
-                    url: $(el).attr('href')
-                });
-            });
-            
-            // 5. Mega
-            $('a[href*="mega.nz"]').each((i, el) => {
-                let href = $(el).attr('href');
-                if (href.includes('#!')) {
-                    href = href.replace('#!', '/embed');
-                }
-                sources.push({
-                    name: $(el).text().trim() || 'Mega',
-                    url: href
-                });
-            });
-            
-            // 6. Google Drive
-            $('a[href*="drive.google.com"]').each((i, el) => {
-                let href = $(el).attr('href');
-                const match = href.match(/\/d\/([^\/]+)/);
-                if (match) {
-                    sources.push({
-                        name: $(el).text().trim() || 'Google Drive',
-                        url: `https://drive.google.com/file/d/${match[1]}/preview`
-                    });
-                } else {
-                    sources.push({
-                        name: $(el).text().trim() || 'Google Drive',
+                        name: name || 'Gofile',
                         url: href
                     });
                 }
-            });
-            
-            // 7. Krakenfiles
-            $('a[href*="krakenfiles.com/view/"]').each((i, el) => {
-                sources.push({
-                    name: 'Krakenfiles',
-                    url: $(el).attr('href')
-                });
-            });
-            
-            // 8. Gofile
-            $('a[href*="gofile.io/d/"]').each((i, el) => {
-                sources.push({
-                    name: 'Gofile',
-                    url: $(el).attr('href')
-                });
-            });
-            
-            // 9. Acefile (BARU!)
-            $('a[href*="acefile.co/f/"]').each((i, el) => {
-                sources.push({
-                    name: 'Acefile',
-                    url: $(el).attr('href')
-                });
-            });
-            
-            // 10. Mediafire
-            $('a[href*="mediafire.com"]').each((i, el) => {
-                sources.push({
-                    name: 'Mediafire',
-                    url: $(el).attr('href')
-                });
-            });
-            
-            // 11. Uptobox
-            $('a[href*="uptobox.com"]').each((i, el) => {
-                sources.push({
-                    name: 'Uptobox',
-                    url: $(el).attr('href')
-                });
-            });
-            
-            // 12. Iframe fallback
-            if (sources.length === 0) {
-                $('iframe').each((i, el) => {
-                    const src = $(el).attr('src');
-                    if (src) {
-                        sources.push({ name: 'Embed Player', url: src });
+                
+                // 2. PIXELDRAIN
+                else if (href.includes('pixeldrain.com')) {
+                    const match = href.match(/pixeldrain\.com\/u\/([a-zA-Z0-9]+)/);
+                    if (match) {
+                        sources.push({
+                            name: name || 'Pixeldrain',
+                            url: `${API_DOMAIN}/dl/${match[1]}`
+                        });
                     }
-                });
-            }
+                }
+                
+                // 3. ACEFILE
+                else if (href.includes('acefile.co')) {
+                    sources.push({
+                        name: name || 'Acefile',
+                        url: href
+                    });
+                }
+                
+                // 4. FILEDON (PUCUK) - Google Drive diganti ini
+                else if (href.includes('filedon.co')) {
+                    let fileUrl = href;
+                    // Konversi view ke embed
+                    if (fileUrl.includes('/view/')) {
+                        fileUrl = fileUrl.replace('/view/', '/embed/');
+                    }
+                    sources.push({
+                        name: name || 'Pucuk',
+                        url: fileUrl
+                    });
+                }
+            });
             
             // Hapus duplikat
             const uniqueSources = [];
@@ -155,7 +99,7 @@ module.exports = (app) => {
                 return res.status(404).json({
                     status: false,
                     creator: 'AxlyDev',
-                    error: 'Tidak ada sumber video ditemukan'
+                    error: 'Tidak ada sumber video ditemukan (Gofile, Pixeldrain, Acefile, Filedon)'
                 });
             }
             
