@@ -1,15 +1,27 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 
-// ─── Deteksi tipe konten ──────────────────────────────────────────────────────
+// ==================== DETECTION FUNCTIONS ====================
+
 function detectContentType(url) {
-    if (/\/(photo|photos|photo\.php)/i.test(url)) return 'photo';
-    if (/\/(watch|videos?|reel|video\.php)/i.test(url)) return 'video';
+    // Case 1: URL jelas video
+    if (/\/(watch|reel|video|videos)\//i.test(url)) return 'video';
     if (/fb\.watch/i.test(url)) return 'video';
+    
+    // Case 2: URL jelas foto
+    if (/\/photo(s)?\//i.test(url)) return 'photo';
+    if (/\/fbid=/i.test(url)) return 'photo';
+    if (/permalink\/\?id=\d+&set=/.test(url)) return 'photo';
+    if (/set=(?:pcb|pob|a\.)/i.test(url)) return 'photo';
+    
+    // Case 3: Cek dari query parameter
+    if (url.includes('fbid=')) return 'photo';
+    if (url.includes('set=') && url.includes('pcb')) return 'photo';
+    
+    // Case 4: Default auto
     return 'auto';
 }
 
-// ─── Decode escaped string ────────────────────────────────────────────────────
 function cleanUrl(str) {
     return str
         .replace(/\\u002F/gi, '/')
@@ -20,7 +32,46 @@ function cleanUrl(str) {
         .replace(/\\"/g, '"');
 }
 
-// ─── Fetch HTML ───────────────────────────────────────────────────────────────
+function upgradeResolution(url) {
+    return url
+        .replace(/\/p\d+x\d+\//, '/p2048x2048/')
+        .replace(/_s\.jpg/, '_n.jpg')
+        .replace(/_t\.jpg/, '_n.jpg')
+        .replace(/_q\.jpg/, '_n.jpg');
+}
+
+// ==================== VALIDATION FUNCTIONS ====================
+
+async function isDirectMediaUrl(url) {
+    try {
+        const response = await axios.head(url, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            timeout: 10000,
+            maxRedirects: 5
+        });
+        const contentType = response.headers['content-type'] || '';
+        return contentType.startsWith('image/') || contentType.startsWith('video/');
+    } catch (error) {
+        return false;
+    }
+}
+
+function isFacebookMediaUrl(url) {
+    const mediaPatterns = [
+        /facebook\.com\/watch/i,
+        /facebook\.com\/reel/i,
+        /facebook\.com\/photo/i,
+        /facebook\.com\/video/i,
+        /fb\.watch/i,
+        /\.(mp4|jpg|jpeg|png|gif|webp)(\?|$)/i,
+        /fbid=\d+/i,
+        /set=pcb/i
+    ];
+    return mediaPatterns.some(pattern => pattern.test(url));
+}
+
+// ==================== HTML FETCHING ====================
+
 async function fetchHtml(url) {
     const attempts = [
         {
@@ -60,7 +111,8 @@ async function fetchHtml(url) {
     return null;
 }
 
-// ─── Ekstrak foto dari HTML ────────────────────────────────────────────────────
+// ==================== PHOTO EXTRACTION ====================
+
 function extractPostImages(html) {
     const candidates = [];
 
@@ -127,16 +179,16 @@ function extractPostImages(html) {
     return unique.map(c => c.url);
 }
 
-// ─── Upgrade resolusi URL fbcdn ───────────────────────────────────────────────
-function upgradeResolution(url) {
-    return url
-        .replace(/\/p\d+x\d+\//, '/p2048x2048/')
-        .replace(/_s\.jpg/, '_n.jpg')
-        .replace(/_t\.jpg/, '_n.jpg')
-        .replace(/_q\.jpg/, '_n.jpg');
+async function getPhoto(url) {
+    const result = await fetchHtml(url);
+    if (!result) return null;
+
+    const images = extractPostImages(result.html);
+    return images.length > 0 ? images[0] : null;
 }
 
-// ─── Ambil video (pake savereels.io) ─────────────────────────────────────────
+// ==================== VIDEO EXTRACTION ====================
+
 async function getVideo(url) {
     try {
         const { data } = await axios.post('https://savereels.io/api/ajaxSearch',
@@ -145,7 +197,9 @@ async function getVideo(url) {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                     'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Origin': 'https://savereels.io',
+                    'Referer': 'https://savereels.io/'
                 },
                 timeout: 30000
             }
@@ -155,6 +209,8 @@ async function getVideo(url) {
 
         const $ = cheerio.load(data.data);
         const videos = [];
+        const thumbnail = $('.image-fb img').attr('src') || null;
+        const title = $('.content h3').text().trim() || "Facebook Video";
 
         $('table.table tbody tr').each((i, el) => {
             const quality = $(el).find('.video-quality').text().trim();
@@ -164,42 +220,80 @@ async function getVideo(url) {
             }
         });
 
-        return videos.length > 0 ? videos : null;
+        const audioUrl = $('#audioUrl').val() || null;
+
+        return {
+            videos: videos,
+            thumbnail: thumbnail,
+            title: title,
+            audio: audioUrl
+        };
     } catch (error) {
         console.error('[Video Error]', error.message);
         return null;
     }
 }
 
-// ─── Ambil foto ──────────────────────────────────────────────────────────────
-async function getPhoto(url) {
-    const result = await fetchHtml(url);
-    if (!result) return null;
+// ==================== MAIN HANDLER ====================
 
-    const images = extractPostImages(result.html);
-    return images.length > 0 ? images[0] : null;
-}
-
-// ─── Handler utama ────────────────────────────────────────────────────────────
 async function facebookDownloader(url) {
-    const contentType = detectContentType(url);
-    console.log(`[Facebook] type=${contentType} url=${url}`);
-
-    if (contentType === 'video') {
-        const videos = await getVideo(url);
-        if (videos && videos.length > 0) {
+    // CEK 1: Apakah URL langsung ke file media?
+    const isDirectMedia = await isDirectMediaUrl(url);
+    if (isDirectMedia) {
+        if (url.match(/\.(jpg|jpeg|png|gif|webp|bmp)/i)) {
+            return {
+                status: true,
+                type: 'photo',
+                title: 'Facebook Photo',
+                thumbnail: url,
+                videos: [],
+                images: [{ url: url, quality: 'Original' }],
+                audio: null
+            };
+        }
+        if (url.match(/\.(mp4|webm|mov|avi)/i)) {
             return {
                 status: true,
                 type: 'video',
                 title: 'Facebook Video',
                 thumbnail: null,
-                videos: videos,
-                images: []
+                videos: [{ quality: 'Original', url: url }],
+                images: [],
+                audio: null
             };
         }
-        return { status: false, error: 'Gagal mengambil video' };
     }
 
+    // CEK 2: Apakah URL ini kemungkinan mengandung media?
+    if (!isFacebookMediaUrl(url)) {
+        return {
+            status: false,
+            error: 'URL ini tidak mengarah ke foto atau video Facebook. Pastikan URL mengarah ke postingan yang berisi media (foto/video).'
+        };
+    }
+
+    // PROSES: Coba ambil video atau foto
+    const contentType = detectContentType(url);
+    console.log(`[Facebook] type=${contentType} url=${url}`);
+
+    // Kalo jelas video
+    if (contentType === 'video') {
+        const videoResult = await getVideo(url);
+        if (videoResult && videoResult.videos.length > 0) {
+            return {
+                status: true,
+                type: 'video',
+                title: videoResult.title,
+                thumbnail: videoResult.thumbnail,
+                videos: videoResult.videos,
+                images: [],
+                audio: videoResult.audio
+            };
+        }
+        return { status: false, error: 'Gagal mengambil video dari URL tersebut' };
+    }
+
+    // Kalo jelas foto
     if (contentType === 'photo') {
         const photoUrl = await getPhoto(url);
         if (photoUrl) {
@@ -209,22 +303,24 @@ async function facebookDownloader(url) {
                 title: 'Facebook Photo',
                 thumbnail: photoUrl,
                 videos: [],
-                images: [{ url: photoUrl, quality: 'HD' }]
+                images: [{ url: photoUrl, quality: 'HD' }],
+                audio: null
             };
         }
-        return { status: false, error: 'Gagal mengambil foto' };
+        return { status: false, error: 'Gagal mengambil foto dari URL tersebut' };
     }
 
     // AUTO: coba video dulu, baru foto
-    const videos = await getVideo(url);
-    if (videos && videos.length > 0) {
+    const videoResult = await getVideo(url);
+    if (videoResult && videoResult.videos.length > 0) {
         return {
             status: true,
             type: 'video',
-            title: 'Facebook Video',
-            thumbnail: null,
-            videos: videos,
-            images: []
+            title: videoResult.title,
+            thumbnail: videoResult.thumbnail,
+            videos: videoResult.videos,
+            images: [],
+            audio: videoResult.audio
         };
     }
 
@@ -236,14 +332,19 @@ async function facebookDownloader(url) {
             title: 'Facebook Photo',
             thumbnail: photoUrl,
             videos: [],
-            images: [{ url: photoUrl, quality: 'HD' }]
+            images: [{ url: photoUrl, quality: 'HD' }],
+            audio: null
         };
     }
 
-    return { status: false, error: 'Tidak ada konten yang dapat diambil' };
+    return {
+        status: false,
+        error: 'Tidak ada konten media (foto/video) yang dapat diambil dari URL ini. Pastikan postingan bersifat publik dan mengandung foto/video.'
+    };
 }
 
-// ─── Export endpoint ──────────────────────────────────────────────────────────
+// ==================== EXPORT ENDPOINT ====================
+
 module.exports = (app) => {
     app.get('/download/facebook', async (req, res) => {
         const { url } = req.query;
@@ -256,6 +357,7 @@ module.exports = (app) => {
             });
         }
 
+        // Validasi URL Facebook
         if (!url.includes('facebook.com') && !url.includes('fb.watch')) {
             return res.status(400).json({
                 status: false,
@@ -268,7 +370,11 @@ module.exports = (app) => {
             const result = await facebookDownloader(url);
 
             if (!result.status) {
-                throw new Error(result.error);
+                return res.status(400).json({
+                    status: false,
+                    creator: 'AxlyChann',
+                    error: result.error
+                });
             }
 
             res.json({
@@ -279,9 +385,11 @@ module.exports = (app) => {
                     title: result.title,
                     thumbnail: result.thumbnail,
                     videos: result.videos,
-                    images: result.images
+                    images: result.images,
+                    audio: result.audio
                 }
             });
+
         } catch (error) {
             console.error('[Facebook API Error]', error.message);
             res.status(500).json({
