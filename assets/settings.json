@@ -296,6 +296,15 @@
     "q": "Judul anime yang dicari (contoh: solo leveling)"
   }
 },
+        {
+  "name": "Samehadaku Detail",
+  "desc": "Melihat detail lengkap anime (sinopsis, genre, total episode, daftar episode, dll) dari Samehadaku",
+  "path": "/anime/samehadaku/detail?url=",
+  "status": "ready",
+  "params": {
+    "url": "URL anime dari Samehadaku (contoh: https://v2.samehadaku.how/anime/nippon-sangoku/)"
+  }
+        },
 {
   "name": "Animekuindo Detail",
   "desc": "Detail lengkap anime dari Animekuindo.life (sinopsis, genre, episode, rating)",
