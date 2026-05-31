@@ -239,6 +239,49 @@ async function getSchedule() {
 }
 
 // ──────────────────────────────────────────────────────────────
+// 4️⃣ GET STREAMING LINK
+// ──────────────────────────────────────────────────────────────
+async function getStreamingUrl(episodeUrl) {
+    try {
+        const { data } = await axios.get(episodeUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            timeout: 15000
+        });
+        
+        const $ = cheerio.load(data);
+        let playerUrl = null;
+        let downloadLinks = [];
+        
+        $('iframe').each((i, el) => {
+            const src = $(el).attr('src');
+            if (src && (src.includes('filedon') || src.includes('embed') || src.includes('player') || src.includes('drive') || src.includes('mp4'))) {
+                playerUrl = src;
+                return false;
+            }
+        });
+        
+        if (!playerUrl) {
+            $('a[href*="filedon.co"], a[href*="doodstream"], a[href*="drive.google"]').each((i, el) => {
+                const href = $(el).attr('href');
+                if (href) downloadLinks.push(href);
+            });
+            playerUrl = downloadLinks[0] || null;
+        }
+        
+        const title = $('h1.entry-title').text().trim() || 'Episode';
+        
+        return {
+            title: title,
+            player_url: playerUrl,
+            download_links: downloadLinks
+        };
+        
+    } catch (error) {
+        throw new Error(`Gagal ambil streaming: ${error.message}`);
+    }
+}
+
+// ──────────────────────────────────────────────────────────────
 // EXPORT ENDPOINTS
 // ──────────────────────────────────────────────────────────────
 module.exports = (app) => {
@@ -280,6 +323,25 @@ module.exports = (app) => {
             });
         } catch (error) {
             res.status(500).json({ status: false, creator: 'AxlyChann', error: error.message });
+        }
+    });
+    
+    // ─── SCHEDULE (JADWAL HARI INI) ────────────────────────────
+    app.get('/anime/samehadaku/schedule', async (req, res) => {
+        try {
+            const schedule = await getSchedule();
+            res.json({
+                status: schedule.anime.length > 0,
+                creator: 'AxlyChann',
+                result: schedule
+            });
+        } catch (error) {
+            res.status(500).json({
+                status: false,
+                creator: 'AxlyChann',
+                error: error.message,
+                fallback_url: 'https://v2.samehadaku.how/jadwal-rilis/'
+            });
         }
     });
 };
