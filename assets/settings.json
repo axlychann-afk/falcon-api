@@ -263,6 +263,24 @@
       "path": "/anime/samehadaku/latest",
       "status": "ready"
     },
+        {
+      "name": "Samehadaku Search",
+      "desc": "Mencari anime di Samehadaku (judul, genre, rating, dll)",
+      "path": "/anime/samehadaku/search?q=",
+      "status": "ready",
+      "params": {
+        "q": "Judul anime yang ingin dicari (contoh: naruto, one piece)"
+      }
+    },
+            {
+      "name": "Samehadaku Stream",
+      "desc": "Mendapatkan link player video dari episode anime Samehadaku",
+      "path": "/anime/samehadaku/stream?url=",
+      "status": "ready",
+      "params": {
+        "url": "URL episode anime dari Samehadaku (contoh: https://v2.samehadaku.how/anime/xxx/episode-1/)"
+      }
+            },
  {
   "name": "Animekuindo Search",
   "desc": "Mencari anime di Animekuindo.life (judul, gambar, status, tipe)",
