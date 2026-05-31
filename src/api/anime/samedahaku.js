@@ -2,6 +2,31 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 
 // ──────────────────────────────────────────────────────────────
+// HELPERS
+// ──────────────────────────────────────────────────────────────
+function getCurrentDay() {
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const today = new Date();
+    const dayName = days[today.getDay()];
+    
+    // Mapping ke bahasa API
+    const dayMap = {
+        'Senin': 'monday',
+        'Selasa': 'tuesday',
+        'Rabu': 'wednesday',
+        'Kamis': 'thursday',
+        'Jumat': 'friday',
+        'Sabtu': 'saturday',
+        'Minggu': 'sunday'
+    };
+    
+    return {
+        name: dayName,
+        code: dayMap[dayName]
+    };
+}
+
+// ──────────────────────────────────────────────────────────────
 // 1️⃣ SEARCH ANIME
 // ──────────────────────────────────────────────────────────────
 async function searchAnime(query) {
@@ -15,7 +40,6 @@ async function searchAnime(query) {
         const $ = cheerio.load(data);
         const results = [];
         
-        // Cari link anime
         $('a[href*="/anime/"]').each((i, el) => {
             const link = $(el).attr('href');
             let title = $(el).find('h2, h3, .title').text().trim();
@@ -44,7 +68,7 @@ async function searchAnime(query) {
 }
 
 // ──────────────────────────────────────────────────────────────
-// 2️⃣ GET LATEST ANIME (berdasarkan struktur yang kamu kasih)
+// 2️⃣ GET LATEST ANIME
 // ──────────────────────────────────────────────────────────────
 async function getLatestAnime() {
     try {
@@ -57,18 +81,13 @@ async function getLatestAnime() {
         const $ = cheerio.load(data);
         const animes = [];
         
-        // Dari struktur yang kamu kasih, anime ada di dalam div#container
-        // Cari semua link yang mengarah ke anime
         $('#container a[href*="/anime/"]').each((i, el) => {
             const link = $(el).attr('href');
             let title = $(el).text().trim();
             
-            // Filter judul yang terlalu pendek (bukan judul anime)
             if (title && link && title.length > 5 && title.length < 100 && link.includes('/anime/')) {
-                // Cek apakah sudah ada
                 const exists = animes.find(a => a.url === link);
                 if (!exists) {
-                    // Cari episode di sekitar elemen ini
                     let episode = '-';
                     let parent = $(el).parent();
                     for (let j = 0; j < 5; j++) {
@@ -91,7 +110,6 @@ async function getLatestAnime() {
             }
         });
         
-        // Hapus duplikat berdasarkan URL
         const unique = [];
         const seen = new Set();
         for (const item of animes) {
@@ -110,46 +128,88 @@ async function getLatestAnime() {
 }
 
 // ──────────────────────────────────────────────────────────────
-// 3️⃣ GET SCHEDULE
+// 3️⃣ GET SCHEDULE (BERDASARKAN HARI INI)
 // ──────────────────────────────────────────────────────────────
 async function getSchedule() {
     try {
-        // Coba pake API endpoint
-        const apiUrl = 'https://v2.samehadaku.how/wp-json/custom/v1/all-schedule?perpage=50';
+        const currentDay = getCurrentDay();
+        console.log('[Schedule] Hari ini:', currentDay.name, `(${currentDay.code})`);
+        
+        // Panggil API untuk hari ini
+        const apiUrl = `https://v2.samehadaku.how/wp-json/custom/v1/all-schedule?day=${currentDay.code}&perpage=30`;
+        
         const { data } = await axios.get(apiUrl, {
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
             timeout: 15000
         });
         
-        const hariMap = {
-            'monday': 'Senin', 'tuesday': 'Selasa', 'wednesday': 'Rabu',
-            'thursday': 'Kamis', 'friday': 'Jumat', 'saturday': 'Sabtu', 'sunday': 'Minggu'
-        };
-        
         const schedule = {
-            'Senin': [], 'Selasa': [], 'Rabu': [], 'Kamis': [], 'Jumat': [], 'Sabtu': [], 'Minggu': []
+            day: currentDay.name,
+            total: 0,
+            anime: []
         };
         
-        if (data && Array.isArray(data)) {
+        if (data && Array.isArray(data) && data.length > 0) {
             for (const item of data) {
-                const hari = hariMap[item.day] || item.day;
-                if (schedule[hari]) {
-                    schedule[hari].push({
-                        title: item.title || 'Unknown',
-                        url: item.url || '#',
-                        time: item.east_time || '-',
-                        genre: item.genre || '-',
-                        score: item.east_score || '-'
+                schedule.anime.push({
+                    title: item.title || 'Unknown',
+                    url: item.url || '#',
+                    time: item.east_time || '-',
+                    score: item.east_score || '-',
+                    type: item.east_type || '-',
+                    genre: item.genre || '-',
+                    thumbnail: item.featured_img_src || null
+                });
+            }
+            schedule.total = schedule.anime.length;
+        } else {
+            // Fallback: coba scrape dari halaman jadwal
+            const htmlUrl = 'https://v2.samehadaku.how/jadwal-rilis/';
+            const { data: htmlData } = await axios.get(htmlUrl, {
+                headers: { 'User-Agent': 'Mozilla/5.0' },
+                timeout: 15000
+            });
+            
+            const $ = cheerio.load(htmlData);
+            
+            // Cari tombol untuk hari ini dan klik (simulasi)
+            // Ambil dari data yang sudah ada di HTML
+            $('.result-schedule .animepost').each((i, el) => {
+                const title = $(el).find('.title').text().trim();
+                const urlLink = $(el).find('a').attr('href');
+                const time = $(el).find('.ltseps').text().replace(/[^0-9:]/g, '');
+                const score = $(el).find('.score').text().replace(/[^0-9.]/g, '');
+                const type = $(el).find('.type:first-child').text().trim();
+                const genre = $(el).find('.type:last-child').text().trim();
+                
+                if (title && urlLink) {
+                    schedule.anime.push({
+                        title: title,
+                        url: urlLink,
+                        time: time || '-',
+                        score: score || '-',
+                        type: type || '-',
+                        genre: genre || '-',
+                        thumbnail: null
                     });
                 }
-            }
+            });
+            schedule.total = schedule.anime.length;
         }
+        
+        console.log(`[Schedule] ${currentDay.name}:`, schedule.total, 'anime');
         
         return schedule;
         
     } catch (error) {
         console.error('[Schedule Error]', error.message);
-        return null;
+        return {
+            day: getCurrentDay().name,
+            total: 0,
+            anime: [],
+            error: error.message,
+            fallback_url: 'https://v2.samehadaku.how/jadwal-rilis/'
+        };
     }
 }
 
@@ -167,7 +227,6 @@ async function getStreamingUrl(episodeUrl) {
         let playerUrl = null;
         let downloadLinks = [];
         
-        // Cari iframe player
         $('iframe').each((i, el) => {
             const src = $(el).attr('src');
             if (src && (src.includes('filedon') || src.includes('embed') || src.includes('player') || src.includes('drive') || src.includes('mp4'))) {
@@ -176,7 +235,6 @@ async function getStreamingUrl(episodeUrl) {
             }
         });
         
-        // Cari link download
         if (!playerUrl) {
             $('a[href*="filedon.co"], a[href*="doodstream"], a[href*="drive.google"]').each((i, el) => {
                 const href = $(el).attr('href');
@@ -203,6 +261,7 @@ async function getStreamingUrl(episodeUrl) {
 // ──────────────────────────────────────────────────────────────
 module.exports = (app) => {
     
+    // ─── SEARCH ANIME ──────────────────────────────────────────
     app.get('/anime/samehadaku/search', async (req, res) => {
         const { q } = req.query;
         if (!q) {
@@ -227,6 +286,7 @@ module.exports = (app) => {
         }
     });
     
+    // ─── LATEST ANIME ──────────────────────────────────────────
     app.get('/anime/samehadaku/latest', async (req, res) => {
         try {
             const results = await getLatestAnime();
@@ -241,23 +301,26 @@ module.exports = (app) => {
         }
     });
     
+    // ─── SCHEDULE (JADWAL HARI INI) ────────────────────────────
     app.get('/anime/samehadaku/schedule', async (req, res) => {
         try {
             const schedule = await getSchedule();
-            if (!schedule) {
-                return res.json({
-                    status: false,
-                    creator: 'AxlyChann',
-                    error: 'Gagal mengambil jadwal',
-                    fallback_url: 'https://v2.samehadaku.how/jadwal-rilis/'
-                });
-            }
-            res.json({ status: true, creator: 'AxlyChann', result: schedule });
+            res.json({
+                status: schedule.anime.length > 0,
+                creator: 'AxlyChann',
+                result: schedule
+            });
         } catch (error) {
-            res.status(500).json({ status: false, creator: 'AxlyChann', error: error.message });
+            res.status(500).json({
+                status: false,
+                creator: 'AxlyChann',
+                error: error.message,
+                fallback_url: 'https://v2.samehadaku.how/jadwal-rilis/'
+            });
         }
     });
     
+    // ─── STREAM ANIME ──────────────────────────────────────────
     app.get('/anime/samehadaku/stream', async (req, res) => {
         const { url } = req.query;
         if (!url) {
