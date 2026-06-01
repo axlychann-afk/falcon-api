@@ -55,7 +55,13 @@ class J2Downloader {
             }
         });
 
-        const rawSetCookie = homeRes.headers['set-cookie'] || '';
+        // PERBAIKAN: handle set-cookie yang bisa berupa array
+        let rawSetCookie = homeRes.headers['set-cookie'];
+        if (Array.isArray(rawSetCookie)) {
+            rawSetCookie = rawSetCookie.join('; ');
+        }
+        if (!rawSetCookie) rawSetCookie = '';
+        
         const sessionMatch = rawSetCookie.match(/session=([^;]+)/);
         if (!sessionMatch) throw new Error("Session tidak ditemukan");
         const sessionCookie = sessionMatch[1];
