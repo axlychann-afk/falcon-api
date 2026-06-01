@@ -235,7 +235,7 @@
   "params": {
     "slug": "Slug donghua dari Anichin (contoh: renegade-immortal)"
   }
-}
+},
      {
           "name": "Search",
           "desc": "Mencari donghua/anime di Anichin.moe (judul, status, tipe, thumbnail)",
