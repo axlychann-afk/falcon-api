@@ -228,6 +228,12 @@
   "image": "/api/placeholder/800/200",
   "items": [
     {
+  "name": "Upcoming",
+  "desc": "Daftar donghua yang akan datang (upcoming) dari Anichin.moe",
+  "path": "/donghua/upcoming",
+  "status": "ready"
+    },
+    {
   "name": "Ongoing",
   "desc": "Daftar semua donghua yang sedang tayang (ongoing) dari Anichin.moe (otomatis ambil semua halaman)",
   "path": "/donghua/ongoing",
