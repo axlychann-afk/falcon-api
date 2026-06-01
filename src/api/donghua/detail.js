@@ -7,54 +7,27 @@ const getCreator = () => {
   return (global.apikey && global.apikey[0]) ? global.apikey[0] : 'AxlyDev';
 };
 
-// Fungsi cari slug dari title
-async function searchSlug(title) {
-  const searchUrl = `${BASE_URL}/?s=${encodeURIComponent(title)}`;
-  const { data } = await axios.get(searchUrl, {
-    headers: { 'User-Agent': 'Mozilla/5.0' }
-  });
-  const $ = cheerio.load(data);
-  
-  let slug = null;
-  $('.listupd .bs .bsx a').each((_, el) => {
-    const href = $(el).attr('href');
-    const linkTitle = $(el).find('.tt').text().trim().toLowerCase();
-    if (linkTitle.includes(title.toLowerCase()) || title.toLowerCase().includes(linkTitle)) {
-      slug = href.split('/').filter(p => p).pop();
-      return false;
-    }
-  });
-  
-  return slug;
-}
-
 module.exports = (app) => {
   
   app.get('/donghua/detail', async (req, res) => {
-    const { title } = req.query;
+    const { slug } = req.query;
     
-    if (!title) {
+    if (!slug) {
       return res.status(400).json({
         status: false,
         creator: getCreator(),
-        error: 'Parameter "title" diperlukan (contoh: ?title=renegade+immortal)'
+        error: 'Parameter "slug" diperlukan (contoh: ?slug=renegade-immortal)'
       });
     }
     
     try {
-      // Cari slug dari title
-      const slug = await searchSlug(title);
-      if (!slug) {
-        return res.status(404).json({
-          status: false,
-          creator: getCreator(),
-          error: `Donghua dengan judul "${title}" tidak ditemukan`
-        });
-      }
-      
       const url = `${BASE_URL}/${slug}/`;
       const { data } = await axios.get(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0' },
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Accept-Language': 'id-ID,id;q=0.9'
+        },
         timeout: 15000
       });
       
@@ -131,6 +104,25 @@ module.exports = (app) => {
       
     } catch (error) {
       console.error('[Detail Error]', error.message);
+      
+      if (error.response?.status === 403) {
+        return res.status(403).json({
+          status: false,
+          creator: getCreator(),
+          error: 'Akses ditolak oleh Cloudflare',
+          note: 'Website Anichin memblokir request dari server'
+        });
+      }
+      
+      if (error.response?.status === 404) {
+        return res.status(404).json({
+          status: false,
+          creator: getCreator(),
+          error: 'Donghua tidak ditemukan',
+          note: 'Periksa kembali slug'
+        });
+      }
+      
       res.status(500).json({
         status: false,
         creator: getCreator(),
