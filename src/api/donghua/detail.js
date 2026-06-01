@@ -85,21 +85,38 @@ module.exports = (app) => {
       // Sinopsis
       detail.sinopsis = $(".bixbox .desc").text().trim();
       
-      // ========== AMBIL EPISODE (jika ada) ==========
+      // ========== AMBIL EPISODE ==========
+      const tempEpisodes = [];
       $(".eplister ul li, .listeps ul li").each((_, el) => {
         const episodeTitle = $(el).find(".epl-title, .lchx a").text().trim();
         const episodeLink = $(el).find("a").attr("href");
         const episodeDate = $(el).find(".epl-date, .date").text().trim();
         
         if (episodeTitle && episodeLink) {
-          detail.episodes.push({
-            number: detail.episodes.length + 1,
+          tempEpisodes.push({
             title: episodeTitle,
             url: episodeLink,
             date: episodeDate || null
           });
         }
       });
+      
+      // ========== PERBAIKI URUTAN DAN NUMBER ==========
+      // Balik urutan (karena biasanya episode terbaru di atas)
+      tempEpisodes.reverse();
+      
+      // Tambahkan number yang benar (1, 2, 3, ...)
+      detail.episodes = tempEpisodes.map((ep, index) => ({
+        number: index + 1,
+        title: ep.title,
+        url: ep.url,
+        date: ep.date
+      }));
+      
+      // ========== AMBIL TOTAL EPISODE DARI `totalEpisodes` ATAU DARI EPISODE YANG DISCRAOE ==========
+      if (!detail.totalEpisodes || detail.totalEpisodes === "") {
+        detail.totalEpisodes = detail.episodes.length;
+      }
       
       res.json({
         status: true,
