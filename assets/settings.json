@@ -228,6 +228,12 @@
   "image": "/api/placeholder/800/200",
   "items": [
     {
+  "name": "Ongoing",
+  "desc": "Daftar semua donghua yang sedang tayang (ongoing) dari Anichin.moe (otomatis ambil semua halaman)",
+  "path": "/donghua/ongoing",
+  "status": "ready"
+    },
+    {
   "name": "Drop",
   "desc": "Daftar semua donghua yang hiatus/berhenti (drop) dari Anichin.moe (otomatis ambil semua halaman)",
   "path": "/donghua/drop",
