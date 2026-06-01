@@ -5,6 +5,10 @@ const { fromBuffer } = require('file-type');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+const getCreator = () => {
+  return (global.apikey && global.apikey[0]) ? global.apikey[0] : 'AxlyDev';
+};
+
 async function uploadToUguu(fileBuffer) {
     const type = await fromBuffer(fileBuffer);
     const ext = type ? type.ext : 'bin';
@@ -27,13 +31,15 @@ async function uploadToUguu(fileBuffer) {
 }
 
 module.exports = (app) => {
-    // GET - upload dari URL (buat testing di web)
+    
+    // GET - upload dari URL
     app.get('/tools/upload', async (req, res) => {
         const { url } = req.query;
 
         if (!url) {
             return res.status(400).json({
                 status: false,
+                creator: getCreator(),
                 error: 'Parameter "url" diperlukan. Contoh: /tools/upload?url=https://example.com/gambar.jpg'
             });
         }
@@ -47,7 +53,7 @@ module.exports = (app) => {
             const resultUrl = await uploadToUguu(Buffer.from(imageRes.data));
             res.json({
                 status: true,
-                creator: 'AxlyChann',
+                creator: getCreator(),
                 result: {
                     original_url: url,
                     uploaded_url: resultUrl,
@@ -56,15 +62,16 @@ module.exports = (app) => {
             });
         } catch (error) {
             console.error(error);
-            res.status(500).json({ status: false, error: error.message });
+            res.status(500).json({ status: false, creator: getCreator(), error: error.message });
         }
     });
 
-    // POST - upload file langsung (buat bot WA)
+    // POST - upload file langsung
     app.post('/tools/upload', upload.single('file'), async (req, res) => {
         if (!req.file) {
             return res.status(400).json({
                 status: false,
+                creator: getCreator(),
                 error: 'Tidak ada file. Kirim file dengan key "file"'
             });
         }
@@ -73,7 +80,7 @@ module.exports = (app) => {
             const url = await uploadToUguu(req.file.buffer);
             res.json({
                 status: true,
-                creator: 'AxlyChann',
+                creator: getCreator(),
                 result: {
                     url: url,
                     original_name: req.file.originalname,
@@ -84,6 +91,7 @@ module.exports = (app) => {
             console.error(error);
             res.status(500).json({
                 status: false,
+                creator: getCreator(),
                 error: error.message
             });
         }
