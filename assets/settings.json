@@ -227,6 +227,16 @@
   "name": "Donghua",
   "image": "/api/placeholder/800/200",
   "items": [
+     {
+          "name": "Search",
+          "desc": "Mencari donghua/anime di Anichin.moe (judul, status, tipe, thumbnail)",
+          "path": "/donghua/search?q=",
+          "status": "ready",
+          "params": {
+            "q": "Judul donghua yang ingin dicari (contoh: renegade immortal, tales of herding gods)",
+            "page": "(Opsional) Halaman hasil pencarian, default 1"
+          }
+        },
         {
           "name": "Stream",
           "desc": "Streaming donghua dari Anichin.moe (Dailymotion embed bersih, tanpa iklan)",
