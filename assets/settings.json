@@ -227,6 +227,16 @@
   "name": "Donghua",
   "image": "/api/placeholder/800/200",
   "items": [
+    {
+  "name": "Detail",
+  "desc": "Melihat detail lengkap donghua (bisa pake title atau slug)",
+  "path": "/donghua/detail?title=",
+  "status": "ready",
+  "params": {
+    "title": "Judul donghua (contoh: renegade immortal)",
+    "slug": "(Alternatif) Slug donghua dari Anichin"
+  }
+    },
      {
           "name": "Search",
           "desc": "Mencari donghua/anime di Anichin.moe (judul, status, tipe, thumbnail)",
