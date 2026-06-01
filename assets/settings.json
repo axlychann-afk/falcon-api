@@ -400,6 +400,15 @@
       "name": "Downloader",
       "items": [
         {
+  "name": "AIO Downloader",
+  "desc": "All in one downloader (support TikTok, Instagram, YouTube, Facebook, Twitter, dll) via j2download.com",
+  "path": "/download/aio?url=",
+  "status": "ready",
+  "params": {
+    "url": "URL media yang akan diunduh (TikTok, Instagram, YouTube, Facebook, Twitter, dll)"
+  }
+        },
+        {
           "name": "Tiktok Downloader",
           "desc": "Mengunduh video dari TikTok tanpa watermark.",
           "path": "/download/tiktok?url=",
