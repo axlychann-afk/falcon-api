@@ -227,6 +227,12 @@
   "name": "Donghua",
   "image": "/api/placeholder/800/200",
   "items": [
+    {
+  "name": "Schedule",
+  "desc": "Jadwal rilis donghua per hari (Senin - Minggu) dari Anichin.moe",
+  "path": "/donghua/schedule",
+  "status": "ready"
+    },
 {
   "name": "Detail",
   "desc": "Melihat detail lengkap donghua (sinopsis, genre, total episode, daftar episode)",
