@@ -10,7 +10,7 @@ const getCreator = () => {
 module.exports = (app) => {
   
   app.get('/donghua/search', async (req, res) => {
-    const { q, page = 1 } = req.query;
+    const { q } = req.query;
     
     if (!q) {
       return res.status(400).json({
@@ -21,51 +21,79 @@ module.exports = (app) => {
     }
     
     try {
-      const searchUrl = `${BASE_URL}/page/${page}/?s=${encodeURIComponent(q)}`;
-      console.log('[Search] URL:', searchUrl);
+      let allResults = [];
+      let currentPage = 1;
+      let hasNext = true;
       
-      const { data } = await axios.get(searchUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        },
-        timeout: 15000
-      });
-      
-      const $ = cheerio.load(data);
-      const results = [];
-      
-      // Parse dari class .listupd .bs (berdasarkan HTML yang kamu kasih)
-      $('.listupd .bs').each((_, el) => {
-        const link = $(el).find('.bsx a').attr('href') || "";
-        const title = $(el).find('.tt').text().trim() || "";
-        const status = $(el).find('.status').text().trim() || null;
-        const type = $(el).find('.typez').text().trim() || null;
-        const episodeInfo = $(el).find('.epx').text().trim() || null;
-        const thumbnail = $(el).find('img').attr('src') || null;
+      // Loop sampai ga ada halaman next
+      while (hasNext) {
+        const searchUrl = `${BASE_URL}/page/${currentPage}/?s=${encodeURIComponent(q)}`;
+        console.log(`[Search] Scraping page ${currentPage} for "${q}"...`);
         
-        if (title && link) {
-          // Buat URL lengkap
-          const fullUrl = link.startsWith('http') ? link : `${BASE_URL}${link}`;
+        const { data } = await axios.get(searchUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          },
+          timeout: 15000
+        });
+        
+        const $ = cheerio.load(data);
+        
+        // Parse hasil di halaman ini
+        let foundInPage = 0;
+        $('.listupd .bs').each((_, el) => {
+          const link = $(el).find('.bsx a').attr('href') || "";
+          const title = $(el).find('.tt').text().trim() || "";
+          const type = $(el).find('.typez').text().trim() || "";
+          const status = $(el).find('.epx').text().trim() || "";
+          const sub = $(el).find('.sb').text().trim() || "";
+          const thumbnail = $(el).find('img').attr('src') || null;
           
-          results.push({
-            title: title,
-            slug: extractSlug(link),
-            url: fullUrl,
-            status: status,
-            type: type,
-            episode: episodeInfo,
-            thumbnail: thumbnail
-          });
+          if (title && link) {
+            const slug = link.replace(/^\//, '').replace(/\/$/, '');
+            allResults.push({
+              title: title,
+              slug: slug,
+              url: link.startsWith('http') ? link : `${BASE_URL}${link}`,
+              type: type,
+              status: status,
+              sub: sub,
+              thumbnail: thumbnail
+            });
+            foundInPage++;
+          }
+        });
+        
+        // Jika tidak ada hasil di halaman ini, berhenti
+        if (foundInPage === 0) {
+          hasNext = false;
+          break;
         }
-      });
+        
+        // Cek apakah ada halaman selanjutnya
+        hasNext = $('.pagination .nextpage').length > 0;
+        currentPage++;
+        
+        // Safety break (max 50 pages)
+        if (currentPage > 50) break;
+      }
+      
+      // Hapus duplikat (jika ada)
+      const uniqueResults = [];
+      const seenUrls = new Set();
+      for (const item of allResults) {
+        if (!seenUrls.has(item.url)) {
+          seenUrls.add(item.url);
+          uniqueResults.push(item);
+        }
+      }
       
       res.json({
         status: true,
         creator: getCreator(),
         query: q,
-        page: parseInt(page),
-        total: results.length,
-        results: results
+        total: uniqueResults.length,
+        results: uniqueResults
       });
       
     } catch (error) {
@@ -78,13 +106,3 @@ module.exports = (app) => {
     }
   });
 };
-
-// Helper function ekstrak slug
-function extractSlug(url) {
-  if (!url) return "";
-  // Hapus leading slash
-  let slug = url.startsWith('/') ? url.substring(1) : url;
-  // Hapus trailing slash
-  if (slug.endsWith('/')) slug = slug.slice(0, -1);
-  return slug;
-}
