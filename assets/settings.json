@@ -228,6 +228,12 @@
   "image": "/api/placeholder/800/200",
   "items": [
     {
+  "name": "Completed",
+  "desc": "Daftar semua donghua yang sudah tamat (completed) dari Anichin.moe (otomatis ambil semua halaman)",
+  "path": "/donghua/completed",
+  "status": "ready"
+    },
+    {
   "name": "Upcoming",
   "desc": "Daftar donghua yang akan datang (upcoming) dari Anichin.moe",
   "path": "/donghua/upcoming",
@@ -260,16 +266,15 @@
     "slug": "Slug donghua dari Anichin (contoh: renegade-immortal)"
   }
 },
-     {
-          "name": "Search",
-          "desc": "Mencari donghua/anime di Anichin.moe (judul, status, tipe, thumbnail)",
-          "path": "/donghua/search?q=",
-          "status": "ready",
-          "params": {
-            "q": "Judul donghua yang ingin dicari (contoh: renegade immortal, tales of herding gods)",
-            "page": "(Opsional) Halaman hasil pencarian, default 1"
-          }
-        },
+    {
+  "name": "Search",
+  "desc": "Mencari donghua/anime di Anichin.moe (otomatis ambil semua halaman hasil)",
+  "path": "/donghua/search?q=",
+  "status": "ready",
+  "params": {
+    "q": "Judul donghua yang ingin dicari (contoh: renegade immortal)"
+  }
+},
         {
           "name": "Stream",
           "desc": "Streaming donghua dari Anichin.moe (Dailymotion embed bersih, tanpa iklan)",
