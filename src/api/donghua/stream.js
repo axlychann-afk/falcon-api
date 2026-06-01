@@ -16,62 +16,42 @@ module.exports = (app) => {
       return res.status(400).json({
         status: false,
         creator: getCreator(),
-        error: 'Parameter "slug" diperlukan (contoh: ?slug=tales-of-herding-gods-episode-85-subtitle-indonesia)'
+        error: 'Parameter "slug" diperlukan'
       });
     }
     
     try {
-      // Ambil halaman episode dari anichin.moe
-      const { data } = await axios.get(`${BASE_URL}/${slug}/`, {
+      const url = `${BASE_URL}/${slug}/`;
+      const { data } = await axios.get(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        },
-        timeout: 15000
-      });
-      
-      const $ = cheerio.load(data);
-      
-      // Cari iframe Dailymotion
-      let streamUrl = null;
-      let videoId = null;
-      
-      $('iframe[src*="dailymotion.com"]').each((_, el) => {
-        const src = $(el).attr('src');
-        if (src) {
-          const match = src.match(/video=([a-zA-Z0-9]+)/);
-          if (match) {
-            videoId = match[1];
-            streamUrl = `https://www.dailymotion.com/embed/video/${videoId}?ui=0&autoplay=1`;
-          }
-          return false;
         }
       });
       
-      // Fallback: cari dari link
-      if (!streamUrl) {
-        $('a[href*="dailymotion.com"]').each((_, el) => {
-          const href = $(el).attr('href');
-          if (href) {
-            const match = href.match(/dailymotion\.com\/video\/([a-zA-Z0-9]+)/);
-            if (match) {
-              videoId = match[1];
-              streamUrl = `https://www.dailymotion.com/embed/video/${videoId}?ui=0&autoplay=1`;
-            }
-          }
+      const $ = cheerio.load(data);
+      let streamUrl = null;
+      let source = null;
+      
+      // Cari semua iframe (Dailymotion, OK.ru, dll)
+      $('iframe').each((_, el) => {
+        const src = $(el).attr('src');
+        if (src && (src.includes('dailymotion.com') || src.includes('ok.ru') || src.includes('rumble.com'))) {
+          streamUrl = src;
+          if (src.includes('ok.ru')) source = 'OK.ru';
+          else if (src.includes('dailymotion')) source = 'Dailymotion';
+          else source = 'Other';
           return false;
-        });
-      }
+        }
+      });
       
       if (!streamUrl) {
         return res.status(404).json({
           status: false,
           creator: getCreator(),
-          error: 'Link streaming tidak ditemukan',
-          note: 'Pastikan slug episode benar'
+          error: 'Link streaming tidak ditemukan'
         });
       }
       
-      // Ambil judul episode
       const title = $('.entry-title').text().trim() || 'Donghua Episode';
       
       res.json({
@@ -79,23 +59,14 @@ module.exports = (app) => {
         creator: getCreator(),
         result: {
           title: title,
-          video_id: videoId,
-          stream_url: streamUrl
+          source: source,
+          embed_url: streamUrl,
+          watch_url: streamUrl.replace('/videoembed/', '/video/')
         }
       });
       
     } catch (error) {
-      console.error('[Donghua Stream Error]', error.message);
-      
-      if (error.response?.status === 404) {
-        return res.status(404).json({
-          status: false,
-          creator: getCreator(),
-          error: 'Episode tidak ditemukan',
-          note: 'Periksa kembali slug episode'
-        });
-      }
-      
+      console.error('[Stream Error]', error.message);
       res.status(500).json({
         status: false,
         creator: getCreator(),
