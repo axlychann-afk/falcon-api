@@ -9,25 +9,27 @@ const getCreator = () => {
   return (global.apikey && global.apikey[0]) ? global.apikey[0] : 'AxlyDev';
 };
 
-async function uploadToUguu(fileBuffer) {
+// GANTI KE CATBOX (lebih stabil)
+async function uploadToCatbox(fileBuffer) {
     const type = await fromBuffer(fileBuffer);
     const ext = type ? type.ext : 'bin';
     
     const form = new FormData();
-    form.append('files[]', fileBuffer, { filename: `data.${ext}` });
+    form.append('reqtype', 'fileupload');
+    form.append('fileToUpload', fileBuffer, `file.${ext}`);
 
-    const response = await axios.post('https://uguu.se/upload.php', form, {
+    const response = await axios.post('https://catbox.moe/user/api.php', form, {
         headers: {
             ...form.getHeaders(),
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'User-Agent': 'Mozilla/5.0'
         },
         timeout: 60000
     });
 
-    if (response.data?.files?.[0]?.url) {
-        return response.data.files[0].url;
+    if (response.data && response.data.startsWith('https://')) {
+        return response.data;
     }
-    throw new Error('Upload gagal');
+    throw new Error('Upload gagal: ' + response.data);
 }
 
 module.exports = (app) => {
@@ -40,7 +42,7 @@ module.exports = (app) => {
             return res.status(400).json({
                 status: false,
                 creator: getCreator(),
-                error: 'Parameter "url" diperlukan. Contoh: /tools/upload?url=https://example.com/gambar.jpg'
+                error: 'Parameter "url" diperlukan'
             });
         }
 
@@ -50,7 +52,7 @@ module.exports = (app) => {
                 headers: { 'User-Agent': 'Mozilla/5.0' }
             });
 
-            const resultUrl = await uploadToUguu(Buffer.from(imageRes.data));
+            const resultUrl = await uploadToCatbox(Buffer.from(imageRes.data));
             res.json({
                 status: true,
                 creator: getCreator(),
@@ -77,7 +79,7 @@ module.exports = (app) => {
         }
 
         try {
-            const url = await uploadToUguu(req.file.buffer);
+            const url = await uploadToCatbox(req.file.buffer);
             res.json({
                 status: true,
                 creator: getCreator(),
