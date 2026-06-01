@@ -9,7 +9,7 @@ const getCreator = () => {
 
 module.exports = (app) => {
   
-  app.get('/anime/anichin/stream', async (req, res) => {
+  app.get('/anime/donghua/stream', async (req, res) => {
     const { slug } = req.query;
     
     if (!slug) {
