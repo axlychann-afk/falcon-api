@@ -1,78 +1,72 @@
 const axios = require('axios');
+const cheerio = require('cheerio');
 
-// Creator name dari global atau default
 const getCreator = () => {
   return (global.apikey && global.apikey[0]) ? global.apikey[0] : 'AxlyDev';
 };
 
-// Fungsi ekstrak ID dari URL Dailymotion
 function extractDailymotionId(url) {
   let match = url.match(/dailymotion\.com\/video\/([a-zA-Z0-9]+)/);
   if (match) return match[1];
-  
   match = url.match(/dai\.ly\/([a-zA-Z0-9]+)/);
   if (match) return match[1];
-  
   match = url.match(/video=([a-zA-Z0-9]+)/);
   if (match) return match[1];
-  
   return null;
 }
 
-// Ambil MP4 langsung dari Dailymotion API
 async function getDirectMp4(videoId) {
   try {
-    const { data } = await axios.get(`https://www.dailymotion.com/player/metadata/video/${videoId}`, {
+    // Method 1: Coba API dulu
+    const apiUrl = `https://www.dailymotion.com/player/metadata/video/${videoId}`;
+    const { data } = await axios.get(apiUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'application/json',
-        'Referer': 'https://www.dailymotion.com/'
+        'Referer': 'https://www.dailymotion.com/',
+        'Origin': 'https://www.dailymotion.com'
       },
       timeout: 15000
     });
     
-    // Cari URL MP4 dengan kualitas tertinggi
     let mp4Url = null;
-    let bestQuality = 0;
     
+    // Cek berbagai kemungkinan struktur response
     if (data.qualities) {
-      Object.keys(data.qualities).forEach(quality => {
-        const q = parseInt(quality) || 0;
-        const url = data.qualities[quality]?.[0]?.url;
-        if (url && q > bestQuality) {
-          bestQuality = q;
-          mp4Url = url;
+      const qualities = ['auto', '1080', '720', '480', '380', '240'];
+      for (const quality of qualities) {
+        if (data.qualities[quality] && data.qualities[quality][0]?.url) {
+          mp4Url = data.qualities[quality][0].url;
+          break;
         }
-      });
+      }
     }
     
-    // Fallback: ambil dari streams
     if (!mp4Url && data.streams) {
-      Object.keys(data.streams).forEach(quality => {
-        const url = data.streams[quality]?.[0]?.url;
-        if (url) mp4Url = url;
-      });
+      const streams = data.streams;
+      if (streams.hls_url) mp4Url = streams.hls_url;
+      if (streams.dash_url) mp4Url = streams.dash_url;
+    }
+    
+    if (!mp4Url && data.progressive) {
+      mp4Url = data.progressive[0]?.url;
     }
     
     return {
-      success: true,
+      success: !!mp4Url,
       title: data.title || 'Donghua',
       mp4_url: mp4Url,
-      duration: data.duration || null,
       thumbnail: data.thumbnail_url || null
     };
     
   } catch (error) {
-    return {
-      success: false,
-      error: error.message
-    };
+    console.error('[Dailymotion Error]', error.message);
+    return { success: false, error: error.message };
   }
 }
 
 module.exports = (app) => {
   
-  // Endpoint: Convert Dailymotion ke MP4 langsung
   app.get('/donghua/stream', async (req, res) => {
     const { url, id } = req.query;
     
@@ -85,7 +79,7 @@ module.exports = (app) => {
       return res.status(400).json({
         status: false,
         creator: getCreator(),
-        error: 'Parameter "url" atau "id" diperlukan (URL Dailymotion)'
+        error: 'Parameter "url" atau "id" diperlukan'
       });
     }
     
@@ -93,14 +87,16 @@ module.exports = (app) => {
       const result = await getDirectMp4(videoId);
       
       if (!result.success || !result.mp4_url) {
-        return res.status(404).json({
+        // Kalo gagal, return embed URL biar user buka manual
+        return res.json({
           status: false,
           creator: getCreator(),
-          error: result.error || 'MP4 URL tidak ditemukan'
+          error: 'MP4 URL tidak ditemukan, coba buka link ini di browser',
+          fallback_url: `https://www.dailymotion.com/embed/video/${videoId}`
         });
       }
       
-      // Redirect langsung ke file MP4
+      // Redirect ke MP4
       res.redirect(result.mp4_url);
       
     } catch (error) {
