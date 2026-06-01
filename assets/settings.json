@@ -224,6 +224,21 @@
   ]
     },
     {
+  "name": "Donghua",
+  "image": "/api/placeholder/800/200",
+  "items": [
+    {
+      "name": "Stream",
+      "desc": "Convert link Dailymotion ke MP4 langsung (tanpa iklan) - Donghua",
+      "path": "/donghua/stream?url=",
+      "status": "ready",
+      "params": {
+        "url": "URL Dailymotion (contoh: https://geo.dailymotion.com/player/xid0t.html?video=xxx atau https://www.dailymotion.com/video/xxx)"
+      }
+    }
+  ]
+    },
+    {
       "name": "Anime",
       "items": [
 {
