@@ -638,15 +638,6 @@
           }
         },
         {
-  "name": "Donghua Search",
-  "desc": "Mencari donghua di donghub.vip",
-  "path": "/search/donghua?q=",
-  "status": "ready",
-  "params": {
-    "q": "Judul donghua yang ingin dicari"
-  }
-        },
-        {
   "name": "Pinterest Video",
   "desc": "Mencari video di Pinterest",
   "path": "/search/pinterest/video?q=",
