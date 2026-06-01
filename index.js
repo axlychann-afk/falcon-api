@@ -4,11 +4,16 @@ const fs = require('fs');
 const cors = require('cors');
 const path = require('path');
 const axios = require('axios');
+const multer = require('multer'); // TAMBAHKAN INI
 
 require("./function.js");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+
+// Konfigurasi multer untuk upload file (memory storage)
+const upload = multer({ storage: multer.memoryStorage() });
+global.upload = upload; // biar bisa dipake di semua endpoint
 
 // Ganti webhook Discord lu disini:
 const WEBHOOK_URL = 'https://discord.com/api/webhooks/1396122030163628112/-vEj4HjREjbaOVXDu5932YjeHpTkjNSKyUKugBFF9yVCBeQSrdgK8qM3HNxVYTOD5BYP';
@@ -16,21 +21,14 @@ const WEBHOOK_URL = 'https://discord.com/api/webhooks/1396122030163628112/-vEj4H
 // Buffer untuk batch log
 let logBuffer = [];
 
-
 // Kirim batch tiap detik
 setInterval(() => {
     if (logBuffer.length === 0) return;
 
-   
-
     const combinedLogs = logBuffer.join('\n');
     logBuffer = [];
 
-    const payload =
-` \`\`\`ansi
-${combinedLogs}
-\`\`\`
-`;
+    const payload = ` \`\`\`ansi\n${combinedLogs}\n\`\`\``;
 
     axios.post(WEBHOOK_URL, { content: payload }).catch(console.error);
 }, 2000);
@@ -38,15 +36,15 @@ ${combinedLogs}
 // Function log queue
 function queueLog({ method, status, url, duration, error = null }) {
     let colorCode;
-    if (status >= 500) colorCode = '[2;31m';
-    else if (status >= 400) colorCode = '[2;31m';
-    else if (status === 304) colorCode = '[2;34m';
-    else colorCode = '[2;32m';
+    if (status >= 500) colorCode = '\u001b[2;31m';
+    else if (status >= 400) colorCode = '\u001b[2;31m';
+    else if (status === 304) colorCode = '\u001b[2;34m';
+    else colorCode = '\u001b[2;32m';
 
-    let line = `${colorCode}[${method}] ${status} ${url} - ${duration}ms[0m`;
+    let line = `${colorCode}[${method}] ${status} ${url} - ${duration}ms\u001b[0m`;
 
     if (error) {
-        line += `\n[2;31m[ERROR] ${error.message || error}[0m`;
+        line += `\n\u001b[2;31m[ERROR] ${error.message || error}\u001b[0m`;
     }
 
     logBuffer.push(line);
@@ -79,17 +77,8 @@ app.use((req, res, next) => {
         const cooldownTime = (Math.random() * (120000 - 60000) + 60000).toFixed(3);
 
         console.log(`⚠️ SPAM DETECT: Cooldown ${cooldownTime / 1000} detik`);
-const userTag = '<@1162931657276395600>';
-        const spamMsg =
-`${userTag}
-\`\`\`ansi
-⚠️ [ SPAM DETECT ] ⚠️
-
-[ ! ] Too many requests, server cooldown for ${cooldownTime / 1000} sec!
-
-[2;31m[${req.method}] 503 ${req.originalUrl} - 0ms[0m
-\`\`\`
-`;
+        const userTag = '<@1162931657276395600>';
+        const spamMsg = `${userTag}\n\`\`\`ansi\n⚠️ [ SPAM DETECT ] ⚠️\n\n[ ! ] Too many requests, server cooldown for ${cooldownTime / 1000} sec!\n\n\u001b[2;31m[${req.method}] 503 ${req.originalUrl} - 0ms\u001b[0m\n\`\`\``;
 
         axios.post(WEBHOOK_URL, { content: spamMsg }).catch(console.error);
 
