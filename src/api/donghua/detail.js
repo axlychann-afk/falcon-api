@@ -53,15 +53,17 @@ module.exports = (app) => {
         episodes: []
       };
       
-      detail.title = $(".single-info .infox .infolimit h2").text().trim();
-      detail.alternative = $(".single-info .infox .infolimit .alter").text().trim();
+      // ========== AMBIL DARI STRUKTUR BARU ==========
+      detail.title = $(".bixbox .infox h1.entry-title").text().trim();
+      detail.alternative = $(".bixbox .infox .alter").text().trim();
+      detail.cover = $(".bixbox .thumb img").attr("src") || null;
       
-      const ratingText = $(".single-info .infox .rating strong").text().trim();
+      // Rating
+      const ratingText = $(".bixbox .rating strong").text().trim();
       detail.rating = ratingText.replace("Rating ", "");
       
-      detail.cover = $(".single-info .thumb img").attr("src") || null;
-      
-      $(".single-info .infox .spe span").each((_, el) => {
+      // Info dari .spe span
+      $(".bixbox .info-content .spe span").each((_, el) => {
         const text = $(el).text().trim();
         if (text.includes("Status:")) detail.status = text.replace("Status:", "").trim();
         if (text.includes("Tipe:")) detail.type = text.replace("Tipe:", "").trim();
@@ -75,16 +77,19 @@ module.exports = (app) => {
         if (text.includes("Subber:")) detail.subber = text.replace("Subber:", "").trim();
       });
       
-      $(".single-info .infox .genxed a").each((_, el) => {
+      // Genre
+      $(".bixbox .genxed a").each((_, el) => {
         detail.genres.push($(el).text().trim());
       });
       
-      detail.sinopsis = $(".single-info .infox .desc h4").last().text().trim();
+      // Sinopsis
+      detail.sinopsis = $(".bixbox .desc").text().trim();
       
-      $(".eplister ul li").each((_, el) => {
-        const episodeTitle = $(el).find(".epl-title").text().trim();
+      // ========== AMBIL EPISODE (jika ada) ==========
+      $(".eplister ul li, .listeps ul li").each((_, el) => {
+        const episodeTitle = $(el).find(".epl-title, .lchx a").text().trim();
         const episodeLink = $(el).find("a").attr("href");
-        const episodeDate = $(el).find(".epl-date").text().trim();
+        const episodeDate = $(el).find(".epl-date, .date").text().trim();
         
         if (episodeTitle && episodeLink) {
           detail.episodes.push({
@@ -109,17 +114,7 @@ module.exports = (app) => {
         return res.status(403).json({
           status: false,
           creator: getCreator(),
-          error: 'Akses ditolak oleh Cloudflare',
-          note: 'Website Anichin memblokir request dari server'
-        });
-      }
-      
-      if (error.response?.status === 404) {
-        return res.status(404).json({
-          status: false,
-          creator: getCreator(),
-          error: 'Donghua tidak ditemukan',
-          note: 'Periksa kembali slug'
+          error: 'Akses ditolak oleh Cloudflare'
         });
       }
       
