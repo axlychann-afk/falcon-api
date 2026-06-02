@@ -9,21 +9,40 @@ const getCreator = () => {
   return (global.apikey && global.apikey[0]) ? global.apikey[0] : 'AxlyDev';
 };
 
-// GANTI KE CATBOX (lebih stabil)
-async function uploadToCatbox(fileBuffer) {
+// Pake 0x0.st (paling stabil)
+async function uploadTo0x0(fileBuffer, filename) {
+    const form = new FormData();
+    form.append('file', fileBuffer, filename);
+
+    const response = await axios.post('https://0x0.st', form, {
+        headers: {
+            ...form.getHeaders(),
+            'User-Agent': 'Mozilla/5.0'
+        },
+        timeout: 30000
+    });
+
+    if (response.data && response.data.startsWith('https://')) {
+        return response.data.trim();
+    }
+    throw new Error('Upload gagal: ' + response.data);
+}
+
+// Pake Catbox (alternatif)
+async function uploadToCatbox(fileBuffer, filename) {
     const type = await fromBuffer(fileBuffer);
     const ext = type ? type.ext : 'bin';
     
     const form = new FormData();
     form.append('reqtype', 'fileupload');
-    form.append('fileToUpload', fileBuffer, `file.${ext}`);
+    form.append('fileToUpload', fileBuffer, { filename: `file.${ext}` });
 
     const response = await axios.post('https://catbox.moe/user/api.php', form, {
         headers: {
             ...form.getHeaders(),
             'User-Agent': 'Mozilla/5.0'
         },
-        timeout: 60000
+        timeout: 30000
     });
 
     if (response.data && response.data.startsWith('https://')) {
@@ -52,7 +71,9 @@ module.exports = (app) => {
                 headers: { 'User-Agent': 'Mozilla/5.0' }
             });
 
-            const resultUrl = await uploadToCatbox(Buffer.from(imageRes.data));
+            const filename = url.split('/').pop() || 'file.jpg';
+            const resultUrl = await uploadTo0x0(Buffer.from(imageRes.data), filename);
+            
             res.json({
                 status: true,
                 creator: getCreator(),
@@ -78,13 +99,30 @@ module.exports = (app) => {
             });
         }
 
+        // Batasi ukuran file (max 10MB)
+        if (req.file.size > 10 * 1024 * 1024) {
+            return res.status(400).json({
+                status: false,
+                creator: getCreator(),
+                error: 'File terlalu besar. Maksimal 10MB'
+            });
+        }
+
         try {
-            const url = await uploadToCatbox(req.file.buffer);
+            // Coba upload ke 0x0.st dulu
+            let resultUrl;
+            try {
+                resultUrl = await uploadTo0x0(req.file.buffer, req.file.originalname);
+            } catch (err) {
+                console.log('0x0.st error, fallback ke catbox');
+                resultUrl = await uploadToCatbox(req.file.buffer, req.file.originalname);
+            }
+            
             res.json({
                 status: true,
                 creator: getCreator(),
                 result: {
-                    url: url,
+                    url: resultUrl,
                     original_name: req.file.originalname,
                     size: req.file.size
                 }
