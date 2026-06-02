@@ -1,6 +1,8 @@
 // softkomik.js - Scraper Softkomik.co (pake judul, gak perlu slug)
 const axios = require('axios');
 const cheerio = require('cheerio');
+const FormData = require('form-data');
+const PDFDocument = require('pdfkit');
 
 const CONFIG = {
     baseUrl: 'https://softkomik.co',
@@ -15,6 +17,10 @@ const imageHeaders = {
     'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
     'Referer': 'https://softkomik.co/',
     'Origin': 'https://softkomik.co'
+};
+
+const getCreator = () => {
+    return (global.apikey && global.apikey[0]) ? global.apikey[0] : 'AxlyDev';
 };
 
 // ========== HELPER FUNCTIONS ==========
@@ -67,9 +73,8 @@ async function searchKomik(query, limit = 20) {
     }
 }
 
-// ========== GET DETAIL PAKE JUDUL (LANGSUNG, GAK PAKE SLUG) ==========
+// ========== GET DETAIL PAKE JUDUL ==========
 async function getKomikByTitle(title) {
-    // Step 1: Search dulu pake judul
     const searchResults = await searchKomik(title, 1);
     
     if (searchResults.length === 0) {
@@ -78,7 +83,6 @@ async function getKomikByTitle(title) {
     
     const slug = searchResults[0].slug;
     
-    // Step 2: Ambil detail dari slug
     const url = `${CONFIG.baseUrl}/${slug}`;
     const response = await axios.get(url, {
         headers: { 'User-Agent': CONFIG.userAgent },
@@ -140,8 +144,8 @@ async function getChaptersByTitle(title, limit = 100) {
     }));
 }
 
-// ========== GET IMAGES PAKE JUDUL ==========
-async function getImagesByTitle(title, chapterNum, maxPage = 100) {
+// ========== GET GAMBAR CHAPTER ==========
+async function getImagesByTitle(title, chapterNum, maxPage = 200) {
     const searchResults = await searchKomik(title, 1);
     if (searchResults.length === 0) {
         throw new Error(`Komik dengan judul "${title}" tidak ditemukan`);
@@ -164,11 +168,82 @@ async function getImagesByTitle(title, chapterNum, maxPage = 100) {
         images: images,
         title: searchResults[0].title,
         chapter: chapterNum,
-        note: 'URL di-generate berdasarkan pola. Beberapa URL mungkin 404 jika chapter lebih pendek.'
+        note: 'URL di-generate berdasarkan pola'
     };
 }
 
-// ========== LATEST (TETAP) ==========
+// ========== UPLOAD KE UPLOAD.EE ==========
+async function uploadToUploadEe(fileBuffer, filename) {
+    const form = new FormData();
+    form.append('upfile_0', fileBuffer, { filename: filename });
+    form.append('email', '');
+    form.append('category', 'cat_file');
+
+    const response = await axios.post('https://www.upload.ee/cgi-bin/ubr_upload.pl', form, {
+        headers: {
+            ...form.getHeaders(),
+            'User-Agent': 'Mozilla/5.0'
+        },
+        timeout: 60000
+    });
+
+    const html = response.data;
+    const match = html.match(/https:\/\/www\.upload\.ee\/files\/\d+\/[^"'\s]+/);
+    if (match) return match[0];
+    
+    const match2 = html.match(/href="(https:\/\/www\.upload\.ee\/files\/\d+\/[^"]+)"/);
+    if (match2) return match2[1];
+    
+    throw new Error('Upload gagal');
+}
+
+// ========== BUAT PDF ==========
+async function createPDFBuffer(images) {
+    const chunks = [];
+    const doc = new PDFDocument({ autoFirstPage: false });
+    
+    doc.on('data', chunk => chunks.push(chunk));
+    
+    const pdfPromise = new Promise((resolve) => {
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+    });
+    
+    let pageCount = 0;
+    
+    for (let i = 0; i < images.length; i++) {
+        try {
+            const imgResponse = await axios.get(images[i].url, {
+                headers: imageHeaders,
+                responseType: 'arraybuffer',
+                timeout: 30000
+            });
+            
+            const imgBuffer = Buffer.from(imgResponse.data);
+            const imgBase64 = `data:image/webp;base64,${imgBuffer.toString('base64')}`;
+            
+            doc.addPage();
+            doc.image(imgBase64, 0, 0, {
+                width: doc.page.width,
+                height: doc.page.height,
+                fit: [doc.page.width, doc.page.height]
+            });
+            pageCount++;
+            
+        } catch (err) {
+            console.error(`Halaman ${i + 1} gagal:`, err.message);
+            if (i > 0 && pageCount === 0 && i > 5) break;
+        }
+    }
+    
+    if (pageCount === 0) {
+        throw new Error('Tidak ada gambar yang berhasil diunduh');
+    }
+    
+    doc.end();
+    return await pdfPromise;
+}
+
+// ========== LATEST KOMIK ==========
 async function getLatestKomik(limit = 20) {
     const response = await axios.get(CONFIG.baseUrl, {
         headers: { 'User-Agent': CONFIG.userAgent }
@@ -198,7 +273,7 @@ async function getRekomendasi(limit = 15) {
     
     const jsonData = JSON.parse(match[1]);
     const data = jsonData.props?.pageProps?.data;
-    if (!data) throw new Error('Gagal mengambil data');
+    if (!data) throw new Error('Gagal mengambil数据');
     
     const allKomik = [...(data.newKomik || []), ...(data.updateNonProject || [])];
     const unique = [];
@@ -237,7 +312,7 @@ module.exports = (app) => {
             const data = await getLatestKomik(parseInt(limit));
             res.json({
                 status: true,
-                creator: 'AxlyDev',
+                creator: getCreator(),
                 result: {
                     new_komik: data.newKomik.map(k => ({
                         title: k.title,
@@ -261,7 +336,7 @@ module.exports = (app) => {
                 }
             });
         } catch (error) {
-            res.status(500).json({ status: false, creator: 'AxlyDev', error: error.message });
+            res.status(500).json({ status: false, creator: getCreator(), error: error.message });
         }
     });
     
@@ -273,24 +348,23 @@ module.exports = (app) => {
             if (!q) {
                 return res.status(400).json({ 
                     status: false, 
-                    creator: 'AxlyDev', 
+                    creator: getCreator(), 
                     error: 'Parameter q (judul komik) wajib diisi' 
                 });
             }
             
-            // Langsung dapetin detail dari judul
             const detail = await getKomikByTitle(q);
             
             res.json({
                 status: true,
-                creator: 'AxlyDev',
+                creator: getCreator(),
                 result: detail
             });
             
         } catch (error) {
             res.status(500).json({ 
                 status: false, 
-                creator: 'AxlyDev', 
+                creator: getCreator(), 
                 error: error.message 
             });
         }
@@ -304,7 +378,7 @@ module.exports = (app) => {
             if (!title) {
                 return res.status(400).json({ 
                     status: false, 
-                    creator: 'AxlyDev', 
+                    creator: getCreator(), 
                     error: 'Parameter title (judul komik) wajib diisi' 
                 });
             }
@@ -313,7 +387,7 @@ module.exports = (app) => {
             
             res.json({
                 status: true,
-                creator: 'AxlyDev',
+                creator: getCreator(),
                 result: {
                     title: title,
                     total: chapters.length,
@@ -324,38 +398,65 @@ module.exports = (app) => {
         } catch (error) {
             res.status(500).json({ 
                 status: false, 
-                creator: 'AxlyDev', 
+                creator: getCreator(), 
                 error: error.message 
             });
         }
     });
     
-    // 4. IMAGES (PAKE JUDUL)
+    // 4. IMAGES (PAKE JUDUL) - SEKARANG RETURN PDF LINK
     app.get('/anime/komik/images', async (req, res) => {
+        const { title, chapter, maxPage = 200 } = req.query;
+        
+        if (!title || !chapter) {
+            return res.status(400).json({
+                status: false,
+                creator: getCreator(),
+                error: 'Parameter "title" (judul) dan "chapter" wajib diisi'
+            });
+        }
+        
         try {
-            const { title, chapter, maxPage = 100 } = req.query;
+            console.log(`[PDF] Membuat PDF untuk: ${title} chapter ${chapter}`);
             
-            if (!title || !chapter) {
-                return res.status(400).json({ 
-                    status: false, 
-                    creator: 'AxlyDev', 
-                    error: 'Parameter title (judul) dan chapter wajib diisi' 
+            // 1. Ambil gambar chapter
+            const { images, title: komikTitle, total } = await getImagesByTitle(title, chapter, parseInt(maxPage));
+            
+            if (images.length === 0) {
+                return res.status(404).json({
+                    status: false,
+                    creator: getCreator(),
+                    error: 'Tidak ada gambar untuk chapter ini'
                 });
             }
             
-            const images = await getImagesByTitle(title, chapter, parseInt(maxPage));
+            // 2. Buat PDF dari semua gambar
+            const pdfBuffer = await createPDFBuffer(images);
             
+            // 3. Upload ke upload.ee
+            const safeTitle = komikTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+            const filename = `${safeTitle}_chapter_${chapter}.pdf`;
+            const pdfUrl = await uploadToUploadEe(pdfBuffer, filename);
+            
+            // 4. Return link PDF
             res.json({
                 status: true,
-                creator: 'AxlyDev',
-                result: images
+                creator: getCreator(),
+                result: {
+                    title: komikTitle,
+                    chapter: chapter,
+                    total_pages: total,
+                    pdf_url: pdfUrl,
+                    note: 'Link PDF aktif selama 30 hari (Upload.ee)'
+                }
             });
             
         } catch (error) {
-            res.status(500).json({ 
-                status: false, 
-                creator: 'AxlyDev', 
-                error: error.message 
+            console.error('[Komik Error]', error.message);
+            res.status(500).json({
+                status: false,
+                creator: getCreator(),
+                error: error.message
             });
         }
     });
@@ -367,7 +468,7 @@ module.exports = (app) => {
             const rekom = await getRekomendasi(parseInt(limit));
             res.json({
                 status: true,
-                creator: 'AxlyDev',
+                creator: getCreator(),
                 result: rekom.map(k => ({
                     title: k.title,
                     type: k.type,
@@ -379,7 +480,7 @@ module.exports = (app) => {
                 }))
             });
         } catch (error) {
-            res.status(500).json({ status: false, creator: 'AxlyDev', error: error.message });
+            res.status(500).json({ status: false, creator: getCreator(), error: error.message });
         }
     });
     
@@ -390,7 +491,7 @@ module.exports = (app) => {
             if (!url || !url.includes('komik.im')) {
                 return res.status(400).json({ 
                     status: false, 
-                    creator: 'AxlyDev', 
+                    creator: getCreator(), 
                     error: 'Parameter url valid wajib diisi' 
                 });
             }
@@ -402,7 +503,7 @@ module.exports = (app) => {
         } catch (error) {
             res.status(500).json({ 
                 status: false, 
-                creator: 'AxlyDev', 
+                creator: getCreator(), 
                 error: error.message 
             });
         }
