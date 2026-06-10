@@ -130,6 +130,16 @@
       }
     },
     {
+  "name": "ToHitam - Hitamkan Kulit",
+  "desc": "Ubah warna kulit karakter menjadi hitam menggunakan AI - langsung return gambar",
+  "path": "/maker/tohitam?url=",
+  "method": "GET",
+  "status": "ready",
+  "params": {
+    "url": "URL gambar yang mau diubah warna kulitnya"
+  }
+    },
+    {
   "name": "QC Image Generator",
   "desc": "Buat gambar QC dengan teks, nama, avatar, dan warna",
   "path": "/maker/qc?text=&name=&avatar=&color=",
