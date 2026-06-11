@@ -234,6 +234,33 @@
   ]
     },
     {
+  "name": "DramaBox",
+  "image": "/api/placeholder/800/200",
+  "items": [
+    {
+      "name": "Search",
+      "desc": "Mencari drama di DramaBox",
+      "path": "/dramabox/search?q=",
+      "status": "ready",
+      "params": { "q": "Judul drama" }
+    },
+    {
+      "name": "Detail",
+      "desc": "Detail drama + daftar episode",
+      "path": "/dramabox/detail?id=&slug=",
+      "status": "ready",
+      "params": { "id": "ID drama", "slug": "Slug judul" }
+    },
+    {
+      "name": "Video",
+      "desc": "Streaming video langsung (return MP4)",
+      "path": "/dramabox/video?id=&episode=",
+      "status": "ready",
+      "params": { "id": "ID drama", "episode": "Nomor episode" }
+    }
+  ]
+    },
+    {
   "name": "Donghua",
   "image": "/api/placeholder/800/200",
   "items": [
