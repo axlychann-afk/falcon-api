@@ -4,22 +4,50 @@ const getCreator = () => {
     return (global.apikey && global.apikey[0]) ? global.apikey[0] : 'AxlyDev';
 };
 
+// Mapping judul Indonesia ke Inggris (biar search bisa pake bahasa Indonesia)
+const indoToEng = {
+    "perceraian di hari pernikahan": "just married just divorced",
+    "diantar oleh takdir": "diantar oleh takdir",
+    "virgin bride": "virgin bride bound to the dragon king",
+    "pelayan": "the maid",
+    "rahasia": "secret"
+};
+
+// Headers lengkap untuk bypass CloudFront
+const headers = {
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
+    'Referer': 'https://www.dramabox.com/',
+    'Sec-Fetch-Dest': 'empty',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Site': 'same-origin',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    'x-nextjs-data': '1'
+};
+
 class DramaBox {
     constructor() {
-        this.buildId = "dramabox_prod_20260523";
-        this.headers = {
-            "x-nextjs-data": "1",
-            "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36"
-        };
+        this.buildId = "dramabox_prod_20260529";
+        this.headers = headers;
     }
 
+    // ==================== SEARCH (SESUAI DRAMABOX) ====================
     async search(query) {
+        // Konversi ke bahasa Inggris jika perlu
+        let searchQuery = query.toLowerCase();
+        if (indoToEng[searchQuery]) {
+            searchQuery = indoToEng[searchQuery];
+        }
+        
         try {
             const { data } = await axios.get(`https://www.dramabox.com/_next/data/${this.buildId}/in/search.json`, {
-                params: { searchValue: query },
+                params: { searchValue: searchQuery },
                 headers: {
                     ...this.headers,
-                    Referer: `https://www.dramabox.com/in/search?searchValue=${encodeURIComponent(query)}`
+                    'Referer': `https://www.dramabox.com/in/search?searchValue=${encodeURIComponent(searchQuery)}`
                 },
                 timeout: 15000
             });
@@ -43,14 +71,14 @@ class DramaBox {
         }
     }
 
+    // ==================== DETAIL ====================
     async detail(bookId, slug) {
         try {
             const { data } = await axios.get(`https://www.dramabox.com/_next/data/${this.buildId}/in/drama/${bookId}/${slug}.json`, {
                 params: { bookId, bookNameEn: slug },
                 headers: {
-                    "x-nextjs-data": "1",
-                    "referer": `https://www.dramabox.com/in/drama/${bookId}/${slug}`,
-                    "user-agent": "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36"
+                    ...this.headers,
+                    'referer': `https://www.dramabox.com/in/drama/${bookId}/${slug}`
                 },
                 timeout: 15000
             });
@@ -90,13 +118,11 @@ class DramaBox {
         }
     }
 
+    // ==================== GET STREAM URL ====================
     async getStreamUrl(bookId, episodeIndex) {
         try {
             const { data } = await axios.get(`https://www.dramabox.com/_next/data/${this.buildId}/in/drama/${bookId}/episode/${episodeIndex + 1}.json`, {
-                headers: {
-                    "x-nextjs-data": "1",
-                    "user-agent": "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36"
-                },
+                headers: this.headers,
                 timeout: 15000
             });
             
@@ -120,7 +146,7 @@ module.exports = (app) => {
             return res.status(400).json({
                 status: false,
                 creator: getCreator(),
-                error: 'Parameter "q" diperlukan (contoh: ?q=aku+merawat+anak+selingkuhan)'
+                error: 'Parameter "q" diperlukan'
             });
         }
         
@@ -129,6 +155,7 @@ module.exports = (app) => {
             res.json({
                 status: true,
                 creator: getCreator(),
+                query: q,
                 total: results.length,
                 results: results
             });
@@ -164,7 +191,7 @@ module.exports = (app) => {
         }
     });
     
-    // ==================== 3. VIDEO LANGSUNG (RETURN MP4) ====================
+    // ==================== 3. VIDEO LANGSUNG ====================
     app.get('/dramabox/video', async (req, res) => {
         const { id, episode } = req.query;
         
