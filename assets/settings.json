@@ -234,58 +234,6 @@
   ]
     },
     {
-  "name": "Komiku",
-  "image": "/api/placeholder/800/200",
-  "items": [
-    {
-      "name": "Search",
-      "desc": "Mencari manga/manhwa/manhua di Komiku.org",
-      "path": "/komiku/search?q=",
-      "status": "ready",
-      "params": {
-        "q": "Judul manga yang ingin dicari (contoh: one piece, naruto)",
-        "page": "(Opsional) Halaman hasil pencarian, default 1"
-      }
-    },
-    {
-      "name": "Detail",
-      "desc": "Melihat detail lengkap manga (sinopsis, genre, author, daftar chapter)",
-      "path": "/komiku/detail?url=",
-      "status": "ready",
-      "params": {
-        "url": "URL manga dari Komiku (contoh: https://komiku.org/manga/one-piece/)"
-      }
-    },
-    {
-      "name": "Chapter Images",
-      "desc": "Mendapatkan daftar URL gambar dari chapter tertentu",
-      "path": "/komiku/chapter?url=",
-      "status": "ready",
-      "params": {
-        "url": "URL chapter dari Komiku (contoh: https://komiku.org/chapter/one-piece-chapter-1/)"
-      }
-    },
-    {
-      "name": "Download PDF",
-      "desc": "Download chapter sebagai file PDF langsung",
-      "path": "/komiku/pdf?url=",
-      "status": "ready",
-      "params": {
-        "url": "URL chapter dari Komiku"
-      }
-    },
-    {
-      "name": "PDF Link",
-      "desc": "Mendapatkan link download PDF (upload ke Catbox)",
-      "path": "/komiku/pdf-link?url=",
-      "status": "ready",
-      "params": {
-        "url": "URL chapter dari Komiku"
-      }
-    }
-  ]
-    },
-    {
   "name": "Donghua",
   "image": "/api/placeholder/800/200",
   "items": [
