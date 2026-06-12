@@ -8,9 +8,10 @@ const multer = require('multer');
 
 require("./function.js");
 
-// ✨ ADD THIS: Import persistent stats
+// ========== PERSISTENT STATS (NEW) ==========
 const stats = require('./api_stats_persistent');
 stats.init();
+// ==========================================
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -97,8 +98,9 @@ app.use((req, res, next) => {
     next();
 });
 
-// ✨ ADD THIS: Use persistent stats middleware
+// ========== PERSISTENT STATS MIDDLEWARE (NEW) ==========
 app.use(stats.requestCounterMiddleware);
+// =====================================================
 
 app.enable("trust proxy");
 app.set("json spaces", 2);
@@ -114,6 +116,7 @@ global.apikey = settings.apiSettings.apikey;
 // Custom Log + Wrap res.json + Batch log semua response
 app.use((req, res, next) => {
     console.log(chalk.bgHex('#FFFF99').hex('#333').bold(` Request Route: ${req.path} `));
+    // ❌ REMOVE: global.totalreq += 1; (sudah di-handle oleh stats middleware)
 
     const start = Date.now();
     const originalJson = res.json;
@@ -169,8 +172,9 @@ fs.readdirSync(apiFolder).forEach((subfolder) => {
     }
 });
 
-// ✨ ADD THIS: Load persistent stats endpoint
+// ========== LOAD PERSISTENT STATS ENDPOINT (NEW) ==========
 require('./update_api_status_endpoint')(app);
+// ======================================================
 
 console.log(chalk.bgHex('#90EE90').hex('#333').bold(' Load Complete! ✓ '));
 console.log(chalk.bgHex('#90EE90').hex('#333').bold(` Total Routes Loaded: ${totalRoutes} `));
@@ -212,3 +216,4 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
+
