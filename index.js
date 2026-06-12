@@ -4,21 +4,16 @@ const fs = require('fs');
 const cors = require('cors');
 const path = require('path');
 const axios = require('axios');
-const multer = require('multer');
+const multer = require('multer'); // TAMBAHKAN INI
 
 require("./function.js");
-
-// ========== PERSISTENT STATS (NEW) ==========
-const stats = require('./api_stats_persistent');
-stats.init();
-// ==========================================
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
 // Konfigurasi multer untuk upload file (memory storage)
 const upload = multer({ storage: multer.memoryStorage() });
-global.upload = upload;
+global.upload = upload; // biar bisa dipake di semua endpoint
 
 // Ganti webhook Discord lu disini:
 const WEBHOOK_URL = 'https://discord.com/api/webhooks/1396122030163628112/-vEj4HjREjbaOVXDu5932YjeHpTkjNSKyUKugBFF9yVCBeQSrdgK8qM3HNxVYTOD5BYP';
@@ -98,10 +93,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// ========== PERSISTENT STATS MIDDLEWARE (NEW) ==========
-app.use(stats.requestCounterMiddleware);
-// =====================================================
-
 app.enable("trust proxy");
 app.set("json spaces", 2);
 app.use(express.json());
@@ -116,7 +107,7 @@ global.apikey = settings.apiSettings.apikey;
 // Custom Log + Wrap res.json + Batch log semua response
 app.use((req, res, next) => {
     console.log(chalk.bgHex('#FFFF99').hex('#333').bold(` Request Route: ${req.path} `));
-    // ❌ REMOVE: global.totalreq += 1; (sudah di-handle oleh stats middleware)
+    global.totalreq += 1;
 
     const start = Date.now();
     const originalJson = res.json;
@@ -172,10 +163,6 @@ fs.readdirSync(apiFolder).forEach((subfolder) => {
     }
 });
 
-// ========== LOAD PERSISTENT STATS ENDPOINT (NEW) ==========
-require('./update_api_status_endpoint')(app);
-// ======================================================
-
 console.log(chalk.bgHex('#90EE90').hex('#333').bold(' Load Complete! ✓ '));
 console.log(chalk.bgHex('#90EE90').hex('#333').bold(` Total Routes Loaded: ${totalRoutes} `));
 
@@ -216,4 +203,3 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
-
