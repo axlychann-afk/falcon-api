@@ -67,10 +67,10 @@ function parseChunk(line) {
     }
 }
 
-async function askQuestion(prompt, memoryId = null) {
-    if (!memoryId) memoryId = makeMemoryId();
+async function askQuestion(prompt, sessionId = null) {
+    if (!sessionId) sessionId = makeMemoryId();
     
-    const session = await loadSession(memoryId);
+    const session = await loadSession(sessionId);
     
     const userMessage = { role: "user", content: prompt };
     
@@ -92,7 +92,7 @@ async function askQuestion(prompt, memoryId = null) {
         "origin": "https://feelbetterbot.com",
         "referer": "https://feelbetterbot.com/",
         "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
-        "cookie": `feelbet-memory=${memoryId}`,
+        "cookie": `feelbet-memory=${sessionId}`,
         "priority": "u=1, i"
     };
     
@@ -131,7 +131,7 @@ async function askQuestion(prompt, memoryId = null) {
             
             resolve({
                 status: true,
-                session_id: memoryId,
+                session_id: sessionId,
                 question: prompt,
                 answer: answer
             });
@@ -145,20 +145,20 @@ async function askQuestion(prompt, memoryId = null) {
 
 module.exports = (app) => {
     
-    // CHAT - Kirim pesan (session_id otomatis dibuat jika tidak dikirim)
-    app.post('/ai/feelbetter', async (req, res) => {
-        const { message, session_id } = req.body;
+    // ==================== FEELBETTER AI (PAKE ?text=) ====================
+    app.get('/ai/feelbetter', async (req, res) => {
+        const { text, sid } = req.query;
         
-        if (!message) {
+        if (!text) {
             return res.status(400).json({
                 status: false,
                 creator: getCreator(),
-                error: 'Parameter "message" diperlukan'
+                error: 'Parameter "text" diperlukan (contoh: ?text=halo)'
             });
         }
         
         try {
-            const result = await askQuestion(message, session_id);
+            const result = await askQuestion(text, sid);
             res.json({
                 status: true,
                 creator: getCreator(),
