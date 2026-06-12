@@ -1,13 +1,13 @@
+// src/api/ai/feelbeter.js
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
 
 const getCreator = () => {
     return (global.apikey && global.apikey[0]) ? global.apikey[0] : 'AxlyDev';
 };
 
-const SESSION_DIR = path.join(__dirname, '../../data/sessions');
-if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
+// ==================== IN-MEMORY STORAGE (GANTI FILE) ====================
+// Gunakan Map untuk menyimpan session di memory (bukan file)
+const sessions = new Map();
 
 const SYSTEM_MESSAGE = "Kamu adalah MRCL AI. Asisten yang bisa membantu apa saja. Pembuatmu adalah Marcellino Ferdian Abimanyu. Jika ada yang bertanya kepadamu, tolong berikan bahasa seperti barudak bandung/jaksel yang identik dengan Gue, Lo, Siape, Peduli Apa.";
 const DEFAULT_ASSISTANT_MESSAGE = "Hi, I'm FeelBetterBot — I'm here to listen and help you carry whatever feels heavy, without judgment.";
@@ -21,24 +21,25 @@ function makeMemoryId() {
     return `${word}-${animal}-${number}`;
 }
 
-async function loadSession(memoryId) {
-    const sessionFile = path.join(SESSION_DIR, `${memoryId}.json`);
-    try {
-        const raw = await fs.promises.readFile(sessionFile, 'utf8');
-        return JSON.parse(raw);
-    } catch {
-        return {
-            memoryId: memoryId,
-            messages: [
-                { role: "assistant", content: DEFAULT_ASSISTANT_MESSAGE }
-            ]
-        };
+function loadSession(memoryId) {
+    if (sessions.has(memoryId)) {
+        return sessions.get(memoryId);
     }
+    return {
+        memoryId: memoryId,
+        messages: [
+            { role: "assistant", content: DEFAULT_ASSISTANT_MESSAGE }
+        ]
+    };
 }
 
-async function saveSession(session) {
-    const sessionFile = path.join(SESSION_DIR, `${session.memoryId}.json`);
-    await fs.promises.writeFile(sessionFile, JSON.stringify(session, null, 2), 'utf8');
+function saveSession(session) {
+    sessions.set(session.memoryId, session);
+    // Optional: batasi jumlah session (hapus yang lama)
+    if (sessions.size > 100) {
+        const firstKey = sessions.keys().next().value;
+        sessions.delete(firstKey);
+    }
 }
 
 function parseChunk(line) {
@@ -70,7 +71,7 @@ function parseChunk(line) {
 async function askQuestion(prompt, sessionId = null) {
     if (!sessionId) sessionId = makeMemoryId();
     
-    const session = await loadSession(sessionId);
+    const session = loadSession(sessionId);
     
     const userMessage = { role: "user", content: prompt };
     
@@ -127,7 +128,7 @@ async function askQuestion(prompt, sessionId = null) {
             if (answer) {
                 session.messages.push({ role: "assistant", content: answer });
             }
-            await saveSession(session);
+            saveSession(session);
             
             resolve({
                 status: true,
@@ -145,7 +146,6 @@ async function askQuestion(prompt, sessionId = null) {
 
 module.exports = (app) => {
     
-    // ==================== FEELBETTER AI (PAKE ?text=) ====================
     app.get('/ai/feelbetter', async (req, res) => {
         const { text, sid } = req.query;
         
