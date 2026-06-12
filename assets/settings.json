@@ -25,16 +25,6 @@
         "text": "Teks atau pertanyaan yang ingin diajukan ke AI."
       }
     },
-    {
-  "name": "FeelBetter AI",
-  "desc": "Chat dengan AI therapist (gratis, tanpa login). Pakai parameter text untuk bertanya.",
-  "path": "/ai/feelbetter?text=",
-  "status": "ready",
-  "params": {
-    "text": "Pesan atau pertanyaan yang ingin disampaikan (contoh: halo, siapa kamu?)",
-    "sid": "(Opsional) Session ID dari response sebelumnya untuk lanjutkan percakapan"
-  }
-    },
 {
   "name": "Easemate AI Edit Image",
   "desc": "Edit gambar dengan AI (ubah style, warna, dll). Tambahkan &raw=true untuk hasil langsung gambar",
