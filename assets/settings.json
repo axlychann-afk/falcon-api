@@ -25,6 +25,17 @@
         "text": "Teks atau pertanyaan yang ingin diajukan ke AI."
       }
     },
+    {
+  "name": "FeelBetter AI",
+  "desc": "Chat dengan AI therapist (gratis, tanpa login). Session ID otomatis dibuat untuk lanjutkan percakapan.",
+  "path": "/ai/feelbetter",
+  "method": "POST",
+  "status": "ready",
+  "params": {
+    "message": "Pesan atau pertanyaan yang ingin disampaikan (wajib)",
+    "session_id": "(Opsional) ID sesi dari response sebelumnya untuk lanjutkan percakapan"
+  }
+    },
 {
   "name": "Easemate AI Edit Image",
   "desc": "Edit gambar dengan AI (ubah style, warna, dll). Tambahkan &raw=true untuk hasil langsung gambar",
