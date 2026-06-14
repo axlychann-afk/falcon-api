@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Axly API — Fast, modern, interactive API documentation.">
   <meta name="theme-color" content="#000000">
+  <meta property="og:title" content="Axly API" />
+  <meta property="og:description" content="API Bot WhatsApp — platform terintegrasi untuk mengotomatiskan komunikasi WhatsApp-mu." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://axlyapi.qzz.io/docs" />
+  <meta property="og:image" content="https://axlyapi.qzz.io/opengraph.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Axly API" />
+  <meta name="twitter:description" content="API Bot WhatsApp — platform terintegrasi untuk mengotomatiskan komunikasi WhatsApp-mu." />
+  <meta name="twitter:image" content="https://axlyapi.qzz.io/opengraph.jpg" />
   <title>Axly API</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -645,7 +654,7 @@ async function executeTryOut(ev) {
   }
 
   // cURL preview
-  document.getElementById('curl-content').textContent = buildCurl(method, url, fd);
+  document.getElementById('curl-content').textContent = buildCurl(method, 'https://axlyapi.qzz.io' + url, fd);
   document.getElementById('modal-curl').classList.remove('hidden');
 
   setExecBusy(true);
