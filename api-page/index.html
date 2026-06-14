@@ -1,1452 +1,857 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
-
+<html lang="en">
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <meta name="description"
-          content="Browse through our collection of code snippets, scripts, and tools.">
-
-    <meta name="theme-color"
-          content="#020617">
-
-    <title>Axly-API.</title>
-
-    <link rel="icon"
-          href="/assets/icon.png"
-          type="image/jpeg">
-
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <link rel="preconnect"
-          href="https://fonts.googleapis.com">
-
-    <link rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossorigin>
-
-    <link rel="stylesheet"
-          href="https://fonts.googleapis.com/icon?family=Material+Icons">
-
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap"
-          rel="stylesheet">
-
-    <script>
-
-        tailwind.config = {
-
-            darkMode: 'class',
-
-            theme: {
-
-                extend: {
-
-                    fontFamily: {
-
-                        'mono': ['Ubuntu Mono', 'monospace'],
-                        'sans': ['Inter', 'system-ui', 'sans-serif']
-
-                    }
-
-                }
-
-            }
-
-        }
-
-    </script>
-
-    <style>
-
-        * {
-            scroll-behavior: smooth;
-        }
-
-        body {
-
-            background:
-                radial-gradient(circle at top left, rgba(99,102,241,0.12), transparent 30%),
-                radial-gradient(circle at bottom right, rgba(168,85,247,0.12), transparent 30%),
-                #020617;
-
-        }
-
-        ::-webkit-scrollbar {
-            width: 0;
-            height: 0;
-        }
-
-        .glass {
-
-            backdrop-filter: blur(20px) saturate(180%);
-            background: rgba(15, 23, 42, 0.75);
-
-            border: 1px solid rgba(255,255,255,0.06);
-
-            box-shadow: 0 10px 35px rgba(0,0,0,0.35);
-
-        }
-
-        .gradient-text {
-
-            background: linear-gradient(
-                135deg,
-                #818cf8 0%,
-                #a855f7 50%,
-                #ec4899 100%
-            );
-
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-
-            background-clip: text;
-
-        }
-
-        .loader {
-
-            width: 28px;
-            height: 28px;
-
-            border: 3px solid rgba(255,255,255,0.15);
-
-            border-top: 3px solid #818cf8;
-
-            border-radius: 50%;
-
-            animation: spin 1s linear infinite;
-
-        }
-
-        @keyframes spin {
-
-            to {
-                transform: rotate(360deg);
-            }
-
-        }
-
-        .btn-gradient {
-
-            background: linear-gradient(
-                135deg,
-                #6366f1 0%,
-                #8b5cf6 100%
-            );
-
-            transition: .25s ease;
-
-            box-shadow: 0 10px 25px rgba(99,102,241,0.25);
-
-        }
-
-        .btn-gradient:hover {
-
-            transform: translateY(-2px);
-
-            box-shadow: 0 14px 35px rgba(99,102,241,0.45);
-
-        }
-
-        .card-ui {
-
-            background: rgba(17, 24, 39, 0.75);
-
-            border: 1px solid rgba(255,255,255,0.06);
-
-            backdrop-filter: blur(16px);
-
-            border-radius: 20px;
-
-            overflow: hidden;
-
-            transition: .25s ease;
-
-        }
-
-        .card-ui:hover {
-
-            border-color: rgba(129,140,248,.35);
-
-            transform: translateY(-2px);
-
-            box-shadow: 0 14px 40px rgba(0,0,0,.35);
-
-        }
-
-        .input-ui {
-
-            background: rgba(15, 23, 42, 0.85);
-
-            border: 1px solid rgba(255,255,255,0.08);
-
-            border-radius: 16px;
-
-            transition: .25s ease;
-
-        }
-
-        .input-ui:focus {
-
-            border-color: #818cf8;
-
-            box-shadow: 0 0 0 4px rgba(99,102,241,.15);
-
-        }
-
-        .endpoint-box {
-
-            background: rgba(2, 6, 23, 0.45);
-
-            border-top: 1px solid rgba(255,255,255,0.05);
-
-        }
-
-        .response-box {
-
-            background: #020617;
-
-            border: 1px solid rgba(255,255,255,0.06);
-
-            border-radius: 16px;
-
-        }
-
-        .badge-ready {
-
-            background: rgba(34,197,94,.15);
-
-            color: #4ade80;
-
-            border: 1px solid rgba(34,197,94,.25);
-
-        }
-
-        .badge-update {
-
-            background: rgba(234,179,8,.15);
-
-            color: #facc15;
-
-            border: 1px solid rgba(234,179,8,.25);
-
-        }
-
-        .badge-error {
-
-            background: rgba(239,68,68,.15);
-
-            color: #f87171;
-
-            border: 1px solid rgba(239,68,68,.25);
-
-        }
-
-        .method-get {
-
-            background: linear-gradient(
-                135deg,
-                #10b981,
-                #059669
-            );
-
-        }
-
-        .method-post {
-
-            background: linear-gradient(
-                135deg,
-                #3b82f6,
-                #2563eb
-            );
-
-        }
-
-        .fade-in {
-
-            animation: fade .35s ease;
-
-        }
-
-        @keyframes fade {
-
-            from {
-
-                opacity: 0;
-
-                transform: translateY(8px);
-
-            }
-
-            to {
-
-                opacity: 1;
-
-                transform: translateY(0);
-
-            }
-
-        }
-
-        pre {
-
-            white-space: pre-wrap;
-
-            word-wrap: break-word;
-
-        }
-
-        @keyframes fadeOut {
-
-            to {
-
-                opacity: 0;
-
-                visibility: hidden;
-
-            }
-
-        }
-
-        .preloader-hide {
-
-            animation: fadeOut .5s ease forwards;
-
-        }
-
-    </style>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Axly API — Fast, modern, interactive API documentation.">
+  <meta name="theme-color" content="#000000">
+  <title>Axly API</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { fontFamily: { mono: ['Ubuntu Mono','monospace'], sans: ['Inter','system-ui','sans-serif'] } } }
+    };
+  </script>
+
+  <style>
+    *,:before,:after{box-sizing:border-box}
+    ::-webkit-scrollbar{width:0;height:0}
+
+    body { background:#000; }
+
+    /* PARALLAX */
+    #parallax-bg {
+      position:fixed; top:-7.5%; left:-7.5%; width:115%; height:115%;
+      background:url('https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=2940&auto=format&fit=crop') center/cover no-repeat;
+      z-index:0; transition:transform 0.08s linear; will-change:transform;
+    }
+    #parallax-overlay {
+      position:fixed; inset:0;
+      background:rgba(0,0,0,0.75);
+      z-index:1;
+    }
+
+    /* GLASS */
+    .glass {
+      backdrop-filter:blur(24px) saturate(160%);
+      background:rgba(8,8,8,0.85);
+      border:1px solid rgba(255,255,255,0.07);
+      box-shadow:0 8px 32px rgba(0,0,0,0.6);
+    }
+
+    /* GRADIENT TEXT */
+    .gradient-text {
+      background:linear-gradient(135deg,#818cf8 0%,#a855f7 50%,#ec4899 100%);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    }
+
+    /* STAT CARDS */
+    .stat-card {
+      background:rgba(8,8,8,0.9);
+      border:1px solid rgba(255,255,255,0.06);
+      backdrop-filter:blur(20px);
+      border-radius:18px; padding:18px; flex:1; min-width:0;
+      transition:.2s ease;
+    }
+    .stat-card:hover { border-color:rgba(129,140,248,.28); transform:translateY(-2px); }
+
+    /* CARDS */
+    .card-ui {
+      background:rgba(8,8,8,0.9);
+      border:1px solid rgba(255,255,255,0.06);
+      backdrop-filter:blur(20px);
+      border-radius:18px; overflow:hidden; transition:.2s ease;
+    }
+    .card-ui:hover { border-color:rgba(129,140,248,.22); }
+
+    /* INPUTS */
+    .input-ui {
+      background:rgba(5,5,5,0.95);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:14px; color:#e2e8f0;
+      transition:.2s ease;
+    }
+    .input-ui:focus { border-color:#6366f1; box-shadow:0 0 0 3px rgba(99,102,241,.15); outline:none; }
+
+    /* BUTTONS */
+    .btn-gradient {
+      background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);
+      transition:.25s ease; box-shadow:0 6px 20px rgba(99,102,241,.25);
+    }
+    .btn-gradient:hover { transform:translateY(-2px); box-shadow:0 12px 30px rgba(99,102,241,.4); }
+    .btn-gradient:active { transform:translateY(0); }
+    .btn-gradient:disabled { opacity:.6; transform:none; cursor:not-allowed; }
+
+    .btn-tryout {
+      background:rgba(99,102,241,0.12);
+      border:1px solid rgba(99,102,241,0.3);
+      color:#a5b4fc; transition:.18s ease;
+      font-size:10px; padding:3px 9px; border-radius:8px;
+      white-space:nowrap; flex-shrink:0; font-family:inherit;
+      cursor:pointer;
+    }
+    .btn-tryout:hover { background:rgba(99,102,241,0.22); border-color:rgba(99,102,241,.55); color:#c7d2fe; }
+
+    /* BADGES */
+    .badge-ready  { background:rgba(34,197,94,.12);  color:#4ade80; border:1px solid rgba(34,197,94,.2); }
+    .badge-update { background:rgba(234,179,8,.12);  color:#facc15; border:1px solid rgba(234,179,8,.2); }
+    .badge-error  { background:rgba(239,68,68,.12);  color:#f87171; border:1px solid rgba(239,68,68,.2); }
+    .method-get  { background:linear-gradient(135deg,#10b981,#059669); }
+    .method-post { background:linear-gradient(135deg,#3b82f6,#2563eb); }
+
+    /* PRELOADER */
+    .preloader-hide { animation:pl-out .5s ease forwards; }
+    @keyframes pl-out { to { opacity:0; visibility:hidden; pointer-events:none; } }
+
+    /* FADE-IN */
+    .fade-in { animation:fadein .4s ease; }
+    @keyframes fadein { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+    /* LOADER SPINNER */
+    @keyframes spin { to{transform:rotate(360deg)} }
+
+    /* MODAL */
+    #tryout-modal { position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px; }
+    #modal-backdrop { position:absolute; inset:0; background:rgba(0,0,0,0.78); backdrop-filter:blur(10px); animation:mbg-in .25s ease; }
+    @keyframes mbg-in { from{opacity:0} to{opacity:1} }
+    #modal-panel {
+      position:relative; z-index:1; width:100%; max-width:560px; max-height:92vh; overflow-y:auto;
+      background:#070707; border:1px solid rgba(255,255,255,0.09); border-radius:20px;
+      box-shadow:0 30px 80px rgba(0,0,0,0.9);
+      animation:mp-in .3s cubic-bezier(0.22,1,0.36,1);
+    }
+    @keyframes mp-in { from{opacity:0;transform:translateY(18px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+    #modal-panel::-webkit-scrollbar { width:3px; }
+    #modal-panel::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:2px; }
+
+    /* ANIMATE NUMBER */
+    .an-root { --an-dir:0.55em; display:inline-flex; align-items:baseline; white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .an-slot { position:relative; display:inline-block; overflow:hidden; }
+    .an-layer { display:inline-block; will-change:transform,opacity,filter; }
+    .an-out  { position:absolute; inset:0; }
+    .an-in  { animation:an-sl-in  450ms cubic-bezier(0.22,1,0.36,1) both, an-fd-in  350ms ease both; }
+    .an-out { animation:an-sl-out 350ms cubic-bezier(0.4,0,1,1)     both, an-fd-out 350ms cubic-bezier(0.4,0,1,1) both; }
+    @keyframes an-sl-in  { from{transform:translateY(var(--an-dir))} to{transform:translateY(0)} }
+    @keyframes an-sl-out { from{transform:translateY(0)} to{transform:translateY(calc(var(--an-dir) * -1))} }
+    @keyframes an-fd-in  { from{opacity:0;filter:blur(14px)} to{opacity:1;filter:blur(0)} }
+    @keyframes an-fd-out { from{opacity:1;filter:blur(0)} to{opacity:0;filter:blur(10px)} }
+    @media(prefers-reduced-motion:reduce){.an-in,.an-out{animation:none}}
+
+    /* FILE UPLOAD */
+    .file-drop {
+      border:2px dashed rgba(99,102,241,0.3); border-radius:12px; padding:18px;
+      text-align:center; cursor:pointer; transition:.2s ease; position:relative;
+    }
+    .file-drop:hover { border-color:rgba(99,102,241,.55); background:rgba(99,102,241,.05); }
+    .file-drop input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+
+    /* RESPONSE */
+    .response-box { background:#030303; border:1px solid rgba(255,255,255,0.06); border-radius:14px; }
+    pre { white-space:pre-wrap; word-break:break-all; }
+  </style>
 </head>
 
 <body class="text-slate-200 antialiased font-mono min-h-screen">
 
 <!-- PRELOADER -->
-
-<div id="preloader"
-     class="fixed inset-0 z-[99999] flex items-center justify-center bg-[#020617] overflow-hidden">
-
-    <!-- Glow -->
-
-    <div class="absolute w-[350px] h-[350px] bg-indigo-600/20 blur-3xl rounded-full animate-pulse"></div>
-
-    <div class="absolute w-[250px] h-[250px] bg-purple-600/20 blur-3xl rounded-full animate-pulse"></div>
-
-    <!-- Content -->
-
-    <div class="relative z-10 flex flex-col items-center">
-
-        <!-- Logo -->
-
-        <div class="relative mb-5">
-
-            <div class="absolute inset-0 bg-indigo-500 blur-2xl opacity-40 rounded-full"></div>
-
-            <img src="/assets/icon.png"
-                 class="w-24 h-24 rounded-3xl relative z-10 animate-spin"
-                 style="animation-duration: 3s;">
-
-        </div>
-
-        <!-- Title -->
-
-        <h1 class="text-4xl font-bold gradient-text mb-2">
-            Axly-API
-        </h1>
-
-        <!-- Loading Text -->
-
-        <p class="text-slate-500 text-xs tracking-[5px]">
-            LOADING...
-        </p>
-
+<div id="preloader" class="fixed inset-0 z-[99999] flex items-center justify-center bg-black overflow-hidden">
+  <!-- Dot matrix canvas -->
+  <canvas id="preloader-canvas" class="absolute inset-0 w-full h-full"></canvas>
+  <!-- Radial fade overlay -->
+  <div class="absolute inset-0" style="background:radial-gradient(ellipse at center, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)"></div>
+  <div class="absolute bottom-0 left-0 right-0 h-1/2" style="background:linear-gradient(to top,#000,transparent)"></div>
+  <!-- Content -->
+  <div class="relative z-10 flex flex-col items-center gap-5">
+    <div class="relative">
+      <div class="absolute inset-0 bg-indigo-500 blur-2xl opacity-35 rounded-full scale-150"></div>
+      <div class="w-16 h-16 rounded-2xl relative z-10 overflow-hidden border border-white/10">
+        <img src="/assets/icon.png" alt="logo" class="w-full h-full object-cover">
+      </div>
     </div>
-
+    <h1 class="text-3xl font-bold gradient-text">Axly API</h1>
+    <div class="flex items-center gap-2 text-slate-500 text-xs tracking-[4px]">
+      <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+      LOADING
+      <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" style="animation-delay:.3s"></span>
+    </div>
+  </div>
 </div>
+<script>
+(function(){
+  var canvas = document.getElementById('preloader-canvas');
+  if(!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var raf, start = 0;
+  var TOTAL = 20, DOT = 3.5;
+  var COLORS = [[99,102,241],[139,92,246],[168,85,247]];
+  var OPS = [0.3,0.3,0.3,0.5,0.5,0.5,0.8,0.8,0.8,1];
+  var PHI = 1.6180339887;
+  function rnd(x,y){ var d=Math.hypot((x*PHI-y)*x,(y*PHI-x)*y); return Math.abs(Math.tan(d*0.5)*x)%1; }
+  function resize(){ canvas.width=innerWidth*devicePixelRatio; canvas.height=innerHeight*devicePixelRatio; }
+  resize();
+  window.addEventListener('resize', resize);
+  function draw(ts){
+    if(!start) start=ts;
+    var t=(ts-start)/1000;
+    var W=canvas.width, H=canvas.height, dpr=devicePixelRatio;
+    var sc=TOTAL*dpr;
+    ctx.clearRect(0,0,W,H);
+    var cols=Math.ceil(W/sc)+1, rows=Math.ceil(H/sc)+1;
+    var cx=cols/2, cy=rows/2;
+    for(var col=0;col<cols;col++){
+      for(var row=0;row<rows;row++){
+        var so=rnd(col,row);
+        var freq=5, rand=rnd(col*Math.floor(t/freq+so+freq),row*Math.floor(t/freq+so+freq));
+        var op=OPS[Math.min(Math.floor(rand*10),9)];
+        var dist=Math.hypot(col-cx,row-cy);
+        var off=dist*0.01+rnd(col,row)*0.15;
+        var spd=t*0.5;
+        if(spd<off){ op=0; } else { op*=Math.min(1,(spd-off)/0.2); }
+        if(op<0.02) continue;
+        var ci=Math.min(Math.floor(so*3),2);
+        var c=COLORS[ci];
+        ctx.beginPath();
+        ctx.arc(col*sc, row*sc, DOT*dpr/2, 0, Math.PI*2);
+        ctx.fillStyle='rgba('+c[0]+','+c[1]+','+c[2]+','+op+')';
+        ctx.fill();
+      }
+    }
+    raf=requestAnimationFrame(draw);
+  }
+  raf=requestAnimationFrame(draw);
+  window._stopPreloaderCanvas=function(){ cancelAnimationFrame(raf); };
+})();
+</script>
 
-<main class="max-w-3xl mx-auto px-5 md:px-8 py-10">
+<!-- PARALLAX -->
+<div id="parallax-bg"></div>
+<div id="parallax-overlay"></div>
 
-<div class="text-left mb-10 fade-in">
+<!-- MAIN -->
+<main class="relative z-[2] max-w-3xl mx-auto px-5 md:px-8 py-10 pb-16">
 
+  <!-- HEADER -->
+  <div class="mb-10 fade-in">
     <div class="flex items-center gap-4 mb-5">
-
-        <div class="relative">
-
-            <div class="absolute inset-0 bg-indigo-500 blur-2xl opacity-30"></div>
-
-            <img src="/assets/icon.png"
-                 class="w-14 relative z-10 rounded-2xl">
-
+      <div class="relative flex-shrink-0">
+        <div class="absolute inset-0 bg-indigo-500 blur-xl opacity-35 rounded-full"></div>
+        <div class="w-12 h-12 rounded-xl overflow-hidden relative z-10">
+          <img src="/assets/icon.png" alt="logo" class="w-full h-full object-cover">
         </div>
-
-        <div>
-
-            <h1 class="text-4xl md:text-5xl font-bold gradient-text">
-
-                Axly-API
-
-            </h1>
-
-            <p class="text-slate-500 text-sm mt-1">
-
-                Fast • Modern • Interactive API Docs
-
-            </p>
-
-        </div>
-
+      </div>
+      <div>
+        <h1 class="text-4xl md:text-5xl font-bold gradient-text">Axly API</h1>
+        <p class="text-slate-500 text-sm mt-0.5">Fast · Modern · Interactive</p>
+      </div>
     </div>
     <div class="glass rounded-2xl p-5">
+      <p class="text-slate-300 text-sm leading-relaxed">
+        Selamat datang di dokumentasi Axly API. Jelajahi endpoint secara interaktif — klik <span class="text-indigo-400 font-semibold">Try Out</span> untuk langsung coba setiap endpoint.
+      </p>
+      <div class="mt-4 flex items-center gap-3 flex-wrap">
+        <a href="https://whatsapp.com/channel/0029Vb8I4KG84OmAVenuzJ1Z" target="_blank"
+           class="btn-gradient px-5 py-2 rounded-xl text-xs font-semibold text-white inline-flex items-center gap-2 no-underline">
+          <i class="fab fa-whatsapp"></i>Community
+        </a>
+        <span class="text-slate-600 text-xs">·</span>
+        <span class="text-slate-500 text-xs">v1.2</span>
+      </div>
+    </div>
+  </div>
 
-        <p class="text-slate-300 text-sm leading-relaxed">
-
-            Selamat datang di dokumentasi Axly-API.
-            Jelajahi endpoint API secara interaktif dengan tampilan modern,
-            cepat, dan nyaman digunakan.
-
-        </p>
-
-        <div class="mt-4 flex items-center gap-3">
-
-            <a href="https://whatsapp.com/channel/0029Vb8I4KG84OmAVenuzJ1Z"
-               target="_blank"
-               class="btn-gradient px-5 py-2 rounded-xl text-sm font-semibold text-white inline-flex items-center gap-2">
-
-                <i class="fab fa-telegram"></i>
-
-                Community
-
-            </a>
-
+  <!-- STATS -->
+  <div class="mb-8 fade-in">
+    <h2 class="text-sm font-semibold flex items-center text-slate-300 mb-4 gap-2">
+      <span class="material-icons text-indigo-400 text-base">bar_chart</span>Server Stats
+    </h2>
+    <div class="flex gap-3">
+      <div class="stat-card">
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/15 flex items-center justify-center">
+            <span class="material-icons text-indigo-400 text-sm">timer</span>
+          </div>
+          <span class="text-[11px] text-slate-500 uppercase tracking-wide">Runtime</span>
         </div>
-
-    </div>
-
-</div>
-
-<!-- NOTIFICATIONS -->
-
-<div class="mb-8 fade-in">
-
-    <div class="flex items-center justify-between mb-4">
-
-        <h2 class="text-lg font-semibold flex items-center text-white">
-
-            <span class="material-icons text-indigo-400 mr-2">
-
-                notifications
-
-            </span>
-
-            Informasi
-
-        </h2>
-
-        <span id="unread-count"
-              class="text-xs bg-indigo-500/20 border border-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full hidden">
-        </span>
-
-    </div>
-
-    <div id="notifications-list"
-         class="space-y-3">
-
-        <div class="glass rounded-2xl p-5 flex justify-center">
-
-            <div class="loader"></div>
-
+        <div id="runtime-display" class="an-root text-lg font-bold text-white leading-tight"></div>
+        <div id="runtime-raw" style="display:none"></div>
+      </div>
+      <div class="stat-card">
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-8 h-8 rounded-lg bg-purple-500/15 flex items-center justify-center">
+            <span class="material-icons text-purple-400 text-sm">bolt</span>
+          </div>
+          <span class="text-[11px] text-slate-500 uppercase tracking-wide">Total Requests</span>
         </div>
-
+        <div id="requests-display" class="an-root text-lg font-bold text-white leading-tight"></div>
+      </div>
     </div>
+  </div>
 
-</div>
-
-<!-- SEARCH -->
-
-<div class="flex items-center justify-between mb-6 fade-in">
-
-    <div class="flex-1 relative">
-
-        <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-
-            <span class="material-icons text-slate-500 text-lg">
-
-                search
-
-            </span>
-
-        </div>
-
-        <input
-            type="text"
-            id="searchInput"
-            placeholder="Search API endpoints..."
-            class="input-ui w-full pl-12 pr-5 py-4 text-sm text-slate-200 placeholder-slate-500 focus:outline-none">
-
+  <!-- SEARCH -->
+  <div class="mb-6 fade-in">
+    <div class="relative">
+      <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+        <span class="material-icons text-slate-500 text-lg">search</span>
+      </div>
+      <input type="text" id="searchInput" placeholder="Search endpoints, categories..."
+             class="input-ui w-full pl-12 pr-5 py-4 text-sm placeholder-slate-600 focus:outline-none">
     </div>
+  </div>
 
-</div>
+  <!-- API LIST -->
+  <div id="noResults" class="hidden text-center py-16">
+    <span class="material-icons text-slate-700 text-5xl mb-3 block">search_off</span>
+    <p class="text-sm text-slate-500">No endpoints found.</p>
+  </div>
+  <div id="apiList" class="space-y-3"></div>
 
-<!-- CONTENT -->
-
-<div id="content"
-     class="space-y-4">
-
-    <div id="noResults"
-         class="text-center py-16"
-         style="display: none;">
-
-        <div class="max-w-md mx-auto">
-
-            <h3 class="text-sm text-slate-400 mb-2">
-
-                No result found.
-
-            </h3>
-
-        </div>
-
-    </div>
-
-    <div id="apiList"
-         class="space-y-3"></div>
-
-</div>
-
-<!-- FOOTER -->
-
-<footer class="mt-12 text-center">
-
+  <!-- FOOTER -->
+  <footer class="mt-14 text-center">
     <div class="glass rounded-2xl p-5">
-
-        <p class="text-slate-400 text-sm">
-
-            © 2025 AxlyChann
-
-        </p>
-
-        <p class="text-slate-500 text-xs mt-2">
-
-            inspirasi design dari:
-
-            <a href="https://api.nekolabs.my.id/"
-               target="_blank"
-               class="text-indigo-400 hover:text-indigo-300">
-
-               api.nekolabs.my.id
-
-            </a>
-
-        </p>
-
+      <p class="text-slate-400 text-sm font-semibold">© 2025 Axly</p>
+      <p class="text-slate-600 text-xs mt-1">Axly API · Built with ♥</p>
     </div>
-
-</footer>
+  </footer>
 
 </main>
 
-<script>
-
-function toggleCategory(index) {
-
-    const category =
-        document.getElementById(`category-${index}`);
-
-    const icon =
-        document.getElementById(`category-icon-${index}`);
-
-    if (category.classList.contains('hidden')) {
-
-        category.classList.remove('hidden');
-
-        icon.textContent = 'expand_less';
-
-    } else {
-
-        category.classList.add('hidden');
-
-        icon.textContent = 'expand_more';
-
-    }
-
-}
-
-function toggleEndpoint(catIndex, endpointIndex) {
-
-    const endpoint =
-        document.getElementById(`endpoint-${catIndex}-${endpointIndex}`);
-
-    const icon =
-        document.getElementById(`endpoint-icon-${catIndex}-${endpointIndex}`);
-
-    if (endpoint.classList.contains('hidden')) {
-
-        endpoint.classList.remove('hidden');
-
-        icon.textContent = 'expand_less';
-
-    } else {
-
-        endpoint.classList.add('hidden');
-
-        icon.textContent = 'expand_more';
-
-    }
-
-}
-
-function generateCurlCommand(method, fullPath, formData) {
-
-    let curl = `curl -X ${method} "${fullPath}"`;
-
-    if (method === 'POST') {
-
-        for (let [key, value] of formData.entries()) {
-
-            if (value instanceof File) {
-
-                curl += ` \\\n  -F "${key}=@${value.name}"`;
-
-            } else if (value) {
-
-                curl += ` \\\n  -F "${key}=${value}"`;
-
-            }
-
-        }
-
-    }
-
-    return curl;
-
-}
-
-async function executeRequest(event, catIndex, endpointIndex, method, basePath) {
-
-    event.preventDefault();
-
-    const form =
-        document.getElementById(`form-${catIndex}-${endpointIndex}`);
-
-    const responseDiv =
-        document.getElementById(`response-${catIndex}-${endpointIndex}`);
-
-    const responseContent =
-        document.getElementById(`response-content-${catIndex}-${endpointIndex}`);
-
-    const clearButton =
-        document.getElementById(`clear-${catIndex}-${endpointIndex}`);
-
-    const infoDiv =
-        document.getElementById(`info-${catIndex}-${endpointIndex}`);
-
-    const infoContent =
-        document.getElementById(`info-content-${catIndex}-${endpointIndex}`);
-
-    const formData = new FormData(form);
-
-    let fullPath = basePath;
-
-    let options = {
-        method: method
-    };
-
-    if (method === 'GET') {
-
-        const params = new URLSearchParams();
-
-        for (const [key, value] of formData.entries()) {
-
-            if (value) params.append(key, value);
-
-        }
-
-        const queryString = params.toString();
-
-        fullPath = queryString
-            ? `${basePath}?${queryString}`
-            : basePath;
-
-    } else {
-
-        options.body = formData;
-
-    }
-
-    responseDiv.classList.remove('hidden');
-
-    responseContent.innerHTML = `
-
-        <div class="flex justify-center py-6">
-
-            <div class="loader"></div>
-
+<!-- TRY OUT MODAL -->
+<div id="tryout-modal" style="display:none">
+  <div id="modal-backdrop" onclick="closeTryOut()"></div>
+  <div id="modal-panel">
+    <!-- Header -->
+    <div class="flex items-start justify-between p-5 border-b border-white/5 gap-3">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap mb-1">
+          <span id="modal-method" class="inline-block px-3 py-1 rounded-lg text-[11px] font-bold text-white method-get">GET</span>
+          <code id="modal-path" class="text-sm text-slate-200 break-all"></code>
         </div>
-
-    `;
-    const curlCommand =
-        generateCurlCommand(method, fullPath, formData);
-
-    if (infoDiv && infoContent) {
-
-        infoContent.innerHTML = `
-
-            <span class="text-slate-400">
-
-                🔧 cURL:
-
-            </span>
-
-            <span class="text-green-400">
-
-                ${curlCommand}
-
-            </span>
-
-        `;
-
-        infoDiv.classList.remove('hidden');
-
-    }
-
-    try {
-
-        const response = await fetch(fullPath, options);
-
-        const contentType =
-            response.headers.get("content-type");
-
-        if (
-            contentType &&
-            contentType.includes("application/json")
-        ) {
-
-            const data = await response.json();
-
-            responseContent.innerHTML = `
-                <pre>${JSON.stringify(data, null, 2)}</pre>
-            `;
-
-        } else if (
-            contentType &&
-            contentType.startsWith("image/")
-        ) {
-
-            const blob = await response.blob();
-
-            const imageUrl = URL.createObjectURL(blob);
-
-            responseContent.innerHTML = `
-
-                <img src="${imageUrl}"
-                     class="max-w-full h-auto rounded-xl">
-
-            `;
-
-        } else {
-
-            const text = await response.text();
-
-            responseContent.innerHTML = `
-                <pre>${text}</pre>
-            `;
-
-        }
-
-    } catch (error) {
-
-        responseContent.innerHTML = `
-            <pre>${error}</pre>
-        `;
-
-    }
-
-    clearButton.classList.remove('hidden');
-
-}
-
-function clearResponse(catIndex, endpointIndex) {
-
-    const responseDiv =
-        document.getElementById(`response-${catIndex}-${endpointIndex}`);
-
-    const responseContent =
-        document.getElementById(`response-content-${catIndex}-${endpointIndex}`);
-
-    const clearButton =
-        document.getElementById(`clear-${catIndex}-${endpointIndex}`);
-
-    const infoDiv =
-        document.getElementById(`info-${catIndex}-${endpointIndex}`);
-
-    responseContent.innerHTML = '';
-
-    responseDiv.classList.add('hidden');
-
-    clearButton.classList.add('hidden');
-
-    if (infoDiv) {
-
-        infoDiv.classList.add('hidden');
-
-    }
-
-}
-
-async function loadApis() {
-
-    const apiList =
-        document.getElementById('apiList');
-
-    try {
-
-        const response =
-            await fetch('/assets/settings.json');
-
-        const data =
-            await response.json();
-
-        let html = '';
-
-        data.categories.forEach((category, catIndex) => {
-
-            html += `
-
-            <div class="category-group fade-in"
-                 data-category="${category.name}">
-
-                <div class="card-ui mb-3">
-
-                    <button
-                        onclick="toggleCategory(${catIndex})"
-                        class="w-full px-5 py-4 text-left flex items-center justify-between hover:bg-white/5 transition-all duration-200">
-
-                        <h2 class="font-bold flex items-center">
-
-                            <span class="material-icons text-lg mr-3 text-indigo-400">
-
-                                folder
-
-                            </span>
-
-                            <span class="truncate max-w-xs text-sm text-white">
-
-                                ${category.name}
-
-                            </span>
-
-                            <span class="ml-2 text-xs text-slate-500">
-
-                                (${category.items.length})
-
-                            </span>
-
-                        </h2>
-
-                        <span class="material-icons transition-transform duration-150"
-                              id="category-icon-${catIndex}">
-
-                              expand_more
-
-                        </span>
-
-                    </button>
-
-                    <div id="category-${catIndex}"
-                         class="hidden">
-
-            `;
-
-            category.items.forEach((item, endpointIndex) => {
-
-                const method = item.method || 'GET';
-
-                const pathParts =
-                    item.path.split('?');
-
-                const basePath =
-                    pathParts[0];
-
-                const hasFileParam =
-                    item.params &&
-                    Object.values(item.params).some(
-                        p => p?.type === 'file'
-                    );
-
-                const statusClasses = {
-
-                    'ready': 'badge-ready',
-
-                    'update': 'badge-update',
-
-                    'error': 'badge-error'
-
-                };
-
-                const statusClass =
-                    statusClasses[item.status] || 'badge-ready';
-
-                html += `
-
-                <div class="border-t border-white/5 api-item"
-
-                     data-method="${method}"
-
-                     data-path="${basePath}"
-
-                     data-alias="${item.name}"
-
-                     data-description="${item.desc}"
-
-                     data-category="${category.name}">
-
-                    <button
-                        onclick="toggleEndpoint(${catIndex}, ${endpointIndex})"
-                        class="w-full px-5 py-4 text-left flex items-center justify-between hover:bg-white/5 transition-all duration-200">
-
-                        <div class="flex items-center min-w-0 flex-1">
-
-                            <span class="inline-block px-3 py-1 rounded-lg text-xs font-semibold text-white mr-3 flex-shrink-0 ${method === 'GET' ? 'method-get' : 'method-post'}">
-
-                                ${method}
-
-                            </span>
-
-                            <div class="flex flex-col min-w-0 flex-1">
-
-                                <span class="font-semibold truncate max-w-[90%] font-mono text-sm text-slate-200"
-                                      title="${basePath}">
-
-                                      ${basePath}
-
-                                </span>
-
-                                <div class="flex items-center mt-1">
-
-                                    <span class="text-xs text-slate-500 truncate max-w-[90%]"
-                                          title="${item.name}">
-
-                                          ${item.name}
-
-                                    </span>
-
-                                    <span class="ml-2 px-2 py-0.5 text-[10px] rounded-full ${statusClass}">
-
-                                        ${item.status || 'ready'}
-
-                                    </span>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                        <span class="material-icons transition-transform duration-150 flex-shrink-0 text-slate-500"
-                              id="endpoint-icon-${catIndex}-${endpointIndex}">
-
-                              expand_more
-
-                        </span>
-
-                    </button>
-                    <div id="endpoint-${catIndex}-${endpointIndex}"
-                         class="hidden endpoint-box p-5">
-
-                        <div class="mb-4">
-
-                            <div class="text-slate-400 text-xs leading-relaxed">
-
-                                ${item.desc}
-
-                            </div>
-
-                        </div>
-
-                `;
-
-                if (item.status === 'ready') {
-
-                    html += `
-
-                    <div>
-
-                        <div class="text-slate-300 font-bold text-xs mb-3 flex items-center">
-
-                            <span class="material-icons text-sm mr-1">
-
-                                play_arrow
-
-                            </span>
-
-                            TRY IT OUT
-
-                        </div>
-
-                        <div>
-
-                            <form
-                                id="form-${catIndex}-${endpointIndex}"
-
-                                enctype="${hasFileParam
-                                    ? 'multipart/form-data'
-                                    : 'application/x-www-form-urlencoded'}"
-
-                                onsubmit="executeRequest(
-                                    event,
-                                    ${catIndex},
-                                    ${endpointIndex},
-                                    '${method}',
-                                    '${basePath}'
-                                )">
-
-                                <div class="mb-4 space-y-3">
-
-                    `;
-
-                    if (item.params) {
-
-                        Object.keys(item.params).forEach(paramName => {
-
-                            const param =
-                                item.params[paramName];
-
-                            const isRequired = true;
-
-                            const isFile =
-                                param?.type === 'file';
-
-                            const placeholder =
-                                typeof param === 'string'
-                                ? param
-                                : param.description || paramName;
-
-                            if (isFile) {
-
-                                html += `
-
-                                <div>
-
-                                    <label class="block text-xs font-medium text-slate-400 mb-2">
-
-                                        ${paramName}
-
-                                        <span class="text-red-500">*</span>
-
-                                    </label>
-
-                                    <input
-                                        type="file"
-                                        name="${paramName}"
-                                        class="input-ui w-full px-3 py-3 text-sm focus:outline-none"
-                                        ${isRequired ? 'required' : ''}>
-
-                                    <p class="text-xs text-slate-500 mt-1">
-
-                                        ${placeholder}
-
-                                    </p>
-
-                                </div>
-
-                                `;
-
-                            } else {
-
-                                html += `
-
-                                <div>
-
-                                    <label class="block text-xs font-medium text-slate-400 mb-2">
-
-                                        ${paramName}
-
-                                        ${isRequired
-                                            ? '<span class="text-red-500">*</span>'
-                                            : ''}
-
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        name="${paramName}"
-                                        class="input-ui w-full px-4 py-3 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none"
-                                        placeholder="${placeholder}"
-                                        ${isRequired ? 'required' : ''}>
-
-                                </div>
-
-                                `;
-
-                            }
-
-                        });
-
-                    }
-
-                    html += `
-
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    class="btn-gradient font-semibold text-white px-6 py-3 rounded-xl text-xs transition-all duration-200">
-
-                                    Execute
-
-                                </button>
-
-                                <button
-                                    type="button"
-
-                                    id="clear-${catIndex}-${endpointIndex}"
-
-                                    onclick="clearResponse(
-                                        ${catIndex},
-                                        ${endpointIndex}
-                                    )"
-
-                                    class="hidden bg-slate-800 border border-slate-700 hover:border-slate-500 rounded-xl font-semibold text-slate-300 px-6 py-3 text-xs transition-all duration-200 ml-2">
-
-                                    Clear
-
-                                </button>
-
-                            </form>
-
-                        </div>
-
-                    </div>
-
-                    `;
-
-                } else {
-
-                    html += `
-
-                    <div class="text-yellow-300 text-xs p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl">
-
-                        Endpoint ini tidak dapat diuji coba saat ini.
-
-                    </div>
-
-                    `;
-
-                }
-
-                html += `
-
-                    <div id="info-${catIndex}-${endpointIndex}"
-                         class="hidden mt-4 text-xs bg-slate-900/70 border border-white/5 p-4 rounded-2xl">
-
-                        <div id="info-content-${catIndex}-${endpointIndex}"
-                             class="text-green-400 font-mono break-all leading-relaxed">
-                        </div>
-
-                    </div>
-
-                    <div id="response-${catIndex}-${endpointIndex}"
-                         class="hidden mt-4">
-
-                        <div class="text-slate-300 font-bold text-xs mb-3 flex items-center">
-
-                            <span class="material-icons text-sm mr-1">
-
-                                code
-
-                            </span>
-
-                            RESPONSE
-
-                        </div>
-
-                        <div class="response-box text-white text-xs p-4">
-
-                            <div class="max-h-80 overflow-auto"
-                                 id="response-content-${catIndex}-${endpointIndex}">
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-            `;
-            });
-
-            html += `
-
-                    </div>
-
-                </div>
-
-            </div>
-
-            `;
-        });
-
-        apiList.innerHTML = html;
-
-    } catch (error) {
-
-        apiList.innerHTML = `
-
-            <div class="glass rounded-2xl p-5 text-center text-red-400 text-sm">
-
-                Failed to load API data.
-
-            </div>
-
-        `;
-
-        console.error(
-            'Error loading API data:',
-            error
-        );
-
-    }
-
-}
-async function loadNotifications() {
-
-    const notificationsList =
-        document.getElementById('notifications-list');
-
-    const unreadCountBadge =
-        document.getElementById('unread-count');
-
-    try {
-
-        const response =
-            await fetch('/notifications.json');
-
-        const notifications =
-            await response.json();
-
-        notificationsList.innerHTML = '';
-
-        let unreadCount = 0;
-
-        notifications.sort(
-            (a, b) =>
-                new Date(b.date) - new Date(a.date)
-        );
-
-        notifications.forEach(notif => {
-
-            if (!notif.read) unreadCount++;
-
-            const notifElement =
-                document.createElement('div');
-
-            notifElement.className = `
-                glass rounded-2xl p-4 text-xs
-                transition-all duration-300
-                hover:border-indigo-500/30
-                ${notif.read ? 'opacity-60' : ''}
-            `;
-
-            notifElement.innerHTML = `
-
-                <div class="flex justify-between items-start gap-3">
-
-                    <div class="flex-1">
-
-                        <p class="font-bold text-slate-200 mb-1 text-sm">
-
-                            ${notif.title}
-
-                        </p>
-
-                        <p class="text-slate-400 leading-relaxed">
-
-                            ${notif.message}
-
-                        </p>
-
-                    </div>
-
-                    <div class="flex items-center ml-4 flex-shrink-0">
-
-                        ${
-                            !notif.read
-                            ? `
-                            <div class="w-2 h-2 bg-green-400 rounded-full mr-2"
-                                 title="Unread">
-                            </div>
-                            `
-                            : ''
-                        }
-
-                        <span class="text-slate-500 text-[11px]">
-
-                            ${new Date(notif.date).toLocaleDateString(
-                                'id-ID',
-                                {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
-                                }
-                            )}
-
-                        </span>
-
-                    </div>
-
-                </div>
-
-            `;
-
-            notificationsList.appendChild(notifElement);
-
-        });
-
-        if (unreadCount > 0) {
-
-            unreadCountBadge.textContent =
-                `${unreadCount} Belum dibaca`;
-
-            unreadCountBadge.classList.remove('hidden');
-
-        }
-
-    } catch (error) {
-
-        notificationsList.innerHTML = `
-
-            <div class="glass rounded-2xl p-5 text-red-400 text-sm">
-
-                Gagal memuat notifikasi.
-
-            </div>
-
-        `;
-
-    }
-
-}
-
-document.getElementById('searchInput')
-.addEventListener('input', function() {
-
-    const searchTerm =
-        this.value.toLowerCase();
-
-    const apiItems =
-        document.querySelectorAll('.api-item');
-
-    const categories =
-        document.querySelectorAll('.category-group');
-
-    const noResults =
-        document.getElementById('noResults');
-
-    let visibleCount = 0;
-
-    apiItems.forEach(item => {
-
-        const path =
-            item.dataset.path.toLowerCase();
-
-        const alias =
-            item.dataset.alias.toLowerCase();
-
-        const description =
-            item.dataset.description.toLowerCase();
-
-        if (
-
-            path.includes(searchTerm) ||
-
-            alias.includes(searchTerm) ||
-
-            description.includes(searchTerm)
-
-        ) {
-
-            item.style.display = '';
-
-            visibleCount++;
-
-        } else {
-
-            item.style.display = 'none';
-
-        }
-
+        <p id="modal-name" class="text-[11px] text-slate-500"></p>
+      </div>
+      <button onclick="closeTryOut()"
+              class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors flex-shrink-0">
+        <span class="material-icons text-base">close</span>
+      </button>
+    </div>
+
+    <!-- Description -->
+    <div class="px-5 pt-4 pb-0">
+      <p id="modal-desc" class="text-xs text-slate-400 leading-relaxed"></p>
+    </div>
+
+    <!-- Form -->
+    <form id="tryout-form" onsubmit="executeTryOut(event)" class="p-5 space-y-3">
+      <div id="modal-params" class="space-y-3"></div>
+      <div class="flex gap-2 pt-1">
+        <button type="submit" id="exec-btn"
+                class="btn-gradient px-5 py-2.5 rounded-xl text-xs font-semibold text-white flex items-center gap-2">
+          <span id="exec-spin" class="hidden w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full" style="animation:spin .7s linear infinite"></span>
+          <span id="exec-txt">Execute</span>
+        </button>
+        <button type="button" onclick="resetModal()"
+                class="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 bg-white/5 hover:bg-white/10 border border-white/5 transition-colors flex items-center gap-1.5">
+          <span class="material-icons text-sm">refresh</span>Reset
+        </button>
+      </div>
+    </form>
+
+    <!-- cURL -->
+    <div id="modal-curl" class="hidden px-5 pb-3">
+      <div class="bg-black/60 border border-white/5 rounded-xl p-3">
+        <p class="text-[10px] text-slate-600 mb-1 uppercase tracking-wide">cURL</p>
+        <p id="curl-content" class="text-[11px] text-green-400 font-mono break-all leading-relaxed"></p>
+      </div>
+    </div>
+
+    <!-- Response -->
+    <div id="modal-response" class="hidden px-5 pb-5">
+      <div class="flex items-center justify-between mb-2">
+        <div class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+          <span class="material-icons text-sm">code</span>Response
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="resp-status" class="hidden text-[10px] px-2 py-0.5 rounded-full font-mono"></span>
+          <button onclick="copyResp()"
+                  class="text-[10px] text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-colors flex items-center gap-1">
+            <span class="material-icons text-xs">content_copy</span>Copy
+          </button>
+        </div>
+      </div>
+      <div class="response-box p-4 max-h-64 overflow-auto">
+        <div id="resp-content" class="text-xs text-slate-200"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  AnimateNumber — digit-slot spring animation
+// ═══════════════════════════════════════════
+class AnimateNumber {
+  constructor(el) {
+    this.el = el;
+    this.el.className = 'an-root ' + (this.el.className || '');
+    this.prevChars = [];
+    this.prevValue = null;
+  }
+
+  update(value, formatter) {
+    const str = formatter ? formatter(value) : String(Math.floor(value));
+    const chars = Array.from(str);
+    const prev = this.prevChars;
+    const dir = this.prevValue === null || value >= (this.prevValue || 0) ? '0.55em' : '-0.55em';
+    this.prevValue = value;
+
+    const frag = document.createDocumentFragment();
+    const offset = prev.length - chars.length;
+
+    chars.forEach((ch, i) => {
+      const prevCh = prev[i + offset] || '';
+      const changed = ch !== prevCh;
+
+      const slot = document.createElement('span');
+      slot.className = 'an-slot';
+      slot.style.setProperty('--an-dir', dir);
+
+      const inEl = document.createElement('span');
+      inEl.className = changed ? 'an-layer an-in' : 'an-layer';
+      inEl.textContent = ch;
+      slot.appendChild(inEl);
+
+      if (changed && prevCh) {
+        const outEl = document.createElement('span');
+        outEl.className = 'an-layer an-out';
+        outEl.textContent = prevCh;
+        outEl.addEventListener('animationend', () => outEl.remove(), { once: true });
+        slot.appendChild(outEl);
+      }
+      frag.appendChild(slot);
     });
 
-    categories.forEach(category => {
+    this.el.innerHTML = '';
+    this.el.appendChild(frag);
+    this.prevChars = chars;
+  }
+}
 
-        const visibleItems =
-            category.querySelectorAll('.api-item[style=""]');
-
-        if (visibleItems.length > 0) {
-
-            category.style.display = '';
-
-        } else {
-
-            category.style.display = 'none';
-
-        }
-
+// ═══════════════════════════════════════════
+//  Parallax Background
+// ═══════════════════════════════════════════
+(function() {
+  const bg = document.getElementById('parallax-bg');
+  if (!bg) return;
+  window.addEventListener('mousemove', e => {
+    const mx = e.clientX / (window.innerWidth  / 5);
+    const my = e.clientY / (window.innerHeight / 5);
+    bg.style.transform = `translate3d(-${mx}%,-${my}%,0)`;
+  });
+  if (window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientation', e => {
+      if (e.gamma === null) return;
+      const x = Math.max(-3, Math.min(3, e.gamma / 15));
+      const y = Math.max(-3, Math.min(3, ((e.beta || 0) - 45) / 15));
+      bg.style.transform = `translate3d(${x}%,${y}%,0)`;
     });
+  }
+})();
 
-    if (visibleCount === 0) {
+// ═══════════════════════════════════════════
+//  Stats counter
+// ═══════════════════════════════════════════
+let rtCounter = null, reqCounter = null;
 
-        noResults.style.display = 'block';
+function fmtRuntime(ms) {
+  const t = Math.floor(ms / 1000);
+  const d = Math.floor(t / 86400);
+  const h = Math.floor((t % 86400) / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const s = t % 60;
+  if (d) return `${d}d ${h}h ${m}m ${s}s`;
+  if (h) return `${h}h ${m}m ${s}s`;
+  if (m) return `${m}m ${s}s`;
+  return `${s}s`;
+}
 
+let lastRuntime = 0, lastTotal = 0;
+
+async function tickStats() {
+  try {
+    const r = await fetch('/stats');
+    if (!r.ok) return;
+    const d = await r.json();
+    lastRuntime = d.runtime || 0;
+    lastTotal = d.totalRequests || 0;
+  } catch {}
+
+  if (!rtCounter)  rtCounter  = new AnimateNumber(document.getElementById('runtime-display'));
+  if (!reqCounter) reqCounter = new AnimateNumber(document.getElementById('requests-display'));
+
+  rtCounter.update(lastRuntime,  v => fmtRuntime(v));
+  reqCounter.update(lastTotal,   v => v.toLocaleString('en-US'));
+
+  // local tick between fetches
+  lastRuntime += 1000;
+}
+
+// ═══════════════════════════════════════════
+//  Try Out Modal
+// ═══════════════════════════════════════════
+let _modal = { method:'GET', path:'', params:{} };
+let _lastResp = '';
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function openTryOut(method, path, paramsJson, desc, name) {
+  let params = {};
+  try { params = JSON.parse(paramsJson); } catch {}
+  _modal = { method, path, params };
+  _lastResp = '';
+
+  document.getElementById('modal-method').textContent = method;
+  document.getElementById('modal-method').className =
+    `inline-block px-3 py-1 rounded-lg text-[11px] font-bold text-white ${method==='GET'?'method-get':'method-post'}`;
+  document.getElementById('modal-path').textContent = path;
+  document.getElementById('modal-name').textContent = name || '';
+  document.getElementById('modal-desc').textContent  = desc || '';
+
+  const pc = document.getElementById('modal-params');
+  pc.innerHTML = '';
+  const keys = Object.keys(params);
+
+  if (!keys.length) {
+    pc.innerHTML = '<p class="text-xs text-slate-600 italic">No parameters required — just hit Execute.</p>';
+  } else {
+    keys.forEach(k => {
+      const p = params[k];
+      const isFile = p && (p.type === 'file' || k === 'image' || k === 'file');
+      const ph = typeof p === 'string' ? p : (p?.description || k);
+
+      const row = document.createElement('div');
+      if (isFile) {
+        row.innerHTML = `
+          <label class="block text-[11px] font-medium text-slate-400 mb-1.5">${esc(k)} <span class="text-red-400">*</span></label>
+          <div class="file-drop" id="fd-${esc(k)}">
+            <input type="file" name="${esc(k)}" accept="image/*,video/*" onchange="onFileChange(event,'${esc(k)}')">
+            <div id="fp-${esc(k)}" class="pointer-events-none">
+              <span class="material-icons text-indigo-400/60 text-3xl block mb-1">cloud_upload</span>
+              <p class="text-xs text-slate-500">Click or drag file here</p>
+              <p class="text-[10px] text-slate-600 mt-0.5">${esc(ph)}</p>
+            </div>
+          </div>`;
+      } else {
+        row.innerHTML = `
+          <div>
+            <label class="block text-[11px] font-medium text-slate-400 mb-1.5">${esc(k)} <span class="text-red-400">*</span></label>
+            <input type="text" name="${esc(k)}"
+                   class="input-ui w-full px-4 py-2.5 text-xs placeholder-slate-600"
+                   placeholder="${esc(ph)}">
+          </div>`;
+      }
+      pc.appendChild(row);
+    });
+  }
+
+  document.getElementById('modal-curl').classList.add('hidden');
+  document.getElementById('modal-response').classList.add('hidden');
+  setExecBusy(false);
+
+  const modal = document.getElementById('tryout-modal');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  // Re-animate panel
+  const panel = document.getElementById('modal-panel');
+  panel.style.animation = 'none';
+  requestAnimationFrame(() => { panel.style.animation = 'mp-in .3s cubic-bezier(0.22,1,0.36,1)'; });
+}
+
+function closeTryOut() {
+  document.getElementById('tryout-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function resetModal() {
+  document.getElementById('tryout-form').reset();
+  document.querySelectorAll('[id^="fp-"]').forEach(el => {
+    const k = el.id.slice(3);
+    el.innerHTML = `
+      <span class="material-icons text-indigo-400/60 text-3xl block mb-1">cloud_upload</span>
+      <p class="text-xs text-slate-500">Click or drag file here</p>`;
+  });
+  document.getElementById('modal-curl').classList.add('hidden');
+  document.getElementById('modal-response').classList.add('hidden');
+  _lastResp = '';
+}
+
+function onFileChange(e, key) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const preview = document.getElementById(`fp-${key}`);
+  if (!preview) return;
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      preview.innerHTML = `<img src="${ev.target.result}" class="max-h-28 rounded-lg mx-auto mb-1 block"><p class="text-[10px] text-slate-400">${esc(file.name)} (${(file.size/1024).toFixed(1)} KB)</p>`;
+    };
+    reader.readAsDataURL(file);
+  } else {
+    preview.innerHTML = `<span class="material-icons text-green-400 text-2xl block mb-1">check_circle</span><p class="text-xs text-slate-300">${esc(file.name)}</p><p class="text-[10px] text-slate-500">${(file.size/1024).toFixed(1)} KB</p>`;
+  }
+}
+
+function setExecBusy(busy) {
+  const btn  = document.getElementById('exec-btn');
+  const spin = document.getElementById('exec-spin');
+  const txt  = document.getElementById('exec-txt');
+  btn.disabled = busy;
+  spin.classList.toggle('hidden', !busy);
+  txt.textContent = busy ? 'Loading...' : 'Execute';
+}
+
+function buildCurl(method, fullUrl, fd) {
+  let cmd = `curl -X ${method} "${fullUrl}"`;
+  if (method !== 'GET' && fd) {
+    for (const [k,v] of fd.entries()) {
+      if (v instanceof File) cmd += ` \\\n  -F "${k}=@${v.name}"`;
+      else if (v)            cmd += ` \\\n  -F "${k}=${v}"`;
+    }
+  }
+  return cmd;
+}
+
+async function executeTryOut(ev) {
+  ev.preventDefault();
+  const { method, path } = _modal;
+  const fd = new FormData(document.getElementById('tryout-form'));
+
+  let url = path;
+  const ctrl = new AbortController();
+  const TIMEOUT_MS = 120_000; // 2 min — AI endpoints can be slow
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  const fetchOpts = { method, signal: ctrl.signal };
+
+  if (method === 'GET') {
+    const qs = new URLSearchParams();
+    for (const [k,v] of fd.entries()) if (v && !(v instanceof File)) qs.append(k, v);
+    if (qs.toString()) url += '?' + qs;
+  } else {
+    fetchOpts.body = fd; // browser sets correct Content-Type w/ boundary
+  }
+
+  // cURL preview
+  document.getElementById('curl-content').textContent = buildCurl(method, url, fd);
+  document.getElementById('modal-curl').classList.remove('hidden');
+
+  setExecBusy(true);
+  const respEl = document.getElementById('modal-response');
+  const respContent = document.getElementById('resp-content');
+  const statusBadge = document.getElementById('resp-status');
+  respEl.classList.remove('hidden');
+  respContent.innerHTML = '<div class="flex flex-col items-center gap-2 py-4"><div class="w-6 h-6 border-2 border-white/10 border-t-indigo-400 rounded-full" style="animation:spin .8s linear infinite"></div><p id="wait-hint" class="text-[10px] text-slate-600"></p></div>';
+
+  // Show "still processing…" hint after 10 s so the user doesn't think it froze
+  const hintTimer = setTimeout(() => {
+    const el = document.getElementById('wait-hint');
+    if (el) el.textContent = 'Masih memproses… endpoint AI bisa lambat, harap tunggu.';
+  }, 10_000);
+
+  try {
+    const res = await fetch(url, fetchOpts);
+    clearTimeout(timer);
+    clearTimeout(hintTimer);
+    const ct  = res.headers.get('content-type') || '';
+    const sc  = res.status;
+
+    statusBadge.textContent = sc;
+    statusBadge.className   = `text-[10px] px-2 py-0.5 rounded-full font-mono ${
+      sc >= 200 && sc < 300
+        ? 'bg-green-500/20 text-green-400 border border-green-500/20'
+        : sc >= 400
+        ? 'bg-red-500/20 text-red-400 border border-red-500/20'
+        : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/20'
+    }`;
+    statusBadge.classList.remove('hidden');
+
+    if (ct.includes('image/')) {
+      const blob = await res.blob();
+      const imgUrl = URL.createObjectURL(blob);
+      _lastResp = imgUrl;
+      respContent.innerHTML = `<img src="${imgUrl}" class="max-w-full rounded-lg" alt="response">`;
+    } else if (ct.includes('application/json')) {
+      const json = await res.json();
+      _lastResp = JSON.stringify(json, null, 2);
+      respContent.innerHTML = `<pre class="text-slate-200 text-[11px] leading-relaxed">${esc(_lastResp)}</pre>`;
     } else {
+      const txt = await res.text();
+      _lastResp = txt;
+      respContent.innerHTML = `<pre class="text-slate-200 text-[11px] leading-relaxed">${esc(txt)}</pre>`;
+    }
+  } catch (err) {
+    clearTimeout(timer);
+    clearTimeout(hintTimer);
+    const isTimeout = err instanceof DOMException && err.name === 'AbortError';
+    _lastResp = isTimeout ? 'Request timeout (>2 menit)' : String(err);
+    statusBadge.textContent = isTimeout ? 'Timeout' : 'Error';
+    statusBadge.className = 'text-[10px] px-2 py-0.5 rounded-full font-mono bg-red-500/20 text-red-400 border border-red-500/20';
+    statusBadge.classList.remove('hidden');
+    respContent.innerHTML = isTimeout
+      ? `<p class="text-yellow-400 text-xs">⏱ Timeout — endpoint AI ini terlalu lambat untuk dicoba langsung di browser.<br>Gunakan via WhatsApp bot atau cURL di terminal.</p>`
+      : `<pre class="text-red-400 text-[11px]">${esc(String(err))}</pre>`;
+  } finally {
+    setExecBusy(false);
+  }
+}
 
-        noResults.style.display = 'none';
+function copyResp() {
+  if (!_lastResp) return;
+  navigator.clipboard.writeText(_lastResp).then(() => {
+    const btn = document.querySelector('[onclick="copyResp()"]');
+    if (!btn) return;
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<span class="material-icons text-xs">check</span>Copied!';
+    btn.classList.add('text-green-400');
+    setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('text-green-400'); }, 2000);
+  });
+}
 
+// ═══════════════════════════════════════════
+//  Load API Categories
+// ═══════════════════════════════════════════
+async function loadApis() {
+  const list = document.getElementById('apiList');
+  list.innerHTML = `<div class="flex justify-center py-16"><div class="w-8 h-8 border-2 border-white/10 border-t-indigo-400 rounded-full" style="animation:spin .8s linear infinite"></div></div>`;
+
+  try {
+    let data = null;
+    try {
+      const r = await fetch('/settings');
+      if (r.ok) data = await r.json();
+    } catch {}
+    if (!data) {
+      const r = await fetch('/assets/settings.json');
+      data = await r.json();
     }
 
+    let html = '';
+    data.categories.forEach((cat, ci) => {
+      html += `<div class="category-group fade-in" data-cat="${esc(cat.name)}">
+        <div class="card-ui mb-1.5">
+          <button onclick="toggleCat(${ci})"
+                  class="w-full px-5 py-4 flex items-center justify-between hover:bg-white/[.03] transition-all">
+            <div class="flex items-center gap-2">
+              <span class="material-icons text-indigo-400 text-base">folder</span>
+              <span class="text-sm font-semibold text-white">${esc(cat.name)}</span>
+              <span class="text-[11px] text-slate-500">(${cat.items.length})</span>
+            </div>
+            <span class="material-icons text-slate-500 transition-transform duration-200" id="ci-${ci}">expand_more</span>
+          </button>
+          <div id="cc-${ci}" class="hidden">`;
+
+      cat.items.forEach(item => {
+        const method = item.method || 'GET';
+        const path   = (item.path || '').split('?')[0];
+        const status = item.status || 'ready';
+        const sCls   = status === 'ready' ? 'badge-ready' : status === 'update' ? 'badge-update' : 'badge-error';
+        const pJson  = esc(JSON.stringify(item.params || {}));
+        const desc   = esc(item.desc  || '');
+        const name   = esc(item.name  || '');
+        const pth    = esc(path);
+
+        html += `<div class="border-t border-white/[.04] api-item"
+                      data-path="${pth}" data-alias="${name}" data-desc="${desc}" data-cat="${esc(cat.name)}">
+          <div class="px-4 py-3 flex items-center gap-2 hover:bg-white/[.03] transition-colors">
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold text-white flex-shrink-0 ${method==='GET'?'method-get':'method-post'}">${method}</span>
+            <div class="flex flex-col min-w-0 flex-1 gap-0.5">
+              <span class="font-mono text-xs text-slate-200 truncate">${pth}</span>
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] text-slate-500 truncate">${name}</span>
+                <span class="text-[9px] px-1.5 py-0.5 rounded-full ${sCls}">${status}</span>
+              </div>
+            </div>
+            <button onclick="openTryOut('${method}','${pth}','${pJson}','${desc}','${name}')"
+                    class="btn-tryout">Try Out</button>
+          </div>
+        </div>`;
+      });
+
+      html += `</div></div></div>`;
+    });
+
+    list.innerHTML = html;
+  } catch(e) {
+    list.innerHTML = `<div class="glass rounded-2xl p-6 text-center text-red-400 text-sm">
+      <span class="material-icons block text-4xl mb-2 opacity-40">error_outline</span>
+      Failed to load API data.
+    </div>`;
+  }
+}
+
+function toggleCat(i) {
+  const c = document.getElementById(`cc-${i}`);
+  const ico = document.getElementById(`ci-${i}`);
+  if (!c) return;
+  const open = c.classList.toggle('hidden');
+  ico.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+// ═══════════════════════════════════════════
+//  Search
+// ═══════════════════════════════════════════
+document.getElementById('searchInput').addEventListener('input', function() {
+  const q = this.value.toLowerCase().trim();
+  let vis = 0;
+
+  document.querySelectorAll('.api-item').forEach(el => {
+    const match = !q
+      || el.dataset.path.toLowerCase().includes(q)
+      || el.dataset.alias.toLowerCase().includes(q)
+      || el.dataset.desc.toLowerCase().includes(q);
+    el.style.display = match ? '' : 'none';
+    if (match) vis++;
+  });
+
+  document.querySelectorAll('.category-group').forEach((g, gi) => {
+    const hasVis = [...g.querySelectorAll('.api-item')].some(el => el.style.display !== 'none');
+    g.style.display = hasVis ? '' : 'none';
+    if (q && hasVis) {
+      const cc = document.getElementById(`cc-${gi}`);
+      const ico = document.getElementById(`ci-${gi}`);
+      if (cc) { cc.classList.remove('hidden'); if (ico) ico.style.transform = 'rotate(180deg)'; }
+    }
+  });
+
+  document.getElementById('noResults').classList.toggle('hidden', !(vis === 0 && q));
 });
 
-/* LOAD PAGE */
+// ═══════════════════════════════════════════
+//  Keyboard
+// ═══════════════════════════════════════════
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTryOut(); });
 
+// ═══════════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
-
-    loadApis();
-
-    loadNotifications();
-
+  loadApis();
+  tickStats();
+  setInterval(tickStats, 1000);
 });
-
-/* PRELOADER */
 
 window.addEventListener('load', () => {
-
-    const preloader =
-        document.getElementById('preloader');
-
-    setTimeout(() => {
-
-        preloader.classList.add('preloader-hide');
-
-        setTimeout(() => {
-
-            preloader.remove();
-
-        }, 500);
-
-    }, 3000);
-
+  const pl = document.getElementById('preloader');
+  if (!pl) return;
+  setTimeout(() => {
+    if(window._stopPreloaderCanvas) window._stopPreloaderCanvas();
+    pl.classList.add('preloader-hide');
+    setTimeout(() => pl.remove(), 500);
+  }, 2200);
 });
-
 </script>
-
 </body>
-
 </html>
