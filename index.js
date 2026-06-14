@@ -95,7 +95,9 @@ global.apikey = settings.apiSettings.apikey;
 // Logging middleware
 app.use((req, res, next) => {
     console.log(chalk.bgHex('#FFFF99').hex('#333').bold(` Request: ${req.path} `));
-    if (!req.path.endsWith('/stats')) global.totalreq += 1;
+    const _skipCount = ['/', '/docs', '/home', '/stats', '/settings', '/notifications', '/favicon.svg', '/robots.txt', '/opengraph.jpg'];
+    const _isStaticAsset = req.path.startsWith('/assets/');
+    if (!_isStaticAsset && !_skipCount.includes(req.path)) global.totalreq += 1;
     const start = Date.now();
     const originalJson = res.json.bind(res);
     res.json = function (data) {
