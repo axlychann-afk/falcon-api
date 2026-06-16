@@ -1,6 +1,5 @@
-// ytdown.js - YouTube Downloader via @distube/ytdl-core
-// Jalankan dulu: npm install @distube/ytdl-core
-const ytdl = require('@distube/ytdl-core');
+// ytdown.js - YouTube Downloader via yt-dlp-exec
+const ytDlp = require('yt-dlp-exec');
 
 function formatSize(bytes) {
   if (!bytes) return '-';
@@ -19,25 +18,30 @@ function formatDuration(seconds) {
 }
 
 async function ytdownDl(url) {
-  const info = await ytdl.getInfo(url);
-  const details = info.videoDetails;
+  const info = await ytDlp(url, {
+    dumpSingleJson: true,
+    noPlaylist: true,
+    noWarnings: true,
+  });
 
   const videos = [];
   const audios = [];
 
-  for (const f of info.formats) {
-    const size = formatSize(f.contentLength ? parseInt(f.contentLength) : null);
+  for (const f of info.formats || []) {
+    if (!f.url) continue;
+    const size = formatSize(f.filesize ?? f.filesize_approx);
 
-    if (f.hasVideo && f.hasAudio && f.container === 'mp4') {
+    if (f.vcodec !== 'none' && f.acodec !== 'none' && f.ext === 'mp4') {
       videos.push({
-        resolution: f.qualityLabel || '-',
-        quality: f.qualityLabel || '-',
+        resolution: f.resolution ?? `${f.height ?? '?'}p`,
+        quality: f.height ? `${f.height}p` : (f.format_note ?? '-'),
         size,
         url: f.url
       });
-    } else if (!f.hasVideo && f.hasAudio) {
+    } else if (f.vcodec === 'none' && f.acodec && f.acodec !== 'none') {
+      const kbps = f.abr ?? f.tbr;
       audios.push({
-        quality: f.audioBitrate ? `${f.audioBitrate}k` : (f.audioQuality || 'audio'),
+        quality: kbps ? `${Math.round(kbps)}k` : (f.format_note ?? 'audio'),
         size,
         url: f.url
       });
@@ -48,10 +52,10 @@ async function ytdownDl(url) {
   audios.sort((a, b) => parseInt(b.quality) - parseInt(a.quality));
 
   return {
-    title: details.title || '-',
-    thumbnail: details.thumbnails?.slice(-1)[0]?.url || '-',
-    duration: formatDuration(parseInt(details.lengthSeconds)),
-    channel: details.author?.name || '-',
+    title: info.title || '-',
+    thumbnail: info.thumbnail || '-',
+    duration: formatDuration(info.duration),
+    channel: info.channel || info.uploader || '-',
     videos,
     audios
   };
@@ -67,25 +71,10 @@ module.exports = (app) => {
   app.get('/download/ytmp4', async (req, res) => {
     try {
       const { url } = req.query;
-
-      if (!url) {
-        return res.status(400).json({
-          status: false,
-          creator: 'AxlyDev',
-          error: 'Parameter url (link YouTube) wajib diisi'
-        });
-      }
-
-      if (!isYouTubeUrl(url)) {
-        return res.status(400).json({
-          status: false,
-          creator: 'AxlyDev',
-          error: 'URL harus dari YouTube'
-        });
-      }
+      if (!url) return res.status(400).json({ status: false, creator: 'AxlyDev', error: 'Parameter url (link YouTube) wajib diisi' });
+      if (!isYouTubeUrl(url)) return res.status(400).json({ status: false, creator: 'AxlyDev', error: 'URL harus dari YouTube' });
 
       const result = await ytdownDl(url);
-
       res.json({
         status: true,
         creator: 'AxlyDev',
@@ -96,13 +85,8 @@ module.exports = (app) => {
           videos: result.videos
         }
       });
-
     } catch (error) {
-      res.status(500).json({
-        status: false,
-        creator: 'AxlyDev',
-        error: error.message
-      });
+      res.status(500).json({ status: false, creator: 'AxlyDev', error: error.message });
     }
   });
 
@@ -110,26 +94,11 @@ module.exports = (app) => {
   app.get('/download/ytmp3', async (req, res) => {
     try {
       const { url } = req.query;
-
-      if (!url) {
-        return res.status(400).json({
-          status: false,
-          creator: 'AxlyDev',
-          error: 'Parameter url (link YouTube) wajib diisi'
-        });
-      }
-
-      if (!isYouTubeUrl(url)) {
-        return res.status(400).json({
-          status: false,
-          creator: 'AxlyDev',
-          error: 'URL harus dari YouTube'
-        });
-      }
+      if (!url) return res.status(400).json({ status: false, creator: 'AxlyDev', error: 'Parameter url (link YouTube) wajib diisi' });
+      if (!isYouTubeUrl(url)) return res.status(400).json({ status: false, creator: 'AxlyDev', error: 'URL harus dari YouTube' });
 
       const result = await ytdownDl(url);
       const bestAudio = result.audios.find(a => a.quality === '320k') || result.audios[0];
-
       res.json({
         status: true,
         creator: 'AxlyDev',
@@ -141,13 +110,8 @@ module.exports = (app) => {
           all_audios: result.audios
         }
       });
-
     } catch (error) {
-      res.status(500).json({
-        status: false,
-        creator: 'AxlyDev',
-        error: error.message
-      });
+      res.status(500).json({ status: false, creator: 'AxlyDev', error: error.message });
     }
   });
 
@@ -155,25 +119,10 @@ module.exports = (app) => {
   app.get('/download/ytdown', async (req, res) => {
     try {
       const { url } = req.query;
-
-      if (!url) {
-        return res.status(400).json({
-          status: false,
-          creator: 'AxlyDev',
-          error: 'Parameter url (link YouTube) wajib diisi'
-        });
-      }
-
-      if (!isYouTubeUrl(url)) {
-        return res.status(400).json({
-          status: false,
-          creator: 'AxlyDev',
-          error: 'URL harus dari YouTube'
-        });
-      }
+      if (!url) return res.status(400).json({ status: false, creator: 'AxlyDev', error: 'Parameter url (link YouTube) wajib diisi' });
+      if (!isYouTubeUrl(url)) return res.status(400).json({ status: false, creator: 'AxlyDev', error: 'URL harus dari YouTube' });
 
       const result = await ytdownDl(url);
-
       res.json({
         status: true,
         creator: 'AxlyDev',
@@ -186,13 +135,8 @@ module.exports = (app) => {
           audios: result.audios
         }
       });
-
     } catch (error) {
-      res.status(500).json({
-        status: false,
-        creator: 'AxlyDev',
-        error: error.message
-      });
+      res.status(500).json({ status: false, creator: 'AxlyDev', error: error.message });
     }
   });
 
