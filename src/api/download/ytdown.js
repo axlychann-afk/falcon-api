@@ -1,4 +1,5 @@
 // ytdown.js - YouTube Downloader via yt-dlp-exec
+// Install dulu: npm install yt-dlp-exec
 const ytDlp = require('yt-dlp-exec');
 
 function formatSize(bytes) {
@@ -22,6 +23,7 @@ async function ytdownDl(url) {
     dumpSingleJson: true,
     noPlaylist: true,
     noWarnings: true,
+    extractorArgs: 'youtube:player_client=android,web'
   });
 
   const videos = [];
