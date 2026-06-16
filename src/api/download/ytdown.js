@@ -1,5 +1,5 @@
 // ytdown.js - YouTube Downloader via @distube/ytdl-core
-// Install dulu: npm install @distube/ytdl-core
+// Jalankan dulu: npm install @distube/ytdl-core
 const ytdl = require('@distube/ytdl-core');
 
 function formatSize(bytes) {
