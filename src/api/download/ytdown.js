@@ -1,6 +1,6 @@
-// ytdown.js - YouTube Downloader via yt-dlp-exec
-// Jalankan dulu: npm install yt-dlp-exec
-const ytDlp = require('yt-dlp-exec');
+// ytdown.js - YouTube Downloader via @distube/ytdl-core
+// Jalankan dulu: npm install @distube/ytdl-core
+const ytdl = require('@distube/ytdl-core');
 
 function formatSize(bytes) {
   if (!bytes) return '-';
@@ -19,30 +19,25 @@ function formatDuration(seconds) {
 }
 
 async function ytdownDl(url) {
-  const info = await ytDlp(url, {
-    dumpSingleJson: true,
-    noPlaylist: true,
-    noWarnings: true,
-  });
+  const info = await ytdl.getInfo(url);
+  const details = info.videoDetails;
 
   const videos = [];
   const audios = [];
 
-  for (const f of info.formats || []) {
-    if (!f.url) continue;
-    const size = formatSize(f.filesize ?? f.filesize_approx);
+  for (const f of info.formats) {
+    const size = formatSize(f.contentLength ? parseInt(f.contentLength) : null);
 
-    if (f.vcodec !== 'none' && f.acodec !== 'none' && f.ext === 'mp4') {
+    if (f.hasVideo && f.hasAudio && f.container === 'mp4') {
       videos.push({
-        resolution: f.resolution ?? `${f.height ?? '?'}p`,
-        quality: f.height ? `${f.height}p` : (f.format_note ?? '-'),
+        resolution: f.qualityLabel || '-',
+        quality: f.qualityLabel || '-',
         size,
         url: f.url
       });
-    } else if (f.vcodec === 'none' && f.acodec && f.acodec !== 'none') {
-      const kbps = f.abr ?? f.tbr;
+    } else if (!f.hasVideo && f.hasAudio) {
       audios.push({
-        quality: kbps ? `${Math.round(kbps)}k` : (f.format_note ?? 'audio'),
+        quality: f.audioBitrate ? `${f.audioBitrate}k` : (f.audioQuality || 'audio'),
         size,
         url: f.url
       });
@@ -53,10 +48,10 @@ async function ytdownDl(url) {
   audios.sort((a, b) => parseInt(b.quality) - parseInt(a.quality));
 
   return {
-    title: info.title || '-',
-    thumbnail: info.thumbnail || '-',
-    duration: formatDuration(info.duration),
-    channel: info.channel || info.uploader || '-',
+    title: details.title || '-',
+    thumbnail: details.thumbnails?.slice(-1)[0]?.url || '-',
+    duration: formatDuration(parseInt(details.lengthSeconds)),
+    channel: details.author?.name || '-',
     videos,
     audios
   };
