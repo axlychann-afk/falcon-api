@@ -1,21 +1,23 @@
 {
   "name": "@workspace/api-server",
   "version": "2.0.0",
-  "description": "Axly API - Simple and powerful API with various features",
+  "description": "Falcon API - Simple and powerful API with various features",
   "main": "index.js",
   "type": "commonjs",
   "private": true,
   "scripts": {
     "dev": "node --no-deprecation index.js",
     "start": "node --no-deprecation index.js",
-    "build": "echo 'no build step'"
+    "build": "echo 'no build step'",
+    "typecheck": "echo 'no typecheck'"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "@bochilteam/scraper-games": "^1.0.0",
     "axios": "^1.6.8",
-    "axios-cookiejar-support": "^7.0.0",
+    "axios-cookiejar-support": "^4.0.0",
     "body-parser": "^1.20.3",
     "chalk": "^4.1.2",
     "cheerio": "^1.0.0",
@@ -28,7 +30,7 @@
     "node-forge": "^1.4.0",
     "pdfkit": "^0.19.1",
     "qs": "^6.14.0",
-    "tough-cookie": "^6.0.1",
+    "tough-cookie": "^4.1.4",
     "yt-search": "^2.13.1"
   }
 }
