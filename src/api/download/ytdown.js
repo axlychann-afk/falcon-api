@@ -1,8 +1,6 @@
-// ytdown.js - YouTube Downloader via yt-dlp
-const { execFile } = require('child_process');
-const { promisify } = require('util');
-
-const execFileAsync = promisify(execFile);
+// ytdown.js - YouTube Downloader via @distube/ytdl-core
+// Install dulu: npm install @distube/ytdl-core
+const ytdl = require('@distube/ytdl-core');
 
 function formatSize(bytes) {
   if (!bytes) return '-';
@@ -12,6 +10,7 @@ function formatSize(bytes) {
 }
 
 function formatDuration(seconds) {
+  if (!seconds) return '-';
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.floor(seconds % 60);
@@ -20,31 +19,25 @@ function formatDuration(seconds) {
 }
 
 async function ytdownDl(url) {
-  const { stdout } = await execFileAsync(
-    'python3',
-    ['-m', 'yt_dlp', '--no-playlist', '-J', url],
-    { maxBuffer: 20 * 1024 * 1024, timeout: 30000 }
-  );
+  const info = await ytdl.getInfo(url);
+  const details = info.videoDetails;
 
-  const info = JSON.parse(stdout);
   const videos = [];
   const audios = [];
 
   for (const f of info.formats) {
-    if (!f.url) continue;
-    const size = formatSize(f.filesize ?? f.filesize_approx);
+    const size = formatSize(f.contentLength ? parseInt(f.contentLength) : null);
 
-    if (f.vcodec !== 'none' && f.acodec !== 'none' && f.ext === 'mp4') {
+    if (f.hasVideo && f.hasAudio && f.container === 'mp4') {
       videos.push({
-        resolution: f.resolution ?? `${f.height ?? '?'}p`,
-        quality: f.height ? `${f.height}p` : (f.format_note ?? '-'),
+        resolution: f.qualityLabel || '-',
+        quality: f.qualityLabel || '-',
         size,
         url: f.url
       });
-    } else if (f.vcodec === 'none' && f.acodec && f.acodec !== 'none') {
-      const kbps = f.abr ?? f.tbr;
+    } else if (!f.hasVideo && f.hasAudio) {
       audios.push({
-        quality: kbps ? `${Math.round(kbps)}k` : (f.format_note ?? 'audio'),
+        quality: f.audioBitrate ? `${f.audioBitrate}k` : (f.audioQuality || 'audio'),
         size,
         url: f.url
       });
@@ -55,10 +48,10 @@ async function ytdownDl(url) {
   audios.sort((a, b) => parseInt(b.quality) - parseInt(a.quality));
 
   return {
-    title: info.title || '-',
-    thumbnail: info.thumbnail || '-',
-    duration: formatDuration(info.duration),
-    channel: info.channel || info.uploader || '-',
+    title: details.title || '-',
+    thumbnail: details.thumbnails?.slice(-1)[0]?.url || '-',
+    duration: formatDuration(parseInt(details.lengthSeconds)),
+    channel: details.author?.name || '-',
     videos,
     audios
   };
