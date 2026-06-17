@@ -1,7 +1,7 @@
 {
   "name": "axly-api",
   "version": "2.0.0",
-  "description": "Axly API - Simple and powerful API",
+  "description": "Axly API — Simple and powerful API",
   "main": "index.js",
   "type": "commonjs",
   "private": true,
