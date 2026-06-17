@@ -8,6 +8,8 @@ const multer = require('multer');
 
 require("./function.js");
 
+const setupYtdlp = require('./setup-ytdlp.js');
+
 // ════════════════════════════════════════════════════
 // AXLY API · Stats & Persistence
 // ════════════════════════════════════════════════════
@@ -213,8 +215,12 @@ app.use((err, req, res, next) => {
     res.status(500).sendFile(path.join(__dirname, 'api-page', '500.html'));
 });
 
-app.listen(PORT, () => {
-    console.log(chalk.bgHex('#90EE90').hex('#333').bold(` ✅ Axly API running at http://localhost:${PORT} `));
-});
+setupYtdlp()
+  .catch(e => console.error('\x1b[31m[yt-dlp] Gagal install:', e.message, '\x1b[0m'))
+  .finally(() => {
+    app.listen(PORT, () => {
+      console.log(chalk.bgHex('#90EE90').hex('#333').bold(` ✅ Axly API running at http://localhost:${PORT} `));
+    });
+  });
 
 module.exports = app;
