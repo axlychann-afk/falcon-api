@@ -1,9 +1,166 @@
-const axios = require("axios");
+const axios = require('axios');
+const https = require('https');
+const { URL } = require('url');
 
-module.exports = (app) => {
-  app.get('/download/ytmp3', async (req, res) => {
+// ─── CONFIG ──────────────────────────────────────────────
+const BASE_URL = "https://hub.ytconvert.org/api/download";
+const HEADERS = {
+  "Content-Type": "application/json",
+  "Accept": "application/json",
+  "Origin": "https://media.ytmp3.gg",
+  "Referer": "https://media.ytmp3.gg/",
+  "User-Agent": "Mozilla/5.0"
+};
+
+const SAVENOW = {
+  api: "https://p.savenow.to",
+  key: "dfcb6d76f2f6a9894gjkege8a4ab232222",
+  agent: new https.Agent({ rejectUnauthorized: false })
+};
+
+const SS_HEADERS = {
+  'User-Agent': 'Mozilla/5.0',
+  'Content-Type': 'application/x-www-form-urlencoded',
+  'origin': 'https://ssyoutube.online',
+  'referer': 'https://ssyoutube.online/en12/'
+};
+
+// ─── UTILS ──────────────────────────────────────────────
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
+function extractVideoId(url) {
+  try {
+    const u = new URL(url);
+    if (u.searchParams.get("v")) return u.searchParams.get("v");
+    if (u.hostname.includes("youtu.be")) return u.pathname.split("/")[1];
+    if (u.pathname.includes("/shorts/")) return u.pathname.split("/shorts/")[1];
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function buildThumbnail(url, fallback = null) {
+  const id = extractVideoId(url);
+  if (!id) return fallback;
+  return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+}
+
+// ─── PRIMARY: ytconvert.org ─────────────────────────────
+async function requestConvert(payload) {
+  const res = await axios.post(BASE_URL, payload, { headers: HEADERS });
+  return res.data;
+}
+
+async function waitUntilReady(statusUrl, maxWaitMs = 60000) {
+  const startTime = Date.now();
+  while (true) {
+    if (Date.now() - startTime > maxWaitMs) {
+      throw new Error("Timeout: API tidak merespon dalam 60 detik.");
+    }
     try {
-      const { url } = req.query;
+      const { data } = await axios.get(statusUrl, {
+        headers: { "User-Agent": "Mozilla/5.0" },
+        timeout: 15000
+      });
+      if (data.status === "completed" || data.downloadUrl) return data;
+      if (data.status === "error") throw new Error("API merespon status error.");
+    } catch (e) {
+      if (e.message && e.message.includes("Timeout:")) throw e;
+    }
+    await delay(3000);
+  }
+}
+
+async function primaryMP4(url, quality = "720") {
+  const convert = await requestConvert({
+    url,
+    os: "windows",
+    output: { type: "video", format: "mp4", quality: quality + "p" }
+  });
+  const status = await waitUntilReady(convert.statusUrl);
+  return {
+    title: convert.title,
+    downloadUrl: status.downloadUrl,
+    thumbnail: buildThumbnail(url),
+    quality
+  };
+}
+
+// ─── SECONDARY: lbserver ──────────────────────────────
+async function secondaryDownload(url, quality = "720") {
+  const params = { format: quality, url };
+  const { data } = await axios.get("https://p.lbserver.xyz/ajax/download.php", { params });
+  if (!data?.progress_url) throw new Error("Progress URL tidak ditemukan.");
+  
+  return new Promise((resolve, reject) => {
+    const poll = async () => {
+      try {
+        const { data: res } = await axios.get(data.progress_url);
+        if (res.progress >= 1000) {
+          resolve({
+            title: data.title,
+            downloadUrl: res.download_url,
+            thumbnail: data.info?.image
+          });
+        } else setTimeout(poll, 500);
+      } catch (e) {
+        setTimeout(poll, 500);
+      }
+    };
+    poll();
+  });
+}
+
+// ─── TERTIARY: savenow.to ──────────────────────────────
+async function tertiaryDownload(url, quality = "720") {
+  const format = quality === "mp3" ? "mp3" : "720";
+  const { data } = await axios.get(`${SAVENOW.api}/ajax/download.php`, {
+    params: { format, url, api: SAVENOW.key },
+    httpsAgent: SAVENOW.agent
+  });
+  
+  for (let i = 0; i < 40; i++) {
+    try {
+      const { data: res } = await axios.get(data.progress_url, { httpsAgent: SAVENOW.agent });
+      if (res.success && res.download_url) {
+        return {
+          title: data.info?.title,
+          downloadUrl: res.download_url,
+          thumbnail: data.info?.image
+        };
+      }
+    } catch {}
+    await delay(2500);
+  }
+  throw new Error("Timeout: SaveNow terlalu lama merespon.");
+}
+
+// ─── QUATERNARY: ssyoutube ──────────────────────────────
+async function quaternaryDownload(url) {
+  const r = await fetch("https://ssyoutube.online/yt-video-detail/", {
+    method: "POST",
+    headers: SS_HEADERS,
+    body: new URLSearchParams({ videoURL: url })
+  });
+  const html = await r.text();
+  const title = (html.match(/videoTitle[^>]*>(.*?)</) || [])[1] || "Unknown";
+  const thumbnail = (html.match(/thumbnail" src="([^"]+)/) || [])[1];
+  
+  // Coba ambil link video dari player
+  const videoMatch = html.match(/file:"([^"]+\.mp4[^"]*)"/);
+  if (videoMatch && videoMatch[1]) {
+    return { title, thumbnail, downloadUrl: videoMatch[1] };
+  }
+  
+  throw new Error("SSYoutube tidak menemukan link video.");
+}
+
+// ─── MAIN EXPORT ─────────────────────────────────────────
+module.exports = (app) => {
+  app.get('/download/ytmp4', async (req, res) => {
+    try {
+      const { url, quality = "720" } = req.query;
       if (!url) {
         return res.status(400).json({
           status: false,
@@ -11,45 +168,46 @@ module.exports = (app) => {
         });
       }
 
-      // Panggil API Harzrest
-      const apiUrl = `https://api.harzrestapi.web.id/api/v2/ytmp3?q=${encodeURIComponent(url)}&apikey=FREE`;
-      const response = await axios.get(apiUrl);
-      const data = response.data;
+      let result = null;
+      let errors = [];
 
-      if (!data.success) {
-        return res.status(500).json({
-          status: false,
-          error: data.message || 'Gagal fetch dari API Harzrest'
-        });
-      }
-
-      // Mapping all_medias ke format Axly
-      const formats = [];
-      if (data.all_medias && Array.isArray(data.all_medias)) {
-        // Filter audio only
-        const audioMedias = data.all_medias.filter(m => m.type === 'audio');
-        for (const media of audioMedias) {
-          formats.push({
-            format: media.label || media.quality || media.ext || 'audio',
-            ext: media.ext || 'm4a',
-            bitrate: media.bitrate || null,
-            audio_quality: media.audioQuality || null,
-            audio_sample_rate: media.audioSampleRate || null,
-            download_url: media.url || null
-          });
+      // Coba Primary
+      try {
+        result = await primaryMP4(url, quality);
+      } catch (e1) {
+        errors.push(`Primary: ${e1.message}`);
+        console.error(e1.message || e1);
+        
+        // Coba Secondary
+        try {
+          result = await secondaryDownload(url, quality);
+        } catch (e2) {
+          errors.push(`Secondary: ${e2.message}`);
+          console.error(e2.message || e2);
+          
+          // Coba Tertiary
+          try {
+            result = await tertiaryDownload(url, quality);
+          } catch (e3) {
+            errors.push(`Tertiary: ${e3.message}`);
+            console.error(e3.message || e3);
+            
+            // Coba Quaternary
+            try {
+              result = await quaternaryDownload(url);
+            } catch (e4) {
+              errors.push(`Quaternary: ${e4.message}`);
+              console.error(e4.message || e4);
+              throw new Error(`Semua server gagal: ${errors.join('; ')}`);
+            }
+          }
         }
       }
 
-      // Kalau ga ada all_medias, fallback ke result.audio
-      if (formats.length === 0 && data.result && data.result.audio) {
-        const audio = data.result.audio;
-        formats.push({
-          format: audio.label || audio.quality || 'audio',
-          ext: audio.ext || 'm4a',
-          bitrate: audio.bitrate || null,
-          audio_quality: audio.audioQuality || null,
-          audio_sample_rate: audio.audioSampleRate || null,
-          download_url: audio.url || null
+      if (!result || !result.downloadUrl) {
+        return res.status(500).json({
+          status: false,
+          error: 'Gagal mendapatkan link download dari semua server'
         });
       }
 
@@ -57,15 +215,11 @@ module.exports = (app) => {
         status: true,
         creator: "AxlyDev",
         data: {
-          judul: data.title || data.result?.title || "-",
-          channel: data.author || data.result?.author || "-",
-          thumbnail: data.thumbnail || data.result?.thumbnail || "-",
-          duration: data.duration || data.result?.duration || null,
-          source: data.source || null,
-          latency: data.latency || null,
-          formats: formats.length > 0 ? formats : [
-            { format: "Audio", status: false, download_url: null }
-          ]
+          judul: result.title || "-",
+          thumbnail: result.thumbnail || buildThumbnail(url),
+          download_url: result.downloadUrl,
+          quality: result.quality || quality,
+          source: result.source || "ytconvert"
         }
       });
 
