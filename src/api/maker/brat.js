@@ -3,7 +3,7 @@
 
 module.exports = (app) => {
 
-  app.get("/tools/brat", async (req, res) => {
+  app.get("/maker/brat", async (req, res) => {
     try {
       const { text, blur } = req.query;
 
