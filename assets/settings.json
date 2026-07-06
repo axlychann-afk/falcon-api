@@ -293,6 +293,15 @@
   }
 },
     {
+  "name": "Donghua Servers",
+  "desc": "Dapatkan semua pilihan server streaming dari episode Anichin.moe (OK.ru, Dailymotion, Rumble, D-Tube, Abyssplayer, dll)",
+  "path": "/donghua/servers?slug=",
+  "status": "ready",
+  "params": {
+    "slug": "Slug episode dari Anichin (contoh: renegade-immortal-episode-148-subtitle-indonesia)"
+  }
+    },
+    {
   "name": "Search",
   "desc": "Mencari donghua/anime di Anichin.moe (otomatis ambil semua halaman hasil)",
   "path": "/donghua/search?q=",
