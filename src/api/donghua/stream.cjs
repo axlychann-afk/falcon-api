@@ -21,7 +21,6 @@ module.exports = (app) => {
     }
     
     try {
-      // Ambil halaman episode dari anichin.moe
       const { data } = await axios.get(`${BASE_URL}/${slug}/`, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -31,16 +30,14 @@ module.exports = (app) => {
       
       const $ = cheerio.load(data);
       
-      // Variabel untuk menyimpan stream
       let streamUrl = null;
       let videoId = null;
       let source = null;
       
-      // ─── 1. Cari iframe Cakrawalaweb (PLAYER BARU) ───
+      // ─── 1. Cari iframe Cakrawalaweb (PLAYER UTAMA) ───
       $('iframe[src*="player.cakrawalaweb.site"]').each((_, el) => {
         const src = $(el).attr('src');
         if (src) {
-          // Extract parameter url dari player.cakrawalaweb.site
           const urlParam = src.match(/url=([^&]+)/);
           if (urlParam) {
             const encodedUrl = urlParam[1];
@@ -51,7 +48,7 @@ module.exports = (app) => {
               decodedUrl = encodedUrl;
             }
             
-            // Coba detect platform dari decoded URL
+            // Detect platform dari decoded URL
             if (decodedUrl.includes('dailymotion')) {
               const match = decodedUrl.match(/dailymotion\.com\/video\/([a-zA-Z0-9]+)/);
               if (match) {
@@ -66,22 +63,7 @@ module.exports = (app) => {
                 streamUrl = `https://ok.ru/videoembed/${videoId}`;
                 source = 'OK.ru';
               }
-            } else if (decodedUrl.includes('youtube')) {
-              const match = decodedUrl.match(/v=([a-zA-Z0-9_-]+)/);
-              if (match) {
-                videoId = match[1];
-                streamUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-                source = 'YouTube';
-              }
-            } else if (decodedUrl.includes('rumble')) {
-              const match = decodedUrl.match(/embed\/([a-zA-Z0-9]+)/);
-              if (match) {
-                videoId = match[1];
-                streamUrl = `https://rumble.com/embed/${videoId}`;
-                source = 'Rumble';
-              }
             } else {
-              // Fallback: pake src langsung
               streamUrl = src;
               source = 'Cakrawalaweb';
             }
@@ -101,8 +83,8 @@ module.exports = (app) => {
               streamUrl = `https://www.dailymotion.com/embed/video/${videoId}?ui=0&autoplay=1`;
               source = 'Dailymotion';
             }
+            return false;
           }
-          return false;
         });
       }
       
@@ -134,23 +116,7 @@ module.exports = (app) => {
         });
       }
       
-      // ─── 5. Cari iframe YouTube ──────────────────────
-      if (!streamUrl) {
-        $('iframe[src*="youtube.com"], iframe[src*="youtu.be"]').each((_, el) => {
-          const src = $(el).attr('src');
-          if (src) {
-            const match = src.match(/v=([a-zA-Z0-9_-]+)/);
-            if (match) {
-              videoId = match[1];
-              streamUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-              source = 'YouTube';
-            }
-          }
-          return false;
-        });
-      }
-      
-      // ─── 6. Cari link Dailymotion (fallback) ──────
+      // ─── 5. Fallback: cari link Dailymotion ──────
       if (!streamUrl) {
         $('a[href*="dailymotion.com"]').each((_, el) => {
           const href = $(el).attr('href');
@@ -166,7 +132,7 @@ module.exports = (app) => {
         });
       }
       
-      // ─── 7. Fallback: cari link OK.ru ──────────────
+      // ─── 6. Fallback: cari link OK.ru ──────────────
       if (!streamUrl) {
         $('a[href*="ok.ru"]').each((_, el) => {
           const href = $(el).attr('href');
@@ -191,17 +157,13 @@ module.exports = (app) => {
         });
       }
       
-      // Ambil judul episode
       const title = $('.entry-title').text().trim() || 'Donghua Episode';
       
-      // Buat watch URL
       let watchUrl = null;
       if (source === 'OK.ru' && videoId) {
         watchUrl = `https://ok.ru/video/${videoId}`;
       } else if (source === 'Dailymotion' && videoId) {
         watchUrl = `https://www.dailymotion.com/video/${videoId}`;
-      } else if (source === 'YouTube' && videoId) {
-        watchUrl = `https://youtu.be/${videoId}`;
       } else if (source === 'Rumble' && videoId) {
         watchUrl = `https://rumble.com/v${videoId}`;
       } else if (source === 'Cakrawalaweb') {
