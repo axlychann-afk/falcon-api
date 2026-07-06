@@ -302,6 +302,15 @@
   }
     },
     {
+  "name": "Donghua Download",
+  "desc": "Dapatkan link download episode dari Anichin.moe (Mirrored, Pixeldrain, Terabox) per kualitas (360p, 480p, 720p, 1080p, 4K)",
+  "path": "/donghua/download?slug=",
+  "status": "ready",
+  "params": {
+    "slug": "Slug episode dari Anichin (contoh: renegade-immortal-episode-148-subtitle-indonesia)"
+  }
+    },
+    {
   "name": "Search",
   "desc": "Mencari donghua/anime di Anichin.moe (otomatis ambil semua halaman hasil)",
   "path": "/donghua/search?q=",
