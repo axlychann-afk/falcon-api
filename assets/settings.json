@@ -277,6 +277,12 @@
   "path": "/donghua/schedule",
   "status": "ready"
     },
+    {
+  "name": "Donghua Terpopuler",
+  "desc": "Daftar donghua terpopuler hari ini dari Anichin.moe",
+  "path": "/donghua/popular",
+  "status": "ready"
+    },
 {
   "name": "Detail",
   "desc": "Melihat detail lengkap donghua (sinopsis, genre, total episode, daftar episode)",
