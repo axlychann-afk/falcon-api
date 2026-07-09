@@ -334,6 +334,15 @@
       "name": "Anime",
       "items": [
         {
+  "name": "Animasu Search",
+  "desc": "Mencari anime di Animasu.work (support pagination)",
+  "path": "/anime/animasu/search?q=&page=",
+  "status": "ready",
+  "params": {
+    "q": "Judul anime yang ingin dicari (contoh: one punch man)"
+  }
+        },
+        {
   "name": "Animasu Detail",
   "desc": "Informasi detail anime dari Animasu.work (judul, genre, status, rating, studio, dll)",
   "path": "/anime/animasu/detail?url=",
