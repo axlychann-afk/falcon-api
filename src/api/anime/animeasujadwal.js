@@ -25,11 +25,11 @@ module.exports = (app) => {
 
       const $ = cheerio.load(data);
       
-      // Ambil semua teks dari .postbody
       const rawText = $('.postbody').text();
       const lines = rawText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
 
-      const days = ['Kamis', 'Jumat', 'Sabtu', 'Minggu', 'Senin', 'Selasa', 'Rabu'];
+      // ─── URUTAN HARI YANG BENAR ──────────────────────────
+      const daysInOrder = ['Kamis', 'Jumat', 'Sabtu', 'Minggu', 'Senin', 'Selasa', 'Rabu'];
       const schedule = {
         Kamis: [],
         Jumat: [],
@@ -48,7 +48,7 @@ module.exports = (app) => {
         const line = lines[i];
 
         // ─── Cek Hari ────────────────────────────────────────
-        if (days.includes(line)) {
+        if (daysInOrder.includes(line)) {
           currentDay = line;
           i++;
           continue;
@@ -79,7 +79,7 @@ module.exports = (app) => {
         // ─── Ambil Judul Anime ──────────────────────────────
         if (currentDay && 
             line.length > 2 && 
-            !days.includes(line) && 
+            !daysInOrder.includes(line) && 
             line !== 'Update Acak' &&
             line !== "Jum'at" &&
             !line.match(/^\d+$/)) {
@@ -92,12 +92,12 @@ module.exports = (app) => {
         i++;
       }
 
-      // ─── Hapus hari kosong ──────────────────────────────
-      for (const day of Object.keys(schedule)) {
-        if (schedule[day].length === 0) {
-          delete schedule[day];
-        }
+      // ─── Buat response dengan urutan yang benar ──────────
+      const orderedSchedule = {};
+      for (const day of daysInOrder) {
+        orderedSchedule[day] = schedule[day] || [];
       }
+      orderedSchedule['Update Acak'] = schedule['Update Acak'] || [];
 
       // ─── Response ──────────────────────────────────────────
       res.json({
@@ -106,7 +106,7 @@ module.exports = (app) => {
         result: {
           source: BASE_URL,
           last_updated: new Date().toISOString(),
-          schedule: schedule
+          schedule: orderedSchedule
         }
       });
 
