@@ -25,10 +25,7 @@ module.exports = (app) => {
 
       const $ = cheerio.load(data);
       
-      const rawText = $('.postbody').text();
-      const lines = rawText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
-
-      // ─── URUTAN HARI YANG BENAR ──────────────────────────
+      // ─── URUTAN HARI ──────────────────────────────────────
       const daysInOrder = ['Kamis', 'Jumat', 'Sabtu', 'Minggu', 'Senin', 'Selasa', 'Rabu'];
       const schedule = {
         Kamis: [],
@@ -41,63 +38,41 @@ module.exports = (app) => {
         'Update Acak': []
       };
 
-      let currentDay = null;
-      let i = 0;
-
-      while (i < lines.length) {
-        const line = lines[i];
-
-        // ─── Cek Hari ────────────────────────────────────────
-        if (daysInOrder.includes(line)) {
-          currentDay = line;
-          i++;
-          continue;
-        }
-
-        // ─── Cek "Update Acak" ──────────────────────────────
-        if (line === 'Update Acak') {
-          currentDay = 'Update Acak';
-          i++;
-          continue;
-        }
-
-        // ─── Skip "Jum'at" ──────────────────────────────────
-        if (line === "Jum'at") {
-          i++;
-          continue;
-        }
-
-        // ─── Skip "Sudah Rilis!", "??", waktu, angka ────────
-        if (line === 'Sudah Rilis!' || 
-            line === '??' || 
-            line.match(/\d+h\s+\d+j\s+\d+m\s+lagi/) ||
-            line.match(/^\d+$/)) {
-          i++;
-          continue;
-        }
-
-        // ─── Ambil Judul Anime ──────────────────────────────
-        if (currentDay && 
-            line.length > 2 && 
-            !daysInOrder.includes(line) && 
-            line !== 'Update Acak' &&
-            line !== "Jum'at" &&
-            !line.match(/^\d+$/)) {
+      // ─── Ambil SEMUA .bixbox di .postbody ──────────────
+      $('.postbody .bixbox').each((_, box) => {
+        const $box = $(box);
+        
+        // Cari judul hari dari .releases h3 span
+        const dayTitle = $box.find('.releases h3 span').text().trim();
+        
+        // Cari semua anime di .listupd .bs
+        const animeList = [];
+        $box.find('.listupd .bs').each((_, el) => {
+          const $el = $(el);
+          const title = $el.find('.tt').text().trim();
+          const link = $el.find('.bsx a').attr('href');
+          const image = $el.find('img').attr('src');
+          const episode = $el.find('.bt .epx').text().trim();
+          const subStatus = $el.find('.bt .sb').text().trim();
           
-          schedule[currentDay].push(line);
-          i++;
-          continue;
+          if (title) {
+            animeList.push({
+              title: title,
+              link: link,
+              image: image,
+              episode: episode,
+              sub_status: subStatus
+            });
+          }
+        });
+
+        // ─── Masukkan ke schedule ──────────────────────────
+        if (dayTitle === 'Update Acak') {
+          schedule['Update Acak'] = animeList;
+        } else if (daysInOrder.includes(dayTitle)) {
+          schedule[dayTitle] = animeList;
         }
-
-        i++;
-      }
-
-      // ─── Buat response dengan urutan yang benar ──────────
-      const orderedSchedule = {};
-      for (const day of daysInOrder) {
-        orderedSchedule[day] = schedule[day] || [];
-      }
-      orderedSchedule['Update Acak'] = schedule['Update Acak'] || [];
+      });
 
       // ─── Response ──────────────────────────────────────────
       res.json({
@@ -106,7 +81,7 @@ module.exports = (app) => {
         result: {
           source: BASE_URL,
           last_updated: new Date().toISOString(),
-          schedule: orderedSchedule
+          schedule: schedule
         }
       });
 
