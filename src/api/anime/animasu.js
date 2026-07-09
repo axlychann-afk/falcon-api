@@ -54,7 +54,7 @@ module.exports = (app) => {
                         $('img[itemprop="image"]').attr('src') ||
                         null;
 
-      // ─── Cari Stream dari Blogger ────────────────────────
+      // ─── Cari Stream ──────────────────────────────────────
       let streamUrl = null;
       let embedId = null;
       let rawHtml = null;
@@ -62,16 +62,21 @@ module.exports = (app) => {
       let height = null;
       let allowfullscreen = false;
       let scrolling = null;
+      let source = null;
       let marginwidth = null;
       let marginheight = null;
 
-      // Cari iframe Blogger
+      // Cari semua iframe
       $('#embed_holder iframe, .player-embed iframe, .video-content iframe').each((_, el) => {
         const $el = $(el);
         const src = $el.attr('src');
 
-        if (src && src.includes('blogger.com/video.g')) {
+        if (!src) return;
+
+        // ─── Blogger ──────────────────────────────────────
+        if (src.includes('blogger.com/video.g')) {
           streamUrl = src;
+          source = 'Blogger Video';
           rawHtml = $el.toString();
           width = $el.attr('width') || null;
           height = $el.attr('height') || null;
@@ -80,21 +85,36 @@ module.exports = (app) => {
           marginwidth = $el.attr('marginwidth') || null;
           marginheight = $el.attr('marginheight') || null;
 
-          // Extract token
           const tokenMatch = src.match(/token=([^&]+)/);
           if (tokenMatch) embedId = tokenMatch[1];
 
-          return false; // stop loop
+          return false;
+        }
+
+        // ─── Abyssplayer ──────────────────────────────────
+        if (src.includes('abyssplayer.com')) {
+          streamUrl = src;
+          source = 'Abyssplayer';
+          rawHtml = $el.toString();
+          width = $el.attr('width') || null;
+          height = $el.attr('height') || null;
+          allowfullscreen = $el.attr('allowfullscreen') !== undefined;
+          scrolling = $el.attr('scrolling') || null;
+
+          const idMatch = src.match(/abyssplayer\.com\/([a-zA-Z0-9_]+)/);
+          if (idMatch) embedId = idMatch[1];
+
+          return false;
         }
       });
 
-      // ─── Jika Tidak Ada Blogger ──────────────────────────
+      // ─── Jika Tidak Ada Stream ──────────────────────────
       if (!streamUrl) {
         return res.status(404).json({
           status: false,
           creator: getCreator(),
-          error: 'Link streaming Blogger tidak ditemukan',
-          note: 'Halaman ini mungkin menggunakan player lain (VidHide, Mega, dll)'
+          error: 'Link streaming tidak ditemukan',
+          note: 'Halaman ini tidak memiliki player yang didukung (Blogger/Abyssplayer)'
         });
       }
 
@@ -120,7 +140,7 @@ module.exports = (app) => {
           title: title,
           thumbnail: thumbnail,
           url: url,
-          source: 'Blogger Video',
+          source: source,
           embed_id: embedId,
           embed_url: streamUrl,
           raw_html: rawHtml,
