@@ -334,6 +334,15 @@
       "name": "Anime",
       "items": [
         {
+  "name": "Animasu Detail",
+  "desc": "Informasi detail anime dari Animasu.work (judul, genre, status, rating, studio, dll)",
+  "path": "/anime/animasu/detail?url=",
+  "status": "ready",
+  "params": {
+    "url": "URL halaman anime Animasu (contoh: https://v1.animasu.work/anime/katainaka-no-ossan-kensei-ni-naru-s2/)"
+  }
+        },
+        {
   "name": "Animasu Stream",
   "desc": "Streaming anime dari Animasu.work — support 6 slot: Blogger, VidHidePro, Mega.nz, Desustream, Abyssplayer, Short.icu",
   "path": "/anime/animasu/stream?url=",
