@@ -25,6 +25,7 @@ module.exports = (app) => {
 
       const $ = cheerio.load(data);
       
+      // Ambil semua teks dari .postbody
       const rawText = $('.postbody').text();
       const lines = rawText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
 
@@ -60,123 +61,30 @@ module.exports = (app) => {
           continue;
         }
 
-        // ─── Skip "Jum'at" (typo di HTML) ──────────────────
+        // ─── Skip "Jum'at" ──────────────────────────────────
         if (line === "Jum'at") {
           i++;
           continue;
         }
 
-        // ─── Cek "Sudah Rilis!" ─────────────────────────────
-        if (line === 'Sudah Rilis!') {
-          const status = 'Sudah Rilis';
+        // ─── Skip "Sudah Rilis!", "??", waktu, angka ────────
+        if (line === 'Sudah Rilis!' || 
+            line === '??' || 
+            line.match(/\d+h\s+\d+j\s+\d+m\s+lagi/) ||
+            line.match(/^\d+$/)) {
           i++;
-          
-          // Ambil judul berikutnya
-          if (i < lines.length) {
-            let title = lines[i];
-            
-            // Skip jika title adalah "??" atau waktu
-            if (title === '??' || title.match(/\d+h\s+\d+j\s+\d+m\s+lagi/)) {
-              i++;
-              if (i < lines.length) title = lines[i];
-            }
-            
-            // Skip jika title adalah angka (episode count)
-            if (title && title.match(/^\d+$/)) {
-              i++;
-              if (i < lines.length) title = lines[i];
-            }
-            
-            // Ambil episode count dari next line
-            let episodeCount = null;
-            let nextIdx = i + 1;
-            if (nextIdx < lines.length && lines[nextIdx].match(/^\d+$/)) {
-              episodeCount = parseInt(lines[nextIdx]);
-              i = nextIdx;
-            }
-            
-            if (title && 
-                !days.includes(title) && 
-                title !== 'Update Acak' &&
-                title !== 'Sudah Rilis!' &&
-                !title.match(/^\d+$/) &&
-                !title.match(/\d+h\s+\d+j\s+\d+m\s+lagi/) &&
-                title !== '??' &&
-                title !== "Jum'at" &&
-                title.length > 2) {
-              
-              const entry = {
-                title: title,
-                status: status,
-                time: null,
-                episode_count: episodeCount
-              };
-              
-              if (currentDay && schedule[currentDay]) {
-                schedule[currentDay].push(entry);
-              }
-              i++;
-            }
-          }
           continue;
         }
 
-        // ─── Cek "??" (status unknown) ──────────────────────
-        if (line === '??') {
-          const status = 'Unknown';
-          i++;
+        // ─── Ambil Judul Anime ──────────────────────────────
+        if (currentDay && 
+            line.length > 2 && 
+            !days.includes(line) && 
+            line !== 'Update Acak' &&
+            line !== "Jum'at" &&
+            !line.match(/^\d+$/)) {
           
-          // Ambil waktu jika ada
-          let time = null;
-          if (i < lines.length && lines[i].match(/\d+h\s+\d+j\s+\d+m\s+lagi/)) {
-            time = lines[i];
-            i++;
-          }
-          
-          // Skip angka (episode count) jika ada
-          if (i < lines.length && lines[i].match(/^\d+$/)) {
-            i++;
-          }
-          
-          // Ambil judul anime
-          if (i < lines.length) {
-            let title = lines[i];
-            
-            if (title && 
-                !days.includes(title) && 
-                title !== 'Update Acak' &&
-                title !== 'Sudah Rilis!' &&
-                !title.match(/^\d+$/) &&
-                !title.match(/\d+h\s+\d+j\s+\d+m\s+lagi/) &&
-                title !== '??' &&
-                title !== "Jum'at" &&
-                title.length > 2) {
-              
-              let episodeCount = null;
-              let nextIdx = i + 1;
-              if (nextIdx < lines.length && lines[nextIdx].match(/^\d+$/)) {
-                episodeCount = parseInt(lines[nextIdx]);
-                i = nextIdx;
-              }
-              
-              const entry = {
-                title: title,
-                status: status,
-                time: time,
-                episode_count: episodeCount
-              };
-              
-              if (currentDay && schedule[currentDay]) {
-                schedule[currentDay].push(entry);
-              }
-              i++;
-            }
-          }
-          continue;
-        }
-
-        // ─── Skip angka / waktu yang berdiri sendiri ────────
-        if (line.match(/^\d+$/) || line.match(/\d+h\s+\d+j\s+\d+m\s+lagi/)) {
+          schedule[currentDay].push(line);
           i++;
           continue;
         }
@@ -191,6 +99,7 @@ module.exports = (app) => {
         }
       }
 
+      // ─── Response ──────────────────────────────────────────
       res.json({
         status: true,
         creator: getCreator(),
