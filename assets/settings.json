@@ -343,6 +343,12 @@
   }
         },
         {
+  "name": "Animasu Schedule",
+  "desc": "Jadwal rilis anime dari Animasu.work per hari (Kamis - Rabu) + Update Acak",
+  "path": "/anime/animasu/schedule",
+  "status": "ready"
+        },
+        {
   "name": "Animasu Detail",
   "desc": "Informasi detail anime dari Animasu.work (judul, genre, status, rating, studio, dll)",
   "path": "/anime/animasu/detail?url=",
