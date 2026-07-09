@@ -343,6 +343,12 @@
   }
         },
         {
+  "name": "Animasu Updates",
+  "desc": "Semua update anime terbaru dari Cbox Animasu (tanpa limit)",
+  "path": "/anime/animasu/updates",
+  "status": "ready"
+        },
+        {
   "name": "Animasu Schedule",
   "desc": "Jadwal rilis anime dari Animasu.work per hari (Kamis - Rabu) + Update Acak",
   "path": "/anime/animasu/schedule",
