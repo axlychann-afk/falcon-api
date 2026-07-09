@@ -333,6 +333,15 @@
     {
       "name": "Anime",
       "items": [
+        {
+  "name": "Animasu Stream",
+  "desc": "Streaming anime dari Animasu.work — support 6 slot: Blogger, VidHidePro, Mega.nz, Desustream, Abyssplayer, Short.icu",
+  "path": "/anime/animasu/stream?url=",
+  "status": "ready",
+  "params": {
+    "url": "URL episode Animasu (contoh: https://v1.animasu.work/nonton-bubblegum-crisis-episode-8/)"
+  }
+        },
     {
       "name": "Samehadaku Latest",
       "desc": "Mendapatkan daftar anime terbaru dari Samehadaku",
