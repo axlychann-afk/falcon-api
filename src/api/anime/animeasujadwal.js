@@ -31,6 +31,8 @@ module.exports = (app) => {
 
       // ─── URUTAN HARI ──────────────────────────────────────
       const daysInOrder = ['Kamis', 'Jumat', 'Sabtu', 'Minggu', 'Senin', 'Selasa', 'Rabu'];
+      const skipWords = ['Sudah Rilis!', '??', 'Jum\'at', 'Update Acak', '≡', '》', 'Download', 'Tipe', 'Ambisi', 'Anak-Anak', 'Anti-Sosial', 'Badass', 'Berbisnis', 'Berisik', 'Berjuang', 'Beruntung', 'Blakblakan', 'Bounty Hunter', 'Cerewet', 'Ceria', 'Ceroboh', 'Cewek', 'Couple', 'Cowok', 'Dewa', 'Dikagumi', 'Disepelekan', 'Ditakuti', 'Iblis', 'Jenius', 'Kejam', 'Legenda', 'Licik', 'Loli', 'Mencolok', 'Menyebalkan', 'Mesum', 'Monster', 'Narsis', 'Optimis', 'Overpower', 'Pemalas', 'Pemalu', 'Pemimpin', 'Penakut', 'Pendiam', 'Pesimis', 'Polos', 'Semangat', 'Setia', 'Slengekan', 'Sopan', 'Suram', 'Terkutuk', 'Totalitas', 'Tsundere', 'Vampir', 'Yandere', 'Zero To Hero'];
+      
       const schedule = {
         Kamis: [],
         Jumat: [],
@@ -62,32 +64,26 @@ module.exports = (app) => {
           continue;
         }
 
-        // ─── Skip "Jum'at" ──────────────────────────────────
-        if (line === "Jum'at") {
+        // ─── Skip waktu ──────────────────────────────────────
+        if (line.match(/\d+h\s+\d+j\s+\d+m\s+lagi/)) {
           i++;
           continue;
         }
 
-        // ─── Skip "Sudah Rilis!", "??", waktu, angka ────────
-        if (line === 'Sudah Rilis!' || 
-            line === '??' || 
-            line.match(/\d+h\s+\d+j\s+\d+m\s+lagi/) ||
-            line.match(/^\d+$/)) {
+        // ─── Skip angka ──────────────────────────────────────
+        if (line.match(/^\d+$/)) {
           i++;
           continue;
         }
 
-        // ─── Ambil Judul Anime ──────────────────────────────
-        if (currentDay && 
-            line.length > 2 && 
-            !daysInOrder.includes(line) && 
-            line !== 'Update Acak' &&
-            line !== "Jum'at" &&
-            !line.match(/^\d+$/) &&
-            !line.match(/\d+h\s+\d+j\s+\d+m\s+lagi/) &&
-            line !== 'Sudah Rilis!' &&
-            line !== '??') {
-          
+        // ─── Skip kata-kata skip ────────────────────────────
+        if (skipWords.includes(line)) {
+          i++;
+          continue;
+        }
+
+        // ─── AMBIL JUDUL! ────────────────────────────────────
+        if (currentDay && line.length > 2) {
           schedule[currentDay].push(line);
           i++;
           continue;
