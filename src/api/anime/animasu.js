@@ -54,69 +54,216 @@ module.exports = (app) => {
                         $('img[itemprop="image"]').attr('src') ||
                         null;
 
-      // ─── Cari Stream ──────────────────────────────────────
-      let streamUrl = null;
-      let embedId = null;
-      let rawHtml = null;
-      let width = null;
-      let height = null;
-      let allowfullscreen = false;
-      let scrolling = null;
-      let source = null;
-      let marginwidth = null;
-      let marginheight = null;
+      // ─── Kumpulkan SEMUA iframe ──────────────────────────
+      const streams = [];
+      const allIframes = [];
 
-      // Cari semua iframe
+      // Kumpulkan semua iframe dari berbagai selector
       $('#embed_holder iframe, .player-embed iframe, .video-content iframe').each((_, el) => {
         const $el = $(el);
         const src = $el.attr('src');
-
-        if (!src) return;
-
-        // ─── Blogger ──────────────────────────────────────
-        if (src.includes('blogger.com/video.g')) {
-          streamUrl = src;
-          source = 'Blogger Video';
-          rawHtml = $el.toString();
-          width = $el.attr('width') || null;
-          height = $el.attr('height') || null;
-          allowfullscreen = $el.attr('allowfullscreen') !== undefined;
-          scrolling = $el.attr('scrolling') || null;
-          marginwidth = $el.attr('marginwidth') || null;
-          marginheight = $el.attr('marginheight') || null;
-
-          const tokenMatch = src.match(/token=([^&]+)/);
-          if (tokenMatch) embedId = tokenMatch[1];
-
-          return false;
-        }
-
-        // ─── Abyssplayer ──────────────────────────────────
-        if (src.includes('abyssplayer.com')) {
-          streamUrl = src;
-          source = 'Abyssplayer';
-          rawHtml = $el.toString();
-          width = $el.attr('width') || null;
-          height = $el.attr('height') || null;
-          allowfullscreen = $el.attr('allowfullscreen') !== undefined;
-          scrolling = $el.attr('scrolling') || null;
-
-          const idMatch = src.match(/abyssplayer\.com\/([a-zA-Z0-9_]+)/);
-          if (idMatch) embedId = idMatch[1];
-
-          return false;
-        }
+        if (src) allIframes.push({ src, el: $el });
       });
 
-      // ─── Jika Tidak Ada Stream ──────────────────────────
-      if (!streamUrl) {
-        return res.status(404).json({
-          status: false,
-          creator: getCreator(),
-          error: 'Link streaming tidak ditemukan',
-          note: 'Halaman ini tidak memiliki player yang didukung (Blogger/Abyssplayer)'
+      // ─── DETECT & KLASIFIKASI ────────────────────────────
+      for (const { src, el } of allIframes) {
+        let slot = null;
+        let platform = null;
+        let embedId = null;
+        let embedKey = null;
+        let isResponsive = false;
+        let width = el.attr('width') || null;
+        let height = el.attr('height') || null;
+        let loading = el.attr('loading') || null;
+        let allowfullscreen = el.attr('allowfullscreen') !== undefined;
+        let rawHtml = el.toString();
+        let scrolling = el.attr('scrolling') || null;
+        let marginwidth = el.attr('marginwidth') || null;
+        let marginheight = el.attr('marginheight') || null;
+
+        // ─── Slot 1: Blogger ──────────────────────────────
+        if (src.includes('blogger.com/video.g')) {
+          slot = 'blogger';
+          platform = 'Blogger Video';
+          const tokenMatch = src.match(/token=([^&]+)/);
+          if (tokenMatch) embedId = tokenMatch[1];
+          const originMatch = src.match(/origin=([^&]+)/);
+          isResponsive = true;
+        }
+
+        // ─── Slot 2 & 5: VidHidePro ────────────────────────
+        else if (src.includes('vidhidepro.com')) {
+          slot = 'vidhidepro';
+          platform = 'VidHidePro';
+          const idMatch = src.match(/vidhidepro\.com\/v\/([a-zA-Z0-9]+)/);
+          if (idMatch) embedId = idMatch[1];
+          isResponsive = true;
+          loading = loading || 'lazy';
+        }
+
+        // ─── Slot 2b: VidHideVip (mirror) ──────────────────
+        else if (src.includes('vidhidevip.com')) {
+          slot = 'vidhidevip';
+          platform = 'VidHideVip';
+          const idMatch = src.match(/vidhidevip\.com\/v\/([a-zA-Z0-9]+)/);
+          if (idMatch) embedId = idMatch[1];
+          isResponsive = true;
+          loading = loading || 'lazy';
+        }
+
+        // ─── Slot 3: Mega.nz ──────────────────────────────
+        else if (src.includes('mega.nz/embed')) {
+          slot = 'mega';
+          platform = 'Mega.nz';
+          const match = src.match(/mega\.nz\/embed\/([^#]+)#([^\s&]+)/);
+          if (match) {
+            embedId = match[1];
+            embedKey = match[2];
+          }
+          isResponsive = false;
+        }
+
+        // ─── Slot 4: Desustream ────────────────────────────
+        else if (src.includes('desustream.info')) {
+          slot = 'desustream';
+          platform = 'Desustream';
+          const idMatch = src.match(/id=([^&]+)/);
+          if (idMatch) {
+            embedId = idMatch[1];
+            try {
+              const decoded = Buffer.from(embedId, 'base64').toString('utf-8');
+              embedKey = decoded;
+            } catch {}
+          }
+          let variant = 'unknown';
+          if (src.includes('/ondesu/new/hd/')) variant = 'ondesu_new_hd';
+          else if (src.includes('/ondesu/')) variant = 'ondesu';
+          else if (src.includes('/arcg/')) variant = 'arcg';
+          else if (src.includes('/dstream/')) variant = 'dstream';
+          isResponsive = false;
+        }
+
+        // ─── Slot 6a: Abyssplayer ──────────────────────────
+        else if (src.includes('abyssplayer.com')) {
+          slot = 'abyssplayer';
+          platform = 'Abyssplayer';
+          const idMatch = src.match(/abyssplayer\.com\/([a-zA-Z0-9_]+)/);
+          if (idMatch) embedId = idMatch[1];
+          isResponsive = false;
+        }
+
+        // ─── Slot 6b: Short.ink ─────────────────────────────
+        else if (src.includes('short.ink')) {
+          slot = 'shortink';
+          platform = 'Short.ink';
+          const idMatch = src.match(/short\.ink\/([a-zA-Z0-9_]+)/);
+          if (idMatch) embedId = idMatch[1];
+          isResponsive = false;
+        }
+
+        // ─── Slot 6c: Short.icu ─────────────────────────────
+        else if (src.includes('short.icu')) {
+          slot = 'shorticu';
+          platform = 'Short.icu';
+          const idMatch = src.match(/short\.icu\/([a-zA-Z0-9_]+)/);
+          if (idMatch) embedId = idMatch[1];
+          isResponsive = false;
+        }
+
+        // ─── NEW: OK.ru ─────────────────────────────────────
+        else if (src.includes('ok.ru')) {
+          slot = 'okru';
+          platform = 'OK.ru';
+          const idMatch = src.match(/ok\.ru\/videoembed\/(\d+)/);
+          if (idMatch) embedId = idMatch[1];
+          isResponsive = false;
+          
+          // Coba ambil title dari OK.ru page
+          try {
+            const okRes = await axios.get(src, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+              },
+              timeout: 10000
+            });
+            const ok$ = cheerio.load(okRes.data);
+            const okTitle = ok$('.vid-card_cnt .vid-card_n').text().trim();
+            if (okTitle) embedKey = okTitle;
+          } catch {}
+        }
+
+        // ─── Unknown ────────────────────────────────────────
+        else if (src && src.length > 10) {
+          slot = 'unknown';
+          platform = 'Unknown Player';
+          const idMatch = src.match(/\/([a-zA-Z0-9_\-]+)(?:\?|$)/);
+          if (idMatch) embedId = idMatch[1];
+        }
+
+        // Skip iframe kosong atau self
+        if (!src || src.includes('about:blank') || src.startsWith('javascript:')) continue;
+
+        streams.push({
+          slot: slot,
+          platform: platform,
+          embed_id: embedId,
+          embed_key: embedKey || null,
+          embed_url: src,
+          raw_html: rawHtml,
+          is_responsive: isResponsive,
+          width: width,
+          height: height,
+          loading: loading,
+          allowfullscreen: allowfullscreen,
+          scrolling: scrolling,
+          marginwidth: marginwidth,
+          marginheight: marginheight,
+          variant: slot === 'desustream' ? (src.includes('/arcg/') ? 'arcg' : src.includes('/ondesu/') ? 'ondesu' : 'default') : null
         });
       }
+
+      // ─── Ambil dari Dropdown Server ──────────────────────
+      const dropdownServers = [];
+      $('select.mirror option').each((_, el) => {
+        const $opt = $(el);
+        const value = $opt.attr('value');
+        const label = $opt.text().trim();
+        const index = $opt.attr('data-index') || null;
+
+        if (value && value !== '' && label !== 'Pilih Server/Kualitas' && label !== 'Pilih Server Video') {
+          let decodedHtml = '';
+          let embedUrl = null;
+          try {
+            decodedHtml = Buffer.from(value, 'base64').toString('utf-8');
+          } catch {
+            decodedHtml = value;
+          }
+
+          const srcMatch = decodedHtml.match(/src=["']([^"']+)["']/);
+          if (srcMatch) embedUrl = srcMatch[1];
+
+          // Detect platform dari decoded
+          let platform = 'Unknown';
+          if (decodedHtml.includes('blogger.com')) platform = 'Blogger Video';
+          else if (decodedHtml.includes('vidhidepro.com')) platform = 'VidHidePro';
+          else if (decodedHtml.includes('vidhidevip.com')) platform = 'VidHideVip';
+          else if (decodedHtml.includes('mega.nz')) platform = 'Mega.nz';
+          else if (decodedHtml.includes('desustream.info')) platform = 'Desustream';
+          else if (decodedHtml.includes('abyssplayer.com')) platform = 'Abyssplayer';
+          else if (decodedHtml.includes('short.ink')) platform = 'Short.ink';
+          else if (decodedHtml.includes('short.icu')) platform = 'Short.icu';
+          else if (decodedHtml.includes('ok.ru')) platform = 'OK.ru';
+
+          dropdownServers.push({
+            label: label,
+            index: index,
+            platform: platform,
+            embed_url: embedUrl,
+            decoded_html: decodedHtml,
+            raw_value: value
+          });
+        }
+      });
 
       // ─── Ambil Navigasi ──────────────────────────────────
       const prevEpisode = $('.nvs a[rel="prev"]').attr('href') || null;
@@ -140,22 +287,18 @@ module.exports = (app) => {
           title: title,
           thumbnail: thumbnail,
           url: url,
-          source: source,
-          embed_id: embedId,
-          embed_url: streamUrl,
-          raw_html: rawHtml,
-          width: width,
-          height: height,
-          allowfullscreen: allowfullscreen,
-          scrolling: scrolling,
-          marginwidth: marginwidth,
-          marginheight: marginheight,
+          streams: streams,
+          dropdown_servers: dropdownServers.length > 0 ? dropdownServers : null,
           navigation: {
             prev_episode: prevEpisode,
             next_episode: nextEpisode,
             anime_info: animeInfo
           },
-          download_link: downloadLink
+          download_link: downloadLink,
+          recommended: streams.find(s => 
+            s.slot !== 'unknown' && 
+            !s.platform?.includes('ADS')
+          ) || streams[0] || null
         }
       });
 
